@@ -1,0 +1,33 @@
+{
+  "compilerOptions": {
+    "target": "esnext",
+    "module": "esnext",
+    "moduleResolution": "bundler", // Giữ bundler cho Next.js 14+
+    "jsx": "react-jsx",
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "strict": true,
+    "baseUrl": ".", // Bắt buộc phải có để paths hoạt động chuẩn
+    "paths": {
+      "app/*": [
+        "./packages/app/*"
+      ],
+      "@my/ui": [
+        "./packages/ui/src/index.tsx"
+      ],
+      "@my/ui/*": [
+        "./packages/ui/*"
+      ],
+      "@my/config": [
+        "./packages/config/src/index.ts"
+      ]
+    }
+  },
+  "extends": "./tsconfig.base.json",
+  "exclude": [
+    "**/node_modules",
+    "**/dist",
+    "apps/next/.next",
+    "apps/next/out"
+  ]
+}

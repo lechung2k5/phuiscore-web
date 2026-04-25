@@ -1,0 +1,674 @@
+[
+  {
+    "id": "133604",
+    "name": "Arsenal",
+    "shortName": "ARS",
+    "stadium": "Emirates Stadium",
+    "league": "English Premier League"
+  },
+  {
+    "id": "133601",
+    "name": "Aston Villa",
+    "shortName": "AVL",
+    "stadium": "Villa Park",
+    "league": "English Premier League"
+  },
+  {
+    "id": "134301",
+    "name": "Bournemouth",
+    "shortName": "BOU",
+    "stadium": "Vitality Stadium",
+    "league": "English Premier League"
+  },
+  {
+    "id": "134355",
+    "name": "Brentford",
+    "shortName": "BRE",
+    "stadium": "Brentford Community Stadium",
+    "league": "English Premier League"
+  },
+  {
+    "id": "133619",
+    "name": "Brighton and Hove Albion",
+    "shortName": "BRI",
+    "stadium": "American Express Stadium",
+    "league": "English Premier League"
+  },
+  {
+    "id": "133623",
+    "name": "Burnley",
+    "shortName": "BUR",
+    "stadium": "Turf Moor",
+    "league": "English Premier League"
+  },
+  {
+    "id": "133610",
+    "name": "Chelsea",
+    "shortName": "CHE",
+    "stadium": "Stamford Bridge",
+    "league": "English Premier League"
+  },
+  {
+    "id": "133632",
+    "name": "Crystal Palace",
+    "shortName": "CRY",
+    "stadium": "Selhurst Park",
+    "league": "English Premier League"
+  },
+  {
+    "id": "133615",
+    "name": "Everton",
+    "shortName": "EVE",
+    "stadium": "Hill Dickinson Stadium",
+    "league": "English Premier League"
+  },
+  {
+    "id": "133600",
+    "name": "Fulham",
+    "shortName": "FUL",
+    "stadium": "Craven Cottage",
+    "league": "English Premier League"
+  },
+  {
+    "id": "133635",
+    "name": "Leeds United",
+    "shortName": "LEE",
+    "stadium": "Elland Road",
+    "league": "English Premier League"
+  },
+  {
+    "id": "133602",
+    "name": "Liverpool",
+    "shortName": "LIV",
+    "stadium": "Anfield",
+    "league": "English Premier League"
+  },
+  {
+    "id": "133613",
+    "name": "Manchester City",
+    "shortName": "MCI",
+    "stadium": "Etihad Stadium",
+    "league": "English Premier League"
+  },
+  {
+    "id": "133612",
+    "name": "Manchester United",
+    "shortName": "MUN",
+    "stadium": "Old Trafford",
+    "league": "English Premier League"
+  },
+  {
+    "id": "134777",
+    "name": "Newcastle United",
+    "shortName": "NEW",
+    "stadium": "St James Park",
+    "league": "English Premier League"
+  },
+  {
+    "id": "133720",
+    "name": "Nottingham Forest",
+    "shortName": "NOT",
+    "stadium": "City Ground",
+    "league": "English Premier League"
+  },
+  {
+    "id": "133603",
+    "name": "Sunderland",
+    "shortName": "SUN",
+    "stadium": "Stadium of Light",
+    "league": "English Premier League"
+  },
+  {
+    "id": "133616",
+    "name": "Tottenham Hotspur",
+    "shortName": "TOT",
+    "stadium": "Tottenham Hotspur Stadium",
+    "league": "English Premier League"
+  },
+  {
+    "id": "133636",
+    "name": "West Ham United",
+    "shortName": "WHU",
+    "stadium": "London Stadium",
+    "league": "English Premier League"
+  },
+  {
+    "id": "133599",
+    "name": "Wolverhampton Wanderers",
+    "shortName": "WOL",
+    "stadium": "Molineux Stadium",
+    "league": "English Premier League"
+  },
+  {
+    "id": "133727",
+    "name": "Athletic Bilbao",
+    "shortName": "ATH",
+    "stadium": "San Mamés Barria",
+    "league": "Spanish La Liga"
+  },
+  {
+    "id": "133729",
+    "name": "Atlético Madrid",
+    "shortName": "ATM",
+    "stadium": "Riyadh Air Metropolitano",
+    "league": "Spanish La Liga"
+  },
+  {
+    "id": "133739",
+    "name": "Barcelona",
+    "shortName": "FCB",
+    "stadium": "Spotify Camp Nou",
+    "league": "Spanish La Liga"
+  },
+  {
+    "id": "133937",
+    "name": "Celta Vigo",
+    "shortName": "VIG",
+    "stadium": "Estadio Abanca-Balaídos",
+    "league": "Spanish La Liga"
+  },
+  {
+    "id": "134221",
+    "name": "Deportivo Alavés",
+    "shortName": "ALA",
+    "stadium": "Estadio de Mendizorroza",
+    "league": "Spanish La Liga"
+  },
+  {
+    "id": "134384",
+    "name": "Elche",
+    "shortName": "ELC",
+    "stadium": "Estadio Martínez Valero",
+    "league": "Spanish La Liga"
+  },
+  {
+    "id": "133734",
+    "name": "Espanyol",
+    "shortName": "ESP",
+    "stadium": "RCDE Stadium",
+    "league": "Spanish La Liga"
+  },
+  {
+    "id": "133731",
+    "name": "Getafe",
+    "shortName": "GET",
+    "stadium": "Estadio Coliseum",
+    "league": "Spanish La Liga"
+  },
+  {
+    "id": "134700",
+    "name": "Girona",
+    "shortName": "GIR",
+    "stadium": "Estadi Municipal de Montilivi",
+    "league": "Spanish La Liga"
+  },
+  {
+    "id": "133732",
+    "name": "Levante",
+    "shortName": "LEV",
+    "stadium": "Estadio Ciudad de Valencia",
+    "league": "Spanish La Liga"
+  },
+  {
+    "id": "133733",
+    "name": "Mallorca",
+    "shortName": "MLA",
+    "stadium": "Estadi Mallorca Son Moix",
+    "league": "Spanish La Liga"
+  },
+  {
+    "id": "133730",
+    "name": "Osasuna",
+    "shortName": "OSA",
+    "stadium": "Estadio El Sadar",
+    "league": "Spanish La Liga"
+  },
+  {
+    "id": "133728",
+    "name": "Rayo Vallecano",
+    "shortName": "RAY",
+    "stadium": "Estadio de Vallecas",
+    "league": "Spanish La Liga"
+  },
+  {
+    "id": "133722",
+    "name": "Real Betis",
+    "shortName": "BET",
+    "stadium": "Estadio de La Cartuja",
+    "league": "Spanish La Liga"
+  },
+  {
+    "id": "133738",
+    "name": "Real Madrid",
+    "shortName": "MAD",
+    "stadium": "Estadio Santiago Bernabéu",
+    "league": "Spanish La Liga"
+  },
+  {
+    "id": "135455",
+    "name": "Real Oviedo",
+    "shortName": "REA",
+    "stadium": "Estadio Carlos Tartiere",
+    "league": "Spanish La Liga"
+  },
+  {
+    "id": "133724",
+    "name": "Real Sociedad",
+    "shortName": "SOC",
+    "stadium": "Reale Arena",
+    "league": "Spanish La Liga"
+  },
+  {
+    "id": "133735",
+    "name": "Sevilla",
+    "shortName": "SEV",
+    "stadium": "Estadio Ramón Sánchez Pizjuán",
+    "league": "Spanish La Liga"
+  },
+  {
+    "id": "133725",
+    "name": "Valencia",
+    "shortName": "VAL",
+    "stadium": "Estadio de Mestalla",
+    "league": "Spanish La Liga"
+  },
+  {
+    "id": "133740",
+    "name": "Villarreal",
+    "shortName": "VLR",
+    "stadium": "Estadio de la Cerámica",
+    "league": "Spanish La Liga"
+  },
+  {
+    "id": "133667",
+    "name": "AC Milan",
+    "shortName": "MIL",
+    "stadium": "Stadio Giuseppe Meazza",
+    "league": "Italian Serie A"
+  },
+  {
+    "id": "134782",
+    "name": "Atalanta",
+    "shortName": "ATA",
+    "stadium": "Gewiss Stadium",
+    "league": "Italian Serie A"
+  },
+  {
+    "id": "134781",
+    "name": "Bologna",
+    "shortName": "BOL",
+    "stadium": "Stadio Renato Dall'Ara",
+    "league": "Italian Serie A"
+  },
+  {
+    "id": "134783",
+    "name": "Cagliari",
+    "shortName": "CAG",
+    "stadium": "Unipol Domus",
+    "league": "Italian Serie A"
+  },
+  {
+    "id": "134243",
+    "name": "Como",
+    "shortName": "COM",
+    "stadium": "Stadio Giuseppe Sinigaglia",
+    "league": "Italian Serie A"
+  },
+  {
+    "id": "134224",
+    "name": "Cremonese",
+    "shortName": "CRE",
+    "stadium": "Stadio Giovanni Zini",
+    "league": "Italian Serie A"
+  },
+  {
+    "id": "133674",
+    "name": "Fiorentina",
+    "shortName": "FIO",
+    "stadium": "Stadio Artemio Franchi",
+    "league": "Italian Serie A"
+  },
+  {
+    "id": "133675",
+    "name": "Genoa",
+    "shortName": "GEN",
+    "stadium": "Stadio Luigi Ferraris",
+    "league": "Italian Serie A"
+  },
+  {
+    "id": "134784",
+    "name": "Hellas Verona",
+    "shortName": "HEL",
+    "stadium": "Stadio Marcantonio Bentegodi",
+    "league": "Italian Serie A"
+  },
+  {
+    "id": "133681",
+    "name": "Inter Milan",
+    "shortName": "INT",
+    "stadium": "Stadio Giuseppe Meazza",
+    "league": "Italian Serie A"
+  },
+  {
+    "id": "133676",
+    "name": "Juventus",
+    "shortName": "JUV",
+    "stadium": "Allianz Stadium Turin",
+    "league": "Italian Serie A"
+  },
+  {
+    "id": "133668",
+    "name": "Lazio",
+    "shortName": "LAZ",
+    "stadium": "Stadio Olimpico",
+    "league": "Italian Serie A"
+  },
+  {
+    "id": "133678",
+    "name": "Lecce",
+    "shortName": "LEC",
+    "stadium": "Stadio Via del mare",
+    "league": "Italian Serie A"
+  },
+  {
+    "id": "133670",
+    "name": "Napoli",
+    "shortName": "NAP",
+    "stadium": "Stadio Diego Armando Maradona",
+    "league": "Italian Serie A"
+  },
+  {
+    "id": "135728",
+    "name": "Parma",
+    "shortName": "PAR",
+    "stadium": "Stadio Ennio Tardini",
+    "league": "Italian Serie A"
+  },
+  {
+    "id": "133859",
+    "name": "Pisa",
+    "shortName": "PIS",
+    "stadium": "Arena Garibaldi - Stadio Romeo Anconetani",
+    "league": "Italian Serie A"
+  },
+  {
+    "id": "133682",
+    "name": "Roma",
+    "shortName": "ROM",
+    "stadium": "Stadio Olimpico",
+    "league": "Italian Serie A"
+  },
+  {
+    "id": "133701",
+    "name": "Sassuolo",
+    "shortName": "SAS",
+    "stadium": "Mapei Stadium – Città del Tricolore",
+    "league": "Italian Serie A"
+  },
+  {
+    "id": "133687",
+    "name": "Torino",
+    "shortName": "TOR",
+    "stadium": "Stadio Olimpico Grande Torino",
+    "league": "Italian Serie A"
+  },
+  {
+    "id": "133679",
+    "name": "Udinese",
+    "shortName": "UDI",
+    "stadium": "Bluenergy Stadium",
+    "league": "Italian Serie A"
+  },
+  {
+    "id": "133666",
+    "name": "Bayer Leverkusen",
+    "shortName": "B04",
+    "stadium": "BayArena",
+    "league": "German Bundesliga"
+  },
+  {
+    "id": "133664",
+    "name": "Bayern Munich",
+    "shortName": "BAY",
+    "stadium": "Allianz Arena",
+    "league": "German Bundesliga"
+  },
+  {
+    "id": "133650",
+    "name": "Borussia Dortmund",
+    "shortName": "DOR",
+    "stadium": "Signal Iduna Park",
+    "league": "German Bundesliga"
+  },
+  {
+    "id": "134779",
+    "name": "Borussia Mönchengladbach",
+    "shortName": "BOR",
+    "stadium": "Stadion im Borussia-Park",
+    "league": "German Bundesliga"
+  },
+  {
+    "id": "133814",
+    "name": "Eintracht Frankfurt",
+    "shortName": "SGE",
+    "stadium": "Deutsche Bank Park",
+    "league": "German Bundesliga"
+  },
+  {
+    "id": "133652",
+    "name": "FC Augsburg",
+    "shortName": "FC ",
+    "stadium": "WWK Arena",
+    "league": "German Bundesliga"
+  },
+  {
+    "id": "134696",
+    "name": "FC Heidenheim",
+    "shortName": "FC ",
+    "stadium": "Voith-Arena",
+    "league": "German Bundesliga"
+  },
+  {
+    "id": "133654",
+    "name": "FC Köln",
+    "shortName": "FC ",
+    "stadium": "RheinEnergieStadion",
+    "league": "German Bundesliga"
+  },
+  {
+    "id": "133653",
+    "name": "Freiburg",
+    "shortName": "FRE",
+    "stadium": "Europa-Park Stadion",
+    "league": "German Bundesliga"
+  },
+  {
+    "id": "133651",
+    "name": "Hamburg",
+    "shortName": "HAM",
+    "stadium": "Volksparkstadion",
+    "league": "German Bundesliga"
+  },
+  {
+    "id": "133657",
+    "name": "Hoffenheim",
+    "shortName": "HOF",
+    "stadium": "PreZero Arena",
+    "league": "German Bundesliga"
+  },
+  {
+    "id": "133665",
+    "name": "Mainz",
+    "shortName": "MAI",
+    "stadium": "MEWA ARENA",
+    "league": "German Bundesliga"
+  },
+  {
+    "id": "134695",
+    "name": "RB Leipzig",
+    "shortName": "RBL",
+    "stadium": "Leipzig Stadium",
+    "league": "German Bundesliga"
+  },
+  {
+    "id": "133813",
+    "name": "St Pauli",
+    "shortName": "FCP",
+    "stadium": "Millerntor-Stadion",
+    "league": "German Bundesliga"
+  },
+  {
+    "id": "133660",
+    "name": "Stuttgart",
+    "shortName": "STU",
+    "stadium": "MHP Arena",
+    "league": "German Bundesliga"
+  },
+  {
+    "id": "134690",
+    "name": "Union Berlin",
+    "shortName": "FCU",
+    "stadium": "Stadion An der Alten Försterei",
+    "league": "German Bundesliga"
+  },
+  {
+    "id": "133662",
+    "name": "Werder Bremen",
+    "shortName": "WER",
+    "stadium": "Weserstadion",
+    "league": "German Bundesliga"
+  },
+  {
+    "id": "133655",
+    "name": "Wolfsburg",
+    "shortName": "WOL",
+    "stadium": "Volkswagen Arena",
+    "league": "German Bundesliga"
+  },
+  {
+    "id": "134709",
+    "name": "Angers",
+    "shortName": "ANG",
+    "stadium": "Stade Raymond Kopa",
+    "league": "French Ligue 1"
+  },
+  {
+    "id": "134788",
+    "name": "Auxerre",
+    "shortName": "AUX",
+    "stadium": "Stade de l'Abbé Deschamps",
+    "league": "French Ligue 1"
+  },
+  {
+    "id": "133704",
+    "name": "Brest",
+    "shortName": "BRS",
+    "stadium": "Stade Francis-Le Blé",
+    "league": "French Ligue 1"
+  },
+  {
+    "id": "133862",
+    "name": "Le Havre",
+    "shortName": "HAC",
+    "stadium": "Stade Océane",
+    "league": "French Ligue 1"
+  },
+  {
+    "id": "133822",
+    "name": "Lens",
+    "shortName": "LNS",
+    "stadium": "Stade Bollaert-Delelis",
+    "league": "French Ligue 1"
+  },
+  {
+    "id": "133711",
+    "name": "Lille",
+    "shortName": "LIL",
+    "stadium": "Decathlon Arena - Stade Pierre-Mauroy",
+    "league": "French Ligue 1"
+  },
+  {
+    "id": "133715",
+    "name": "Lorient",
+    "shortName": "LOR",
+    "stadium": "Stade du Moustoir",
+    "league": "French Ligue 1"
+  },
+  {
+    "id": "133713",
+    "name": "Lyon",
+    "shortName": "LYO",
+    "stadium": "Groupama Stadium",
+    "league": "French Ligue 1"
+  },
+  {
+    "id": "133707",
+    "name": "Marseille",
+    "shortName": "OLM",
+    "stadium": "Orange Vélodrome",
+    "league": "French Ligue 1"
+  },
+  {
+    "id": "133883",
+    "name": "Metz",
+    "shortName": "MTZ",
+    "stadium": "Stade Saint-Symphorien",
+    "league": "French Ligue 1"
+  },
+  {
+    "id": "133823",
+    "name": "Monaco",
+    "shortName": "MON",
+    "stadium": "Stade Louis II",
+    "league": "French Ligue 1"
+  },
+  {
+    "id": "133861",
+    "name": "Nantes",
+    "shortName": "NAN",
+    "stadium": "Stade de la Beaujoire - Louis Fonteneau",
+    "league": "French Ligue 1"
+  },
+  {
+    "id": "133712",
+    "name": "Nice",
+    "shortName": "NIC",
+    "stadium": "Allianz Riviera",
+    "league": "French Ligue 1"
+  },
+  {
+    "id": "135465",
+    "name": "Paris FC",
+    "shortName": "PAR",
+    "stadium": "Stade Jean-Bouin",
+    "league": "French Ligue 1"
+  },
+  {
+    "id": "133714",
+    "name": "Paris SG",
+    "shortName": "PSG",
+    "stadium": "Parc des Princes",
+    "league": "French Ligue 1"
+  },
+  {
+    "id": "133719",
+    "name": "Rennes",
+    "shortName": "REN",
+    "stadium": "Roazhon Park",
+    "league": "French Ligue 1"
+  },
+  {
+    "id": "133882",
+    "name": "Strasbourg",
+    "shortName": "STR",
+    "stadium": "Stade de la Meinau",
+    "league": "French Ligue 1"
+  },
+  {
+    "id": "133703",
+    "name": "Toulouse",
+    "shortName": "TOU",
+    "stadium": "Stadium de Toulouse",
+    "league": "French Ligue 1"
+  }
+]

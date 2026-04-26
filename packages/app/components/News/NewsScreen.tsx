@@ -5,8 +5,8 @@ const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'
 
 // --- Constants ------------------------------------------------
 const MOCK_FEATURED = {
-  id: '1', category: 'Tiêu di?m', categoryColor: '#22c55e',
-  title: 'Ð?i chi?n HPL-S11: Phoenix FC d?i d?u EOC trong tr?n chung k?t k?ch tính nh?t mùa gi?i',
+  id: '1', category: 'Tiï¿½u di?m', categoryColor: '#22c55e',
+  title: 'ï¿½?i chi?n HPL-S11: Phoenix FC d?i d?u EOC trong tr?n chung k?t k?ch tï¿½nh nh?t mï¿½a gi?i',
   image: 'https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=1200&q=85',
   timeAgo: '2 gi? tru?c', views: '12.4k', author: 'BTV Ph?i Score',
 }
@@ -76,11 +76,11 @@ function getHotScore(m: any) {
 function formatTimeAgo(isoString: string) {
   if (!isoString) return ''
   const diffMinutes = Math.floor((Date.now() - new Date(isoString).getTime()) / 60000)
-  if (diffMinutes < 60) return `${diffMinutes} phút tru?c`
+  if (diffMinutes < 60) return `${diffMinutes} phï¿½t tru?c`
   const diffHours = Math.floor(diffMinutes / 60)
   if (diffHours < 24) return `${diffHours} gi? tru?c`
   const diffDays = Math.floor(diffHours / 24)
-  if (diffDays <= 30) return `${diffDays} ngày tru?c`
+  if (diffDays <= 30) return `${diffDays} ngï¿½y tru?c`
   return new Date(isoString).toLocaleDateString('vi-VN')
 }
 
@@ -142,7 +142,7 @@ export default function NewsScreen() {
         const live = allMatches.filter(m =>
           m.status === 'Ongoing' || m.status === 'live' || m.status === 'inprogress'
         )
-        // Hottest first: nh?u bàn th?ng + phút cao nh?t
+        // Hottest first: nh?u bï¿½n th?ng + phï¿½t cao nh?t
         live.sort((a, b) => getHotScore(b) - getHotScore(a))
         setLiveMatches(live)
       } else {
@@ -155,7 +155,7 @@ export default function NewsScreen() {
     }
   }, [])
 
-  // -- Fetch standings t? /api/tournaments/list ? tính BXH t? matches --
+  // -- Fetch standings t? /api/tournaments/list ? tï¿½nh BXH t? matches --
   const fetchStandings = useCallback(async () => {
     setStandingsLoading(true)
     try {
@@ -169,12 +169,12 @@ export default function NewsScreen() {
         return
       }
 
-      // Gi?i sôi d?ng nh?t (nhi?u d?i nh?t)
+      // Gi?i sï¿½i d?ng nh?t (nhi?u d?i nh?t)
       const hot = ongoingList.sort((a, b) => (b.teams?.length || 0) - (a.teams?.length || 0))[0]
       setStandingsTournament(hot.name)
       setStandingsTournamentId(hot.id)
 
-      // L?y matches ? tính di?m
+      // L?y matches ? tï¿½nh di?m
       const mRes = await fetch(`${API}/tournaments/${hot.id}/matches`)
       const mJson = await mRes.json()
       const matches: any[] = mJson.data || []
@@ -199,7 +199,7 @@ export default function NewsScreen() {
         else { teamMap[hId].drawn++; teamMap[hId].points++; teamMap[aId].drawn++; teamMap[aId].points++ }
       }
 
-      // Fallback khi chua có k?t qu?: list d?i t? tournament
+      // Fallback khi chua cï¿½ k?t qu?: list d?i t? tournament
       if (Object.keys(teamMap).length === 0) {
         ;(hot.teams || []).filter((t: any) => ['Approved','Confirmed'].includes(t.status))
           .forEach((t: any, i: number) => {
@@ -249,17 +249,17 @@ export default function NewsScreen() {
         <div style={{ marginBottom: 32 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 16 }}>
             <span style={{ color: '#4a5a4e', fontSize: 12 }}>Trang ch?</span>
-            <span style={{ color: '#4a5a4e', fontSize: 12 }}>›</span>
+            <span style={{ color: '#4a5a4e', fontSize: 12 }}>ï¿½</span>
             <span style={{ color: '#22c55e', fontSize: 12, fontWeight: 700 }}>Tin t?c</span>
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: 12 }}>
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
                 <span style={{ fontSize: 16 }}>??</span>
-                <span style={{ color: '#22c55e', fontSize: 11, fontWeight: 900, letterSpacing: 2, textTransform: 'uppercase' }}>TIN T?C BÓNG ÐÁ</span>
+                <span style={{ color: '#22c55e', fontSize: 11, fontWeight: 900, letterSpacing: 2, textTransform: 'uppercase' }}>TIN T?C Bï¿½NG ï¿½ï¿½</span>
               </div>
               <h1 style={{ color: 'white', fontSize: 38, fontWeight: 900, margin: 0, letterSpacing: -1.2, lineHeight: '1.1' }}>
-                Tin T?c Gi?i Ð?u
+                Tin T?c Gi?i ï¿½?u
               </h1>
               <div style={{ width: 50, height: 3, background: 'linear-gradient(90deg,#4ade80,#22c55e)', borderRadius: 2, marginTop: 10 }} />
             </div>
@@ -292,7 +292,7 @@ export default function NewsScreen() {
                 <div className="overlay">
                   <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: 'rgba(0,0,0,0.6)', border: '1px solid rgba(34,197,94,0.3)', padding: '5px 12px', borderRadius: 100, marginBottom: 12, backdropFilter: 'blur(8px)' }}>
                     <div style={{ width: 5, height: 5, borderRadius: '50%', background: '#22c55e' }} />
-                    <span style={{ color: '#4ade80', fontSize: 10, fontWeight: 900, letterSpacing: 1 }}>TIÊU ÐI?M</span>
+                    <span style={{ color: '#4ade80', fontSize: 10, fontWeight: 900, letterSpacing: 1 }}>TIï¿½U ï¿½I?M</span>
                   </div>
                   <p style={{ color: 'white', fontSize: 22, fontWeight: 900, margin: '0 0 12px', letterSpacing: -0.5, lineHeight: '1.35', textShadow: '0 2px 10px rgba(0,0,0,0.6)' }} dangerouslySetInnerHTML={{__html: featuredArticle.title}} />
                   <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
@@ -312,14 +312,14 @@ export default function NewsScreen() {
               {newsLoading && newsPage === 1
                 ? [0,1,2,3].map(i => <div key={i} className="skeleton" style={{ height: 108, marginBottom: 16 }} />)
                 : listArticles.length === 0
-                  ? <div className="empty-state"><div style={{ fontSize: 40, marginBottom: 12 }}>??</div><div style={{ fontSize: 15, fontWeight: 700, color: '#6a7a6e' }}>Chua có bài vi?t</div></div>
+                  ? <div className="empty-state"><div style={{ fontSize: 40, marginBottom: 12 }}>??</div><div style={{ fontSize: 15, fontWeight: 700, color: '#6a7a6e' }}>Chua cï¿½ bï¿½i vi?t</div></div>
                   : listArticles.map((a, idx) => <ArticleRow key={a.id} article={a} idx={idx} />)
               }
             </div>
 
             {hasMoreNews && (
               <button className="loadmore-btn" onClick={handleLoadMore} disabled={newsLoading}>
-                {newsLoading ? 'ÐANG T?I...' : '?? Xem thêm bài vi?t cu hon'}
+                {newsLoading ? 'ï¿½ANG T?I...' : '?? Xem thï¿½m bï¿½i vi?t cu hon'}
               </button>
             )}
           </div>
@@ -332,7 +332,7 @@ export default function NewsScreen() {
               <div className="s-header">
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <div className="live-dot" />
-                  <span style={{ color: 'white', fontSize: 12, fontWeight: 800, letterSpacing: 0.5 }}>ÐANG PHÁT TR?C TI?P</span>
+                  <span style={{ color: 'white', fontSize: 12, fontWeight: 800, letterSpacing: 0.5 }}>ï¿½ANG PHï¿½T TR?C TI?P</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                   {liveLoading && <div className="spinner" />}
@@ -347,8 +347,8 @@ export default function NewsScreen() {
                   : liveMatches.length === 0
                     ? <div className="empty-state" style={{ padding: '16px 0' }}>
                         <div style={{ fontSize: 28, marginBottom: 8 }}>??</div>
-                        <div style={{ fontSize: 12, color: '#4a5a4e', fontWeight: 600 }}>Hi?n chua có tr?n live</div>
-                        <div style={{ fontSize: 11, color: '#3a4a3e', marginTop: 4 }}>T? c?p nh?t m?i 30 giây</div>
+                        <div style={{ fontSize: 12, color: '#4a5a4e', fontWeight: 600 }}>Hi?n chua cï¿½ tr?n live</div>
+                        <div style={{ fontSize: 11, color: '#3a4a3e', marginTop: 4 }}>T? c?p nh?t m?i 30 giï¿½y</div>
                       </div>
                     : liveMatches.slice(0, 4).map((m, i) => <LiveMatchPill key={m.id || i} match={m} />)
                 }
@@ -380,14 +380,14 @@ export default function NewsScreen() {
                   : standings.length === 0
                     ? <div className="empty-state" style={{ padding: '16px 0' }}>
                         <div style={{ fontSize: 28, marginBottom: 8 }}>??</div>
-                        <div style={{ fontSize: 12, color: '#4a5a4e', fontWeight: 600 }}>Chua có gi?i dang thi d?u</div>
+                        <div style={{ fontSize: 12, color: '#4a5a4e', fontWeight: 600 }}>Chua cï¿½ gi?i dang thi d?u</div>
                       </div>
                     : <>
                         <div style={{ display: 'flex', alignItems: 'center', padding: '4px 6px 8px', borderBottom: '1px solid rgba(255,255,255,0.05)', marginBottom: 4 }}>
                           <span style={{ color: '#3a4a3e', fontSize: 9, fontWeight: 800, width: 28 }}>#</span>
-                          <span style={{ color: '#3a4a3e', fontSize: 9, fontWeight: 800, flex: 1 }}>Ð?I BÓNG</span>
+                          <span style={{ color: '#3a4a3e', fontSize: 9, fontWeight: 800, flex: 1 }}>ï¿½?I Bï¿½NG</span>
                           <span style={{ color: '#3a4a3e', fontSize: 9, fontWeight: 800, width: 24, textAlign: 'center' }}>T</span>
-                          <span style={{ color: '#3a4a3e', fontSize: 9, fontWeight: 800, width: 36, textAlign: 'right' }}>ÐI?M</span>
+                          <span style={{ color: '#3a4a3e', fontSize: 9, fontWeight: 800, width: 36, textAlign: 'right' }}>ï¿½I?M</span>
                         </div>
                         {standings.map((row: any, i) => (
                           <div key={row.name + i} className={`standings-row${i < 2 ? ' top2' : ''}`}>
@@ -408,9 +408,9 @@ export default function NewsScreen() {
               <div className="s-body" style={{ textAlign: 'center', padding: '24px 18px' }}>
                 <div style={{ fontSize: 28, marginBottom: 10 }}>??</div>
                 <div style={{ color: 'white', fontSize: 14, fontWeight: 900, marginBottom: 6, letterSpacing: -0.3 }}>Nh?n tin ngay!</div>
-                <div style={{ color: '#7a8c7e', fontSize: 12, marginBottom: 16, lineHeight: 1.6 }}>Ð?ng b? l? k?t qu? hay tin t?c t? gi?i d?u</div>
+                <div style={{ color: '#7a8c7e', fontSize: 12, marginBottom: 16, lineHeight: 1.6 }}>ï¿½?ng b? l? k?t qu? hay tin t?c t? gi?i d?u</div>
                 <button style={{ width: '100%', padding: '11px 0', background: 'linear-gradient(90deg,#4ade80 0%,#22c55e 100%)', color: 'black', fontWeight: 900, fontSize: 12, letterSpacing: 0.5, border: 'none', borderRadius: 10, cursor: 'pointer', boxShadow: '0 4px 16px rgba(34,197,94,0.3)' }}>
-                  Ð?T THÔNG BÁO
+                  ï¿½?T THï¿½NG Bï¿½O
                 </button>
               </div>
             </div>

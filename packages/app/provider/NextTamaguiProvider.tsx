@@ -71,3 +71,4 @@ export const NextTamaguiProvider = ({ children }: { children: ReactNode }) => {
     </NextThemeProvider>
   )
 }
+

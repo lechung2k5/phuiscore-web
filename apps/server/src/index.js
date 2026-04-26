@@ -171,7 +171,8 @@ app.post('/api/upload/tournament-file', (req, res) => {
         const data = base64.replace(/^data:[^;]+;base64,/, '');
         fs.writeFileSync(filePath, Buffer.from(data, 'base64'));
 
-        const url = `http://localhost:5000/uploads/tournaments/${safeName}`;
+        const baseUrl = process.env.PUBLIC_URL || 'http://localhost:5000';
+        const url = `${baseUrl}/uploads/tournaments/${safeName}`;
         res.json({ success: true, url });
     } catch (err) {
         console.error('[Upload]', err.message);

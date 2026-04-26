@@ -178,3 +178,4 @@ export const StandingRow = ({ item, isLast, compact }: any) => {
     </XStack>
   )
 }
+

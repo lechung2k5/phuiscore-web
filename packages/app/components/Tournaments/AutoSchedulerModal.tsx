@@ -3,7 +3,7 @@ import { YStack, XStack, Text, Button, View, Input, Spinner, ScrollView } from '
 import { Calendar, Clock, Map, Settings, Play, Plus, X, Trash2 } from '@tamagui/lucide-icons'
 import axios from 'axios'
 
-const API = 'http://localhost:5000/api'
+const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'
 const COLORS = {
   primary: '#28a745',
   bgDark: '#0a0f0d',
@@ -227,3 +227,4 @@ export const AutoSchedulerModal = ({
     </View>
   )
 }
+

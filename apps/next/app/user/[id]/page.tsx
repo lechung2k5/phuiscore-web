@@ -26,7 +26,8 @@ export default function ProfilePage({ params }: { params: { id: string } }) {
 
   const fetchUserProfile = async () => {
     try {
-      const response = await fetch(`http://localhost:5000/api/auth/profile/${params.id}`)
+      const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'
+      const response = await fetch(`${API}/auth/profile/${params.id}`)
       const data = await response.json()
       if (response.ok) {
         setUserData(data)

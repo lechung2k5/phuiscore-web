@@ -16,7 +16,7 @@ import { useParams, useSearchParams } from 'next/navigation'
 import { AddMemberModal } from './AddMemberModal'
 import { EditMemberModal } from './EditMemberModal'
 
-const API = 'http://localhost:5000/api'
+const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'
 
 /* ─── Design tokens ─────────────────────────── */
 const C = {
@@ -1164,3 +1164,4 @@ export default function TeamManageScreen() {
     </>
   )
 }
+

@@ -266,3 +266,4 @@ const SocialButton = ({ icon, label }: any) => (
     <Text color="white" fontWeight="700" fontSize={14 as any} fontFamily={FONT_BODY}>{label}</Text>
   </Button>
 )
+

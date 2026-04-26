@@ -13,7 +13,7 @@ import { KnockoutBracket } from './KnockoutBracket'
 const YS: any = YStack; const XS: any = XStack; const Txt: any = Text
 const BTN: any = Button; const IMG: any = Image; const IPT: any = Input
 
-const API_BASE_URL = 'http://localhost:5000/api'
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'
 
 const HOT_LEAGUES = [
   { id: 17,  name: 'Premier League',    country: 'Anh',       icon: 'https://api.sofascore.app/api/v1/unique-tournament/17/image' },
@@ -515,3 +515,4 @@ export default function StandingsScreen() {
     </YS>
   )
 }
+

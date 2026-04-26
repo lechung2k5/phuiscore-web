@@ -7,7 +7,7 @@ import axios from 'axios'
 import mockTeamsData from '../../data/football_teams.json'
 import { PROVINCES_34 } from '../../constants/regions'
 
-const API = 'http://localhost:5000/api'
+const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'
 const C = { primary: '#28a745', bg: '#050807', card: 'rgba(15,22,18,0.85)', border: 'rgba(255,255,255,0.07)' }
 
 // Alias
@@ -219,4 +219,5 @@ export default function TeamListScreen() {
     </YStack>
   )
 }
+
 

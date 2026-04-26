@@ -5,7 +5,7 @@ import { ChevronRight, MapPin, CalendarDays } from '@tamagui/lucide-icons'
 import axios from 'axios'
 import { useRouter } from 'solito/navigation'
 
-const API = 'http://localhost:5000/api'
+import { API_URL as API } from '../utils/api-config'
 
 const COLORS = {
   primary: '#28a745',
@@ -205,3 +205,4 @@ const LeagueCard = ({ league, isMobile, router }: any) => {
     </Card>
   )
 }
+

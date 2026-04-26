@@ -5,7 +5,7 @@ import { X, Upload, Shield, CheckCircle2 } from '@tamagui/lucide-icons'
 import axios from 'axios'
 import { PROVINCES_34 } from '../../constants/regions'
 
-const API = 'http://localhost:5000/api'
+const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'
 const C = { primary: '#28a745', bgDark: '#0a0f0d', cardDark: '#121714', borderDark: '#1a1f1c', textGray: '#eee', subText: '#888' }
 
 export const CreateTeamModal = ({ open, setOpen, onSuccess }: { open: boolean, setOpen: (o: boolean) => void, onSuccess: () => void }) => {
@@ -170,3 +170,4 @@ export const CreateTeamModal = ({ open, setOpen, onSuccess }: { open: boolean, s
     </Sheet>
   )
 }
+

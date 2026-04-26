@@ -236,17 +236,23 @@ const TournamentRepo = {
   /**
    * Cập nhật bảng xếp hạng cho giải đấu (từ Crawler)
    */
-  updateStandings: async (tournamentId, standings) => {
+  updateStandings: async (tournamentId, standings, extra = {}) => {
     const tournamentIdStr = String(tournamentId);
     const existing = await TournamentRepo.getById(tournamentIdStr);
     
     if (existing) {
-      return TournamentRepo.update(tournamentIdStr, { standings, updatedAt: Date.now() });
+      return TournamentRepo.update(tournamentIdStr, { 
+        standings, 
+        name: extra.name || existing.name,
+        logo: extra.logo || existing.logo,
+        updatedAt: Date.now() 
+      });
     } else {
       // Tạo mới nếu chưa có
       const item = {
         id: tournamentIdStr,
-        name: `Giải đấu ${tournamentIdStr}`, // Tạm thời để tên ID, crawler sẽ cập nhật sau
+        name: extra.name || `Giải đấu ${tournamentIdStr}`,
+        logo: extra.logo || null,
         status: 'Ongoing',
         standings,
         createdAt: Date.now(),

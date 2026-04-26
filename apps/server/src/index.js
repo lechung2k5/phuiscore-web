@@ -275,7 +275,7 @@ app.post('/api/sync/matches', async (req, res) => {
 
 // API đồng bộ bảng xếp hạng
 app.post('/api/sync/standings', async (req, res) => {
-    const { token, tournamentId, standings } = req.body;
+    const { token, tournamentId, tournamentName, tournamentLogo, standings } = req.body;
     const SYNC_TOKEN = process.env.SYNC_TOKEN || 'phuiscore_secret_2026';
 
     if (token !== SYNC_TOKEN) {
@@ -284,12 +284,53 @@ app.post('/api/sync/standings', async (req, res) => {
 
     try {
         const TournamentRepo = require('./repositories/tournament.repo');
-        await TournamentRepo.updateStandings(tournamentId, standings);
-        console.log(`[Sync Standings] ✅ Đã cập nhật BXH cho giải: ${tournamentId}`);
+        await TournamentRepo.updateStandings(tournamentId, standings, { name: tournamentName, logo: tournamentLogo });
+        console.log(`[Sync Standings] ✅ Đã cập nhật BXH cho giải: ${tournamentName}`);
         res.json({ success: true });
     } catch (err) {
         console.error('[Sync Standings Error]', err.message);
         res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+// API lấy danh sách các giải đấu có BXH
+app.get('/api/leagues', async (req, res) => {
+    try {
+        const TournamentRepo = require('./repositories/tournament.repo');
+        const tournaments = await TournamentRepo.getAll();
+        // Chỉ lấy các giải có dữ liệu standings
+        const leagues = tournaments
+            .filter(t => t.standings)
+            .map(t => ({
+                id: t.id,
+                name: t.name,
+                logo: t.logo || `https://api.sofascore.app/api/v1/unique-tournament/${t.id}/image`
+            }));
+        res.json(leagues);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// API lấy chi tiết BXH của 1 giải
+app.get('/api/standings/:id', async (req, res) => {
+    try {
+        const TournamentRepo = require('./repositories/tournament.repo');
+        const tournament = await TournamentRepo.getById(req.params.id);
+        if (!tournament || !tournament.standings) {
+            return res.status(404).json({ message: 'Not found' });
+        }
+        res.json({
+            data: {
+                tournamentInfo: {
+                    name: tournament.name,
+                    logo: tournament.logo || `https://api.sofascore.app/api/v1/unique-tournament/${tournament.id}/image`
+                },
+                standings: tournament.standings
+            }
+        });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
     }
 });
 

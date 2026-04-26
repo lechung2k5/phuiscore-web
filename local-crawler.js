@@ -26,7 +26,7 @@ const calculateMinute = (match) => {
     return minutes > 0 ? `${minutes}'` : "1'";
 };
 
-async function syncStandings(tournamentId, seasonId) {
+async function syncStandings(tournamentId, seasonId, tournamentName, tournamentLogo) {
     if (!tournamentId || !seasonId) return;
     try {
         const url = `https://www.sofascore.com/api/v1/unique-tournament/${tournamentId}/season/${seasonId}/standings/total`;
@@ -35,9 +35,11 @@ async function syncStandings(tournamentId, seasonId) {
             await axios.post(`${SERVER_URL}/sync/standings`, {
                 token: SYNC_TOKEN,
                 tournamentId,
+                tournamentName,
+                tournamentLogo,
                 standings: res.data.standings
             });
-            console.log(`[Local Crawler] 📊 Đã đồng bộ BXH cho giải ${tournamentId}`);
+            console.log(`[Local Crawler] 📊 Đã đồng bộ BXH cho giải: ${tournamentName}`);
         }
     } catch (e) {
         // console.error(`[Standings Error] ${tournamentId}:`, e.message);
@@ -94,13 +96,17 @@ async function crawlAndSync(date) {
         // Chúng ta lấy danh sách TournamentId từ các trận đấu đang diễn ra
         const uniqueTournaments = [...new Set(rawEvents.map(m => JSON.stringify({
             tId: m.tournament.uniqueTournament?.id,
-            sId: m.season?.id
+            sId: m.season?.id,
+            name: m.tournament.uniqueTournament?.name,
+            logo: m.tournament.uniqueTournament?.id 
+                ? `https://api.sofascore.app/api/v1/unique-tournament/${m.tournament.uniqueTournament.id}/image`
+                : null
         })))].map(s => JSON.parse(s)).filter(t => t.tId && t.sId);
 
         console.log(`[Local Crawler] 📊 Đang kiểm tra BXH cho ${uniqueTournaments.length} giải đấu...`);
-        for (const t of uniqueTournaments.slice(0, 5)) { // Chỉ lấy 5 giải đấu đầu tiên mỗi chu kỳ để tránh bị chặn
-            await syncStandings(t.tId, t.sId);
-            await new Promise(r => setTimeout(r, 1000)); // Nghỉ 1s
+        for (const t of uniqueTournaments) { 
+            await syncStandings(t.tId, t.sId, t.name, t.logo);
+            await new Promise(r => setTimeout(r, 300)); // Nghỉ 0.3s giữa mỗi lần gọi để tránh bị chặn
         }
 
     } catch (err) {

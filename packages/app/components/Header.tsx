@@ -45,7 +45,7 @@ import { vi } from 'date-fns/locale'
 
 import LogoAsset from '../assets/logo.svg'
 
-const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'
+const API = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api')
 
 // ==========================================================
 // 1. CẤU HÌNH HỆ THỐNG & HẰNG SỐ
@@ -847,5 +847,4 @@ const HeaderComponent = () => {
 
 // 4. Export Component với định danh rõ ràng
 export const Header = memo(HeaderComponent)
-
 

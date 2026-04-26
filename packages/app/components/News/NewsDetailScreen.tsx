@@ -1,7 +1,7 @@
 "use client"
 import React, { useState, useEffect } from 'react'
 
-const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'
+const API = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api')
 
 // ─── CSS ─────────────────────────────────────────────────────────
 const CSS = `
@@ -663,4 +663,3 @@ export default function NewsDetailScreen({ slug }: { slug: string }) {
     </div>
   )
 }
-

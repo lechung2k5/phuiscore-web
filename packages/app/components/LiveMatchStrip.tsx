@@ -5,7 +5,7 @@ import { ChevronRight } from '@tamagui/lucide-icons'
 import { LiveMatchCard } from './LiveMatchCard'
 import axios from 'axios'
 
-const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'
+const API = process.env.NEXT_PUBLIC_API_URL || (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api')
 
 export const LiveMatchStrip = () => {
   const media = useMedia()
@@ -158,4 +158,3 @@ export const LiveMatchStrip = () => {
     </YStack>
   )
 }
-

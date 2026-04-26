@@ -4,7 +4,7 @@ import { YStack, XStack, Text, View, Spinner, Button } from 'tamagui'
 import { Check, X, Users, User, Plus, Trash2, Shield, ChevronDown, ChevronUp, Upload, Download, Camera } from '@tamagui/lucide-icons'
 import axios from 'axios'
 
-const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'
+const API = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api')
 const C = { primary: '#28a745', bg: '#050807', card: 'rgba(15,22,18,0.85)', border: 'rgba(255,255,255,0.07)' }
 
 const iStyle: React.CSSProperties = {
@@ -802,4 +802,3 @@ const ConfirmRow = ({ label, value, extra, valueColor = 'white' }: any) => (
     {extra || <Text color={(valueColor) as any} fontSize={12} fontWeight="700">{value}</Text>}
   </XStack>
 )
-

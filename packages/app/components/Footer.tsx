@@ -142,4 +142,3 @@ const SocialCircle = ({ icon, hoverColor }: any) => (
         {icon}
     </View>
 )
-

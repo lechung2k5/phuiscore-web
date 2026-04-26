@@ -55,4 +55,3 @@ export const AppAlertDialog = ({ open, title, message, onClose, type = 'info' }:
     </View>
   )
 }
-

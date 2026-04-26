@@ -34,4 +34,3 @@ export const PROVINCES_34 = [
   "TP. Cần Thơ",
   "Cà Mau"
 ];
-

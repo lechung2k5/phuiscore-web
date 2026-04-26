@@ -31,4 +31,3 @@ export function UserDetailScreen({ id }: { id: string }) {
     </YStack>
   )
 }
-

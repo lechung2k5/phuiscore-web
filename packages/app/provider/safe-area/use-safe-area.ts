@@ -4,4 +4,3 @@ const useSafeArea = useSafeAreaInsets
 
 // `export { useSafeAreaInsets as useSafeArea }` breaks autoimport, so do this instead
 export { useSafeArea }
-

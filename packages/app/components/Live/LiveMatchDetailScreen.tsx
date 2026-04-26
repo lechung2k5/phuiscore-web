@@ -287,7 +287,7 @@ export default function LiveMatchDetailScreen({ matchId, overrideDate }: { match
   const searchParams = useSearchParams()
   const isLiveMode = searchParams.get('type') === 'live' || (match?.status === 'inprogress' || match?.status === 'live')
   
-  const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'
+  const API = process.env.NEXT_PUBLIC_API_URL || (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api')
 
   const fetchStandings = async () => {
     if (!match?.tournamentId || loadingStandings) return
@@ -973,4 +973,3 @@ export default function LiveMatchDetailScreen({ matchId, overrideDate }: { match
     </div>
   )
 }
-

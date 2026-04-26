@@ -72,7 +72,7 @@ export const RegisterScreen = () => {
   const handleRegister = async () => {
     if (!validate()) return
     setLoading(true)
-    const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'
+    const API = process.env.NEXT_PUBLIC_API_URL || (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api')
     try {
       const response = await fetch(`${API}/auth/register`, {
         method: "POST",
@@ -240,4 +240,3 @@ const SocialButton = ({ icon, label }: any) => (
     <Text color="white" fontWeight="700" fontSize={14} fontFamily={FONT_BODY}>{label}</Text>
   </Button>
 )
-

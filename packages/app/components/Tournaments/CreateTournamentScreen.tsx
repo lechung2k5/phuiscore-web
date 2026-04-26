@@ -5,7 +5,7 @@ import { ChevronLeft, ChevronRight, Check, X, Upload } from '@tamagui/lucide-ico
 import Link from 'next/link'
 import axios from 'axios'
 
-const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'
+const API = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api')
 const C = { primary: '#28a745', bg: '#050807', card: 'rgba(15,22,18,0.85)', border: 'rgba(255,255,255,0.07)' }
 
 const FORMATS = [
@@ -549,4 +549,3 @@ export default function CreateTournamentScreen() {
     </YStack>
   )
 }
-

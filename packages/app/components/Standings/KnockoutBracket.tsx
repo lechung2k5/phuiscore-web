@@ -306,4 +306,3 @@ export function KnockoutBracket({ rounds, compact = false }: { rounds: Round[]; 
     </div>
   )
 }
-

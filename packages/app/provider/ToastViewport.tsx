@@ -12,4 +12,3 @@ export const ToastViewport = forwardRef<any, any>((props, ref) => {
     />
   )
 })
-

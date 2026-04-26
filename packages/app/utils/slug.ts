@@ -41,4 +41,3 @@ export const parseMatchSlug = (slug: string) => {
 export const extractMatchId = (slug: string) => {
   return parseMatchSlug(slug).id;
 };
-

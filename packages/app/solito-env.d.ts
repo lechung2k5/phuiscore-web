@@ -5,4 +5,3 @@ declare module 'solito/navigation' {
   export * from 'solito/build/app/navigation';
   export { default as useUpdateSearchParams } from 'solito/build/app/navigation/use-update-search-params';
 }
-

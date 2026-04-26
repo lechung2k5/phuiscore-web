@@ -2,7 +2,7 @@ import LiveMatchDetailScreen from 'app/components/Live/LiveMatchDetailScreen'
 import { parseMatchSlug } from 'app/utils/slug'
 import { Metadata } from 'next'
 
-const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'
+const API = process.env.NEXT_PUBLIC_API_URL || (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api')
 
 export async function generateMetadata({ params }: { params: { id: string } }): Promise<Metadata> {
   const { id: matchId, date } = parseMatchSlug(params.id)

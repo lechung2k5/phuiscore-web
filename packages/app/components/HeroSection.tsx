@@ -237,4 +237,3 @@ const StatBox = ({ value, label, highlight = false, isMobile }: any) => (
 const Divider = () => (
   <View width={1} height={36} backgroundColor="rgba(255,255,255,0.07)" alignSelf="center" />
 )
-

@@ -3,7 +3,7 @@ import { YStack, XStack, Text, View, Button, Input, Spinner } from 'tamagui'
 import { X, Calendar, Clock, MapPin, Hash, Shield } from '@tamagui/lucide-icons'
 import axios from 'axios'
 
-const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'
+const API = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api')
 const C = { primary: '#28a745', bg: '#050807', card: 'rgba(15,22,18,0.85)', border: 'rgba(255,255,255,0.07)' }
 
 interface Props {
@@ -185,4 +185,3 @@ export function AddMatchModal({ tournamentId, teams, editMatch, onClose, onSucce
     </View>
   )
 }
-

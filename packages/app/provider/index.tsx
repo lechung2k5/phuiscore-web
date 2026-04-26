@@ -66,4 +66,3 @@ export function Provider({
     </TamaguiProvider>
   )
 }
-

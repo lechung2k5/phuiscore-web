@@ -4,7 +4,7 @@ import { YStack, XStack, Text, Button, Input, Sheet, Spinner, ScrollView, View, 
 import { X, CheckCircle2, Upload, User } from '@tamagui/lucide-icons'
 import axios from 'axios'
 
-const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'
+const API = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api')
 const C = { primary: '#28a745', bgDark: '#0a0f0d', cardDark: '#121714', borderDark: '#1a1f1c', textGray: '#eee', subText: '#888' }
 
 export const AddMemberModal = ({ open, setOpen, teamId, onSuccess }: { open: boolean, setOpen: (o: boolean) => void, teamId: string, onSuccess: () => void }) => {
@@ -195,4 +195,3 @@ export const AddMemberModal = ({ open, setOpen, teamId, onSuccess }: { open: boo
     </Sheet>
   )
 }
-

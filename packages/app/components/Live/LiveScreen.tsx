@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react'
 import { LiveMatchCard } from '../LiveMatchCard' // Reuse the existing card component
 import { generateMatchSlug } from '../../utils/slug'
 
-const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'
+const API = process.env.NEXT_PUBLIC_API_URL || (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api')
 
 const CSS = `
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
@@ -304,4 +304,3 @@ export default function LiveScreen() {
     </div>
   )
 }
-

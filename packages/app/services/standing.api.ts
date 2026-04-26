@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // Đây là địa chỉ Backend của ông chạy ở apps/server
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'; 
+const API_BASE_URL = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'); 
 
 export const standingApi = {
   fetchLeagueStandings: async (tournamentId: number) => {
@@ -14,4 +14,3 @@ export const standingApi = {
     }
   }
 };
-

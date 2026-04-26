@@ -29,4 +29,3 @@ const area = {
 export function useSafeArea(): ReturnType<typeof nativeHook> {
   return area
 }
-

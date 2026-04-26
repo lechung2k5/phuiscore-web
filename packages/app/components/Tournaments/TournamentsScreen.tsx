@@ -9,7 +9,7 @@ import Link from 'next/link'
 import { useRouter } from 'solito/navigation'
 import axios from 'axios'
 
-const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'
+const API = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api')
 
 const COLORS = {
   primary: '#28a745',
@@ -574,4 +574,3 @@ export const TournamentCard = ({ tournament: t }: { tournament: any }) => {
     </Link>
   )
 }
-

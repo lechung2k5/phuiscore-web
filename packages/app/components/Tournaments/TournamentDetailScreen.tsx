@@ -24,7 +24,7 @@ const parseDateString = (dStr: string) => {
   return new Date(dStr);
 }
 
-const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'
+const API = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api')
 const C = { primary: '#28a745', bg: '#050807', card: 'rgba(15,22,18,0.95)', border: 'rgba(255,255,255,0.18)' }
 
 const FORMAT_LABEL: Record<string, string> = {
@@ -1443,4 +1443,3 @@ const TournamentMatchRowMobile = ({ m, isLast, isOrganizer, isDragOver, onEdit, 
 const TournamentMatchRow = (props: any) => {
   return props.isMobile ? <TournamentMatchRowMobile {...props} /> : <TournamentMatchRowDesktop {...props} />
 }
-

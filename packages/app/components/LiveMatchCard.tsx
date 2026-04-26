@@ -230,4 +230,3 @@ export const LiveMatchCard = (props: any) => {
     </Card>
   )
 }
-

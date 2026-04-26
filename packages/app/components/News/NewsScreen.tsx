@@ -1,21 +1,21 @@
-"use client"
+﻿"use client"
 import React, { useState, useEffect, useCallback } from 'react'
 
-const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'
+const API = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api')
 
-// --- Constants ------------------------------------------------
+// ─── Constants ────────────────────────────────────────────────
 const MOCK_FEATURED = {
-  id: '1', category: 'Ti�u di?m', categoryColor: '#22c55e',
-  title: '�?i chi?n HPL-S11: Phoenix FC d?i d?u EOC trong tr?n chung k?t k?ch t�nh nh?t m�a gi?i',
+  id: '1', category: 'Tiêu điểm', categoryColor: '#22c55e',
+  title: 'Đại chiến HPL-S11: Phoenix FC đối đầu EOC trong trận chung kết kịch tính nhất mùa giải',
   image: 'https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=1200&q=85',
-  timeAgo: '2 gi? tru?c', views: '12.4k', author: 'BTV Ph?i Score',
+  timeAgo: '2 giờ trước', views: '12.4k', author: 'BTV Phủi Score',
 }
 
 const TABS = [
-  { key: 'all', label: 'T?t c?', emoji: '??' }
+  { key: 'all', label: 'Tất cả', emoji: '📰' }
 ]
 
-// --- CSS ---------------------------------------------------------
+// ─── CSS ─────────────────────────────────────────────────────────
 const CSS = `
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
   .ns-root * { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important; box-sizing: border-box; }
@@ -64,7 +64,7 @@ const CSS = `
   .news-img-loaded { opacity: 1; }
 `
 
-// --- Helpers -----------------------------------------------------
+// ─── Helpers ─────────────────────────────────────────────────────
 function getTodayStr() {
   const d = new Date()
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
@@ -76,36 +76,36 @@ function getHotScore(m: any) {
 function formatTimeAgo(isoString: string) {
   if (!isoString) return ''
   const diffMinutes = Math.floor((Date.now() - new Date(isoString).getTime()) / 60000)
-  if (diffMinutes < 60) return `${diffMinutes} ph�t tru?c`
+  if (diffMinutes < 60) return `${diffMinutes} phút trước`
   const diffHours = Math.floor(diffMinutes / 60)
-  if (diffHours < 24) return `${diffHours} gi? tru?c`
+  if (diffHours < 24) return `${diffHours} giờ trước`
   const diffDays = Math.floor(diffHours / 24)
-  if (diffDays <= 30) return `${diffDays} ng�y tru?c`
+  if (diffDays <= 30) return `${diffDays} ngày trước`
   return new Date(isoString).toLocaleDateString('vi-VN')
 }
 
-// --- Main Component -----------------------------------------------
+// ─── Main Component ───────────────────────────────────────────────
 export default function NewsScreen() {
   const [activeTab, setActiveTab] = useState('all')
   const [mounted, setMounted] = useState(false)
 
-  // Real News t? Backend
+  // Real News từ Backend
   const [news, setNews] = useState<any[]>([])
   const [newsLoading, setNewsLoading] = useState(true)
   const [newsPage, setNewsPage] = useState(1)
   const [hasMoreNews, setHasMoreNews] = useState(true)
 
-  // Live matches (t? BE)
+  // Live matches (từ BE)
   const [liveMatches, setLiveMatches] = useState<any[]>([])
   const [liveLoading, setLiveLoading] = useState(true)
 
-  // Standings (t? BE)
+  // Standings (từ BE)
   const [standings, setStandings] = useState<any[]>([])
   const [standingsTournament, setStandingsTournament] = useState('')
   const [standingsTournamentId, setStandingsTournamentId] = useState('')
   const [standingsLoading, setStandingsLoading] = useState(true)
 
-  // -- Fetch News t? /api/news --
+  // ── Fetch News từ /api/news ──
   const fetchNews = useCallback(async (page: number, append = false) => {
     if (!append) setNewsLoading(true)
     try {
@@ -126,7 +126,7 @@ export default function NewsScreen() {
     }
   }, [])
 
-  // -- Fetch live matches t? /api/matches/:date --
+  // ── Fetch live matches từ /api/matches/:date ──
   const fetchLiveMatches = useCallback(async () => {
     setLiveLoading(true)
     try {
@@ -142,7 +142,7 @@ export default function NewsScreen() {
         const live = allMatches.filter(m =>
           m.status === 'Ongoing' || m.status === 'live' || m.status === 'inprogress'
         )
-        // Hottest first: nh?u b�n th?ng + ph�t cao nh?t
+        // Hottest first: nhều bàn thắng + phút cao nhất
         live.sort((a, b) => getHotScore(b) - getHotScore(a))
         setLiveMatches(live)
       } else {
@@ -155,7 +155,7 @@ export default function NewsScreen() {
     }
   }, [])
 
-  // -- Fetch standings t? /api/tournaments/list ? t�nh BXH t? matches --
+  // ── Fetch standings từ /api/tournaments/list → tính BXH từ matches ──
   const fetchStandings = useCallback(async () => {
     setStandingsLoading(true)
     try {
@@ -169,12 +169,12 @@ export default function NewsScreen() {
         return
       }
 
-      // Gi?i s�i d?ng nh?t (nhi?u d?i nh?t)
+      // Giải sôi động nhất (nhiều đội nhất)
       const hot = ongoingList.sort((a, b) => (b.teams?.length || 0) - (a.teams?.length || 0))[0]
       setStandingsTournament(hot.name)
       setStandingsTournamentId(hot.id)
 
-      // L?y matches ? t�nh di?m
+      // Lấy matches → tính điểm
       const mRes = await fetch(`${API}/tournaments/${hot.id}/matches`)
       const mJson = await mRes.json()
       const matches: any[] = mJson.data || []
@@ -199,7 +199,7 @@ export default function NewsScreen() {
         else { teamMap[hId].drawn++; teamMap[hId].points++; teamMap[aId].drawn++; teamMap[aId].points++ }
       }
 
-      // Fallback khi chua c� k?t qu?: list d?i t? tournament
+      // Fallback khi chưa có kết quả: list đội từ tournament
       if (Object.keys(teamMap).length === 0) {
         ;(hot.teams || []).filter((t: any) => ['Approved','Confirmed'].includes(t.status))
           .forEach((t: any, i: number) => {
@@ -245,34 +245,34 @@ export default function NewsScreen() {
       <style>{CSS}</style>
       <div style={{ maxWidth: 1300, margin: '0 auto', padding: '28px 20px 80px' }}>
 
-        {/* -- HEADER -- */}
+        {/* ── HEADER ── */}
         <div style={{ marginBottom: 32 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 16 }}>
-            <span style={{ color: '#4a5a4e', fontSize: 12 }}>Trang ch?</span>
-            <span style={{ color: '#4a5a4e', fontSize: 12 }}>�</span>
-            <span style={{ color: '#22c55e', fontSize: 12, fontWeight: 700 }}>Tin t?c</span>
+            <span style={{ color: '#4a5a4e', fontSize: 12 }}>Trang chủ</span>
+            <span style={{ color: '#4a5a4e', fontSize: 12 }}>›</span>
+            <span style={{ color: '#22c55e', fontSize: 12, fontWeight: 700 }}>Tin tức</span>
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: 12 }}>
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-                <span style={{ fontSize: 16 }}>??</span>
-                <span style={{ color: '#22c55e', fontSize: 11, fontWeight: 900, letterSpacing: 2, textTransform: 'uppercase' }}>TIN T?C B�NG ��</span>
+                <span style={{ fontSize: 16 }}>📰</span>
+                <span style={{ color: '#22c55e', fontSize: 11, fontWeight: 900, letterSpacing: 2, textTransform: 'uppercase' }}>TIN TỨC BÓNG ĐÁ</span>
               </div>
               <h1 style={{ color: 'white', fontSize: 38, fontWeight: 900, margin: 0, letterSpacing: -1.2, lineHeight: '1.1' }}>
-                Tin T?c Gi?i �?u
+                Tin Tức Giải Đấu
               </h1>
               <div style={{ width: 50, height: 3, background: 'linear-gradient(90deg,#4ade80,#22c55e)', borderRadius: 2, marginTop: 10 }} />
             </div>
             <div className="live-header-badge">
               <div className="live-dot" />
               <span style={{ color: '#ef4444', fontSize: 12, fontWeight: 800 }}>
-                {liveLoading ? '...' : liveMatches.length} tr?n dang live
+                {liveLoading ? '...' : liveMatches.length} trận đang live
               </span>
             </div>
           </div>
         </div>
 
-        {/* -- FILTER TABS -- */}
+        {/* ── FILTER TABS ── */}
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 28 }}>
           {TABS.map(t => (
             <button key={t.key} className={`ns-tab${activeTab === t.key ? ' active' : ''}`} onClick={() => setActiveTab(t.key)}>
@@ -281,7 +281,7 @@ export default function NewsScreen() {
           ))}
         </div>
 
-        {/* -- MAIN GRID -- */}
+        {/* ── MAIN GRID ── */}
         <div className="ns-grid">
 
           {/* LEFT: Articles */}
@@ -292,34 +292,34 @@ export default function NewsScreen() {
                 <div className="overlay">
                   <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: 'rgba(0,0,0,0.6)', border: '1px solid rgba(34,197,94,0.3)', padding: '5px 12px', borderRadius: 100, marginBottom: 12, backdropFilter: 'blur(8px)' }}>
                     <div style={{ width: 5, height: 5, borderRadius: '50%', background: '#22c55e' }} />
-                    <span style={{ color: '#4ade80', fontSize: 10, fontWeight: 900, letterSpacing: 1 }}>TI�U �I?M</span>
+                    <span style={{ color: '#4ade80', fontSize: 10, fontWeight: 900, letterSpacing: 1 }}>TIÊU ĐIỂM</span>
                   </div>
                   <p style={{ color: 'white', fontSize: 22, fontWeight: 900, margin: '0 0 12px', letterSpacing: -0.5, lineHeight: '1.35', textShadow: '0 2px 10px rgba(0,0,0,0.6)' }} dangerouslySetInnerHTML={{__html: featuredArticle.title}} />
                   <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
-                    <span style={{ color: '#7a8c7e', fontSize: 12 }}>?? {featuredArticle.published_at ? formatTimeAgo(featuredArticle.published_at) : featuredArticle.timeAgo}</span>
-                    <span style={{ color: '#7a8c7e', fontSize: 12 }}>?? {featuredArticle.author}</span>
+                    <span style={{ color: '#7a8c7e', fontSize: 12 }}>🕐 {featuredArticle.published_at ? formatTimeAgo(featuredArticle.published_at) : featuredArticle.timeAgo}</span>
+                    <span style={{ color: '#7a8c7e', fontSize: 12 }}>✍️ {featuredArticle.author}</span>
                   </div>
-                  <button className="xem-ngay-btn">? XEM NGAY</button>
+                  <button className="xem-ngay-btn">▶ XEM NGAY</button>
                 </div>
               </a>
             )}
             
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <span style={{ color: '#4a5a4e', fontSize: 11, fontWeight: 800, letterSpacing: 1, textTransform: 'uppercase' }}>Tin M?i Nh?t</span>
+              <span style={{ color: '#4a5a4e', fontSize: 11, fontWeight: 800, letterSpacing: 1, textTransform: 'uppercase' }}>Tin Mới Nhất</span>
             </div>
 
             <div>
               {newsLoading && newsPage === 1
                 ? [0,1,2,3].map(i => <div key={i} className="skeleton" style={{ height: 108, marginBottom: 16 }} />)
                 : listArticles.length === 0
-                  ? <div className="empty-state"><div style={{ fontSize: 40, marginBottom: 12 }}>??</div><div style={{ fontSize: 15, fontWeight: 700, color: '#6a7a6e' }}>Chua c� b�i vi?t</div></div>
+                  ? <div className="empty-state"><div style={{ fontSize: 40, marginBottom: 12 }}>📭</div><div style={{ fontSize: 15, fontWeight: 700, color: '#6a7a6e' }}>Chưa có bài viết</div></div>
                   : listArticles.map((a, idx) => <ArticleRow key={a.id} article={a} idx={idx} />)
               }
             </div>
 
             {hasMoreNews && (
               <button className="loadmore-btn" onClick={handleLoadMore} disabled={newsLoading}>
-                {newsLoading ? '�ANG T?I...' : '?? Xem th�m b�i vi?t cu hon'}
+                {newsLoading ? 'ĐANG TẢI...' : '📄 Xem thêm bài viết cũ hơn'}
               </button>
             )}
           </div>
@@ -327,17 +327,17 @@ export default function NewsScreen() {
           {/* RIGHT: Sidebar */}
           <div className="ns-sidebar">
 
-            {/* -- LIVE MATCHES (real API) -- */}
+            {/* ── LIVE MATCHES (real API) ── */}
             <div className="sidebar-card">
               <div className="s-header">
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <div className="live-dot" />
-                  <span style={{ color: 'white', fontSize: 12, fontWeight: 800, letterSpacing: 0.5 }}>�ANG PH�T TR?C TI?P</span>
+                  <span style={{ color: 'white', fontSize: 12, fontWeight: 800, letterSpacing: 0.5 }}>ĐANG PHÁT TRỰC TIẾP</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                   {liveLoading && <div className="spinner" />}
                   <span style={{ color: '#ef4444', fontSize: 11, fontWeight: 700 }}>
-                    {liveLoading ? '...' : `${liveMatches.length} tr?n`}
+                    {liveLoading ? '...' : `${liveMatches.length} trận`}
                   </span>
                 </div>
               </div>
@@ -346,30 +346,30 @@ export default function NewsScreen() {
                   ? [0,1].map(i => <div key={i} className="skeleton" style={{ height: 64, borderRadius: 14 }} />)
                   : liveMatches.length === 0
                     ? <div className="empty-state" style={{ padding: '16px 0' }}>
-                        <div style={{ fontSize: 28, marginBottom: 8 }}>??</div>
-                        <div style={{ fontSize: 12, color: '#4a5a4e', fontWeight: 600 }}>Hi?n chua c� tr?n live</div>
-                        <div style={{ fontSize: 11, color: '#3a4a3e', marginTop: 4 }}>T? c?p nh?t m?i 30 gi�y</div>
+                        <div style={{ fontSize: 28, marginBottom: 8 }}>😴</div>
+                        <div style={{ fontSize: 12, color: '#4a5a4e', fontWeight: 600 }}>Hiện chưa có trận live</div>
+                        <div style={{ fontSize: 11, color: '#3a4a3e', marginTop: 4 }}>Tự cập nhật mỗi 30 giây</div>
                       </div>
                     : liveMatches.slice(0, 4).map((m, i) => <LiveMatchPill key={m.id || i} match={m} />)
                 }
                 <a href="/lich-thi-dau" style={{ display: 'block', textAlign: 'center', padding: '10px 0', color: '#22c55e', fontSize: 11, fontWeight: 700, borderTop: '1px solid rgba(255,255,255,0.06)', textDecoration: 'none', marginTop: 4 }}>
-                  Xem t?t c? l?ch d?u ?
+                  Xem tất cả lịch đấu →
                 </a>
               </div>
             </div>
 
-            {/* -- STANDINGS (real API) -- */}
+            {/* ── STANDINGS (real API) ── */}
             <div className="sidebar-card">
               <div className="s-header">
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span style={{ fontSize: 14 }}>??</span>
+                  <span style={{ fontSize: 14 }}>🏆</span>
                   <div>
-                    <div style={{ color: 'white', fontSize: 12, fontWeight: 800 }}>B?NG X?P H?NG</div>
+                    <div style={{ color: 'white', fontSize: 12, fontWeight: 800 }}>BẢNG XẾP HẠNG</div>
                     {standingsTournament && <div style={{ color: '#4a5a4e', fontSize: 10, marginTop: 1 }}>{standingsTournament}</div>}
                   </div>
                 </div>
                 {standingsTournamentId && (
-                  <a href={`/giai-dau/${standingsTournamentId}`} style={{ color: '#22c55e', fontSize: 11, fontWeight: 700, textDecoration: 'none' }}>Chi ti?t</a>
+                  <a href={`/giai-dau/${standingsTournamentId}`} style={{ color: '#22c55e', fontSize: 11, fontWeight: 700, textDecoration: 'none' }}>Chi tiết</a>
                 )}
               </div>
               <div className="s-body">
@@ -379,15 +379,15 @@ export default function NewsScreen() {
                     </div>
                   : standings.length === 0
                     ? <div className="empty-state" style={{ padding: '16px 0' }}>
-                        <div style={{ fontSize: 28, marginBottom: 8 }}>??</div>
-                        <div style={{ fontSize: 12, color: '#4a5a4e', fontWeight: 600 }}>Chua c� gi?i dang thi d?u</div>
+                        <div style={{ fontSize: 28, marginBottom: 8 }}>📋</div>
+                        <div style={{ fontSize: 12, color: '#4a5a4e', fontWeight: 600 }}>Chưa có giải đang thi đấu</div>
                       </div>
                     : <>
                         <div style={{ display: 'flex', alignItems: 'center', padding: '4px 6px 8px', borderBottom: '1px solid rgba(255,255,255,0.05)', marginBottom: 4 }}>
                           <span style={{ color: '#3a4a3e', fontSize: 9, fontWeight: 800, width: 28 }}>#</span>
-                          <span style={{ color: '#3a4a3e', fontSize: 9, fontWeight: 800, flex: 1 }}>�?I B�NG</span>
+                          <span style={{ color: '#3a4a3e', fontSize: 9, fontWeight: 800, flex: 1 }}>ĐỘI BÓNG</span>
                           <span style={{ color: '#3a4a3e', fontSize: 9, fontWeight: 800, width: 24, textAlign: 'center' }}>T</span>
-                          <span style={{ color: '#3a4a3e', fontSize: 9, fontWeight: 800, width: 36, textAlign: 'right' }}>�I?M</span>
+                          <span style={{ color: '#3a4a3e', fontSize: 9, fontWeight: 800, width: 36, textAlign: 'right' }}>ĐIỂM</span>
                         </div>
                         {standings.map((row: any, i) => (
                           <div key={row.name + i} className={`standings-row${i < 2 ? ' top2' : ''}`}>
@@ -406,11 +406,11 @@ export default function NewsScreen() {
             {/* Newsletter */}
             <div className="sidebar-card" style={{ background: 'linear-gradient(135deg,rgba(20,35,25,0.98),rgba(8,14,10,0.98))' }}>
               <div className="s-body" style={{ textAlign: 'center', padding: '24px 18px' }}>
-                <div style={{ fontSize: 28, marginBottom: 10 }}>??</div>
-                <div style={{ color: 'white', fontSize: 14, fontWeight: 900, marginBottom: 6, letterSpacing: -0.3 }}>Nh?n tin ngay!</div>
-                <div style={{ color: '#7a8c7e', fontSize: 12, marginBottom: 16, lineHeight: 1.6 }}>�?ng b? l? k?t qu? hay tin t?c t? gi?i d?u</div>
+                <div style={{ fontSize: 28, marginBottom: 10 }}>🔔</div>
+                <div style={{ color: 'white', fontSize: 14, fontWeight: 900, marginBottom: 6, letterSpacing: -0.3 }}>Nhận tin ngay!</div>
+                <div style={{ color: '#7a8c7e', fontSize: 12, marginBottom: 16, lineHeight: 1.6 }}>Đừng bỏ lỡ kết quả hay tin tức từ giải đấu</div>
                 <button style={{ width: '100%', padding: '11px 0', background: 'linear-gradient(90deg,#4ade80 0%,#22c55e 100%)', color: 'black', fontWeight: 900, fontSize: 12, letterSpacing: 0.5, border: 'none', borderRadius: 10, cursor: 'pointer', boxShadow: '0 4px 16px rgba(34,197,94,0.3)' }}>
-                  �?T TH�NG B�O
+                  ĐẶT THÔNG BÁO
                 </button>
               </div>
             </div>
@@ -422,11 +422,11 @@ export default function NewsScreen() {
   )
 }
 
-// --- Live Match Pill ----------------------------------------------
+// ─── Live Match Pill ──────────────────────────────────────────────
 function LiveMatchPill({ match: m }: { match: any }) {
   const hS = m.homeScore ?? m.score?.home ?? 0
   const aS = m.awayScore ?? m.score?.away ?? 0
-  const minute = m.currentMinute ? `${m.currentMinute}'` : '?'
+  const minute = m.currentMinute ? `${m.currentMinute}'` : '▶'
   const hName = m.homeTeam?.name || m.teamA || 'TBA'
   const aName = m.awayTeam?.name || m.teamB || 'TBA'
   const href = m.tournamentId ? `/giai-dau/${m.tournamentId}` : '#'
@@ -436,7 +436,7 @@ function LiveMatchPill({ match: m }: { match: any }) {
       <div className="live-dot" />
       <div style={{ display: 'flex', flexDirection: 'column', gap: 1, minWidth: 30, alignItems: 'center' }}>
         <span style={{ color: '#ef4444', fontSize: 9, fontWeight: 900 }}>{minute}</span>
-        {hS + aS >= 3 && <span style={{ fontSize: 8, color: '#f59e0b' }}>??</span>}
+        {hS + aS >= 3 && <span style={{ fontSize: 8, color: '#f59e0b' }}>🔥</span>}
       </div>
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 4, minWidth: 0 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 4 }}>
@@ -453,7 +453,7 @@ function LiveMatchPill({ match: m }: { match: any }) {
   )
 }
 
-// --- Article Row --------------------------------------------------
+// ─── Article Row ──────────────────────────────────────────────────
 function ArticleRow({ article: a, idx }: { article: any; idx: number }) {
   const [imgLoaded, setImgLoaded] = useState(false)
 
@@ -469,19 +469,18 @@ function ArticleRow({ article: a, idx }: { article: any; idx: number }) {
       </div>
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-          <span className="cat-badge">Tin T?c</span>
+          <span className="cat-badge">Tin Tức</span>
         </div>
         <p style={{ color: 'white', fontSize: 14, fontWeight: 800, margin: 0, lineHeight: '1.45', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' } as any} dangerouslySetInnerHTML={{__html: a.title}} />
         {a.summary && <p style={{ color: '#7a8c7e', fontSize: 12, margin: 0, lineHeight: '1.5', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' } as any} dangerouslySetInnerHTML={{__html: a.summary}} />}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 2 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <span style={{ color: '#4a5a4e', fontSize: 11 }}>?? {a.published_at ? formatTimeAgo(a.published_at) : ''}</span>
-            <span style={{ color: '#4a5a4e', fontSize: 11 }}>?? {a.author || 'BTV Ph?i Score'}</span>
+            <span style={{ color: '#4a5a4e', fontSize: 11 }}>🕐 {a.published_at ? formatTimeAgo(a.published_at) : ''}</span>
+            <span style={{ color: '#4a5a4e', fontSize: 11 }}>✍️ {a.author || 'BTV Phủi Score'}</span>
           </div>
-          <div className="xem-btn-sm">? XEM</div>
+          <div className="xem-btn-sm">▶ XEM</div>
         </div>
       </div>
     </a>
   )
 }
-

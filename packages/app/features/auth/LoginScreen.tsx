@@ -61,7 +61,7 @@ export const LoginScreen = () => {
     if (!validate()) return
 
     setLoading(true)
-    const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'
+    const API = process.env.NEXT_PUBLIC_API_URL || (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api')
     try {
       const response = await fetch(`${API}/auth/login`, {
         method: "POST",
@@ -266,4 +266,3 @@ const SocialButton = ({ icon, label }: any) => (
     <Text color="white" fontWeight="700" fontSize={14 as any} fontFamily={FONT_BODY}>{label}</Text>
   </Button>
 )
-

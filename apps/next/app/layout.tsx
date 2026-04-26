@@ -41,7 +41,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         `}} />
         <Provider defaultTheme="dark">
           <ClientLayout>
-            {children}
+            <meta name="referrer" content="no-referrer" />
+        {children}
           </ClientLayout>
         </Provider>
       </body>

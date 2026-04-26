@@ -1,0 +1,27 @@
+name: Auto Match Crawler
+
+on:
+  schedule:
+    - cron: '*/5 * * * *' # Chạy mỗi 5 phút (Mức tối thiểu của GitHub)
+  workflow_dispatch: # Cho phép nhấn nút chạy thủ công trên GitHub
+
+jobs:
+  crawl:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+
+      - name: Install Dependencies
+        run: npm install axios
+
+      - name: Run Crawler
+        run: node local-crawler.js
+        env:
+          # Nếu bạn có dùng biến môi trường bí mật, có thể đưa vào đây
+          SYNC_TOKEN: 'phuiscore_secret_2026'

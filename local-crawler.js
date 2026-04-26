@@ -1,8 +1,9 @@
 const axios = require('axios');
 
 // Cấu hình
-const SERVER_URL = 'https://phuiscore-web.onrender.com/api/sync/matches'; // Link Render của bạn
-const SYNC_TOKEN = 'phuiscore_secret_2026'; // Mật mã phải khớp với server
+const SERVER_URL = 'https://phuiscore-web.onrender.com/api/sync/matches'; 
+const SYNC_TOKEN = 'phuiscore_secret_2026'; 
+const REFRESH_INTERVAL = 30 * 1000; // 30 giây chạy lại một lần
 
 const headers = { 
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
@@ -27,16 +28,13 @@ const calculateMinute = (match) => {
 
 async function crawlAndSync(date) {
     const url = `https://www.sofascore.com/api/v1/sport/football/scheduled-events/${date}`;
-    console.log(`\n[Local Crawler] ⚽ Đang lấy dữ liệu ngày: ${date}...`);
+    console.log(`[Local Crawler] ⚽ Đang lấy dữ liệu ngày: ${date}...`);
     
     try {
         const response = await axios.get(url, { headers });
         const rawEvents = response.data.events || [];
         
-        if (rawEvents.length === 0) {
-            console.log(`[Local Crawler] ℹ Không có trận đấu nào.`);
-            return;
-        }
+        if (rawEvents.length === 0) return;
 
         const matches = rawEvents.map(m => ({
             id: m.id,
@@ -49,12 +47,13 @@ async function crawlAndSync(date) {
             homeTeam: {
                 id: m.homeTeam.id,
                 name: m.homeTeam.name,
-                logo: `https://api.sofascore.app/api/v1/team/${m.homeTeam.id}/image`
+                // Đổi link logo sang định dạng static để tránh bị chặn
+                logo: `https://www.sofascore.com/api/v1/team/${m.homeTeam.id}/image`
             },
             awayTeam: {
                 id: m.awayTeam.id,
                 name: m.awayTeam.name,
-                logo: `https://api.sofascore.app/api/v1/team/${m.awayTeam.id}/image`
+                logo: `https://www.sofascore.com/api/v1/team/${m.awayTeam.id}/image`
             },
             score: {
                 home: m.homeScore?.current ?? 0,
@@ -71,34 +70,45 @@ async function crawlAndSync(date) {
             }
         }));
 
-        console.log(`[Local Crawler] 🚀 Đang gửi ${matches.length} trận lên Render...`);
-        
         const syncRes = await axios.post(SERVER_URL, {
             token: SYNC_TOKEN,
             matches: matches
         });
 
         if (syncRes.data.success) {
-            console.log(`[Local Crawler] ✅ ĐỒNG BỘ THÀNH CÔNG! Server đã nhận ${syncRes.data.count} trận.`);
+            console.log(`[Local Crawler] ✅ ĐỒNG BỘ THÀNH CÔNG cho ngày ${date}!`);
         }
     } catch (err) {
         console.error(`[Local Crawler Error] ❌ Lỗi:`, err.message);
-        if (err.response) {
-            console.error('Response Error:', err.response.data);
-        }
     }
 }
 
-// Chạy cào cho hôm nay, hôm qua và ngày mai
-const today = new Date().toISOString().split('T')[0];
-const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
-const tomorrow = new Date(Date.now() + 86400000).toISOString().split('T')[0];
-
 async function start() {
+    console.log('\n' + '='.repeat(50));
+    console.log(`🚀 BẮT ĐẦU CHU KỲ CẬP NHẬT: ${new Date().toLocaleTimeString()}`);
+    console.log('='.repeat(50));
+
+    const today = new Date().toISOString().split('T')[0];
+    const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+    const tomorrow = new Date(Date.now() + 86400000).toISOString().split('T')[0];
+
     await crawlAndSync(yesterday);
     await crawlAndSync(today);
     await crawlAndSync(tomorrow);
-    console.log('\n[Local Crawler] Done! Nhấn Ctrl+C để thoát.');
+    
+    console.log(`\n💤 Đã xong chu kỳ. Sẽ chạy lại sau 5 phút...`);
+    console.log('Nhấn Ctrl+C nếu muốn dừng lại.');
 }
 
-start();
+// Chạy lần đầu tiên
+start().then(() => {
+    // Nếu chạy trên GitHub Actions (CI), thì thoát luôn sau khi xong
+    if (process.env.GITHUB_ACTIONS) {
+        console.log('\n[Local Crawler] Chạy xong trên GitHub. Thoát.');
+        process.exit(0);
+    } else {
+        // Nếu chạy ở máy nhà, thì lặp lại sau mỗi 5 phút
+        console.log(`\n💤 Đã xong chu kỳ. Sẽ chạy lại sau 5 phút...`);
+        setInterval(start, REFRESH_INTERVAL);
+    }
+});

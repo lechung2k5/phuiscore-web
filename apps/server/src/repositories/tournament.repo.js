@@ -240,27 +240,23 @@ const TournamentRepo = {
     const tournamentIdStr = String(tournamentId);
     const existing = await TournamentRepo.getById(tournamentIdStr);
     
-    if (existing) {
-      return TournamentRepo.update(tournamentIdStr, { 
-        standings, 
-        name: extra.name || existing.name,
-        logo: extra.logo || existing.logo,
-        updatedAt: Date.now() 
-      });
-    } else {
-      // Tạo mới nếu chưa có
-      const item = {
-        id: tournamentIdStr,
-        name: extra.name || `Giải đấu ${tournamentIdStr}`,
-        logo: extra.logo || null,
-        status: 'Ongoing',
-        standings,
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-      };
-      await docClient.send(new PutCommand({ TableName: TABLE, Item: item }));
-      return item;
-    }
+    // Dùng PutCommand để ghi đè toàn bộ Item, đảm bảo an toàn cho dữ liệu phức tạp như BXH
+    const item = {
+      id: tournamentIdStr,
+      name: extra.name || (existing ? existing.name : `Giải đấu ${tournamentIdStr}`),
+      logo: extra.logo || (existing ? existing.logo : null),
+      status: 'Ongoing',
+      standings: standings, // Đây là mảng các BXH (Total, Home, Away)
+      createdAt: existing ? existing.createdAt : Date.now(),
+      updatedAt: Date.now(),
+    };
+
+    await docClient.send(new PutCommand({ 
+      TableName: TABLE, 
+      Item: item 
+    }));
+    
+    return item;
   },
 };
 

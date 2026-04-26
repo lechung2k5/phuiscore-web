@@ -316,20 +316,27 @@ app.get('/api/leagues', async (req, res) => {
 app.get('/api/standings/:id', async (req, res) => {
     try {
         const TournamentRepo = require('./repositories/tournament.repo');
-        const tournament = await TournamentRepo.getById(req.params.id);
+        // Ép kiểu ID về String để khớp với Key trong DynamoDB
+        const tournamentId = String(req.params.id);
+        const tournament = await TournamentRepo.getById(tournamentId);
+        
         if (!tournament || !tournament.standings) {
-            return res.status(404).json({ message: 'Not found' });
+            console.log(`[API] ❌ Không tìm thấy BXH cho ID: ${tournamentId}`);
+            return res.status(404).json({ message: 'Not found', id: tournamentId });
         }
+        
         res.json({
             data: {
                 tournamentInfo: {
-                    name: tournament.name,
-                    logo: tournament.logo || `https://api.sofascore.app/api/v1/unique-tournament/${tournament.id}/image`
+                    name: tournament.name || 'Giải đấu',
+                    logo: tournament.logo || `https://api.sofascore.app/api/v1/unique-tournament/${tournament.id}/image`,
+                    season: tournament.updatedAt ? `Cập nhật: ${new Date(tournament.updatedAt).toLocaleTimeString()}` : ''
                 },
                 standings: tournament.standings
             }
         });
     } catch (err) {
+        console.error('[API Standings Error]', err.message);
         res.status(500).json({ error: err.message });
     }
 });

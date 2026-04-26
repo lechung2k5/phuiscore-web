@@ -60,21 +60,26 @@ const TournamentRepo = {
   },
 
   getById: async (id) => {
-    const result = await docClient.send(new GetCommand({ TableName: TABLE, Key: { id } }));
-    if (!result.Item) return null;
+    try {
+      const result = await docClient.send(new GetCommand({ TableName: TABLE, Key: { id } }));
+      if (!result.Item) return null;
 
-    const item = result.Item;
-    // GIẢI MÃ DYNAMODB JSON: Nếu standings chứa các Map { M: ... }
-    if (item.standings && Array.isArray(item.standings) && item.standings.length > 0 && item.standings[0].M) {
-      try {
-        const cleanStandings = item.standings.map(s => unmarshall(s));
-        return { ...item, standings: cleanStandings };
-      } catch (e) {
-        console.error('[Unmarshall Error]', e);
-        return item;
+      const item = result.Item;
+      // GIẢI MÃ DYNAMODB JSON: Chỉ giải mã nếu thấy cấu trúc đặc trưng { M: ... }
+      if (item.standings && Array.isArray(item.standings) && item.standings.length > 0 && item.standings[0].M) {
+        try {
+          const cleanStandings = item.standings.map(s => unmarshall(s));
+          return { ...item, standings: cleanStandings };
+        } catch (unmarshalErr) {
+          console.warn('[Unmarshal Warning]', unmarshalErr.message);
+          return item; // Trả về gốc nếu lỗi
+        }
       }
+      return item;
+    } catch (dbErr) {
+      console.error('[DB GetById Error]', dbErr.message);
+      throw dbErr;
     }
-    return item;
   },
 
   update: async (id, updates) => {

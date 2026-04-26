@@ -249,6 +249,30 @@ app.get('/', (req, res) => {
     res.send('⚽ PHUISCORE API Server is Running — Optimized for 10K Users ⚡');
 });
 
+// API đồng bộ dữ liệu từ local crawler
+app.post('/api/sync/matches', async (req, res) => {
+    const { token, matches } = req.body;
+    const SYNC_TOKEN = process.env.SYNC_TOKEN || 'phuiscore_secret_2026';
+
+    if (token !== SYNC_TOKEN) {
+        return res.status(403).json({ success: false, message: 'Unauthorized' });
+    }
+
+    if (!Array.isArray(matches)) {
+        return res.status(400).json({ success: false, message: 'Invalid data format' });
+    }
+
+    try {
+        const MatchRepo = require('./repositories/match.repo');
+        await MatchRepo.saveMatchesBatch(matches);
+        console.log(`[Sync] ✅ Đã nhận và cập nhật ${matches.length} trận từ Local Crawler.`);
+        res.json({ success: true, count: matches.length });
+    } catch (err) {
+        console.error('[Sync Error]', err.message);
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
 app.listen(PORT, () => {
     console.log(`\n==============================================`);
     console.log(`🚀 Server đang chạy tại: http://localhost:${PORT}`);

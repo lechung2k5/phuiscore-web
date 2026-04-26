@@ -232,6 +232,30 @@ const TournamentRepo = {
     
     return TournamentRepo.update(tournamentId, { teams });
   },
+
+  /**
+   * Cập nhật bảng xếp hạng cho giải đấu (từ Crawler)
+   */
+  updateStandings: async (tournamentId, standings) => {
+    const tournamentIdStr = String(tournamentId);
+    const existing = await TournamentRepo.getById(tournamentIdStr);
+    
+    if (existing) {
+      return TournamentRepo.update(tournamentIdStr, { standings, updatedAt: Date.now() });
+    } else {
+      // Tạo mới nếu chưa có
+      const item = {
+        id: tournamentIdStr,
+        name: `Giải đấu ${tournamentIdStr}`, // Tạm thời để tên ID, crawler sẽ cập nhật sau
+        status: 'Ongoing',
+        standings,
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      };
+      await docClient.send(new PutCommand({ TableName: TABLE, Item: item }));
+      return item;
+    }
+  },
 };
 
 module.exports = TournamentRepo;

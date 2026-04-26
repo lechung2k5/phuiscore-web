@@ -273,6 +273,26 @@ app.post('/api/sync/matches', async (req, res) => {
     }
 });
 
+// API đồng bộ bảng xếp hạng
+app.post('/api/sync/standings', async (req, res) => {
+    const { token, tournamentId, standings } = req.body;
+    const SYNC_TOKEN = process.env.SYNC_TOKEN || 'phuiscore_secret_2026';
+
+    if (token !== SYNC_TOKEN) {
+        return res.status(403).json({ success: false, message: 'Unauthorized' });
+    }
+
+    try {
+        const TournamentRepo = require('./repositories/tournament.repo');
+        await TournamentRepo.updateStandings(tournamentId, standings);
+        console.log(`[Sync Standings] ✅ Đã cập nhật BXH cho giải: ${tournamentId}`);
+        res.json({ success: true });
+    } catch (err) {
+        console.error('[Sync Standings Error]', err.message);
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
 app.listen(PORT, () => {
     console.log(`\n==============================================`);
     console.log(`🚀 Server đang chạy tại: http://localhost:${PORT}`);

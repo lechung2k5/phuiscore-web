@@ -1,9 +1,9 @@
 const axios = require('axios');
 
 // Cấu hình
-const SERVER_URL = 'https://phuiscore-web.onrender.com/api/sync/matches'; 
+const SERVER_URL = 'https://phuiscore-web.onrender.com/api'; 
 const SYNC_TOKEN = 'phuiscore_secret_2026'; 
-const REFRESH_INTERVAL = 30 * 1000; // 30 giây chạy lại một lần
+const REFRESH_INTERVAL = 30 * 1000; 
 
 const headers = { 
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
@@ -26,6 +26,24 @@ const calculateMinute = (match) => {
     return minutes > 0 ? `${minutes}'` : "1'";
 };
 
+async function syncStandings(tournamentId, seasonId) {
+    if (!tournamentId || !seasonId) return;
+    try {
+        const url = `https://www.sofascore.com/api/v1/unique-tournament/${tournamentId}/season/${seasonId}/standings/total`;
+        const res = await axios.get(url, { headers });
+        if (res.data && res.data.standings) {
+            await axios.post(`${SERVER_URL}/sync/standings`, {
+                token: SYNC_TOKEN,
+                tournamentId,
+                standings: res.data.standings
+            });
+            console.log(`[Local Crawler] 📊 Đã đồng bộ BXH cho giải ${tournamentId}`);
+        }
+    } catch (e) {
+        // console.error(`[Standings Error] ${tournamentId}:`, e.message);
+    }
+}
+
 async function crawlAndSync(date) {
     const url = `https://www.sofascore.com/api/v1/sport/football/scheduled-events/${date}`;
     console.log(`[Local Crawler] ⚽ Đang lấy dữ liệu ngày: ${date}...`);
@@ -47,7 +65,6 @@ async function crawlAndSync(date) {
             homeTeam: {
                 id: m.homeTeam.id,
                 name: m.homeTeam.name,
-                // Đổi link logo sang định dạng static để tránh bị chặn
                 logo: `https://www.sofascore.com/api/v1/team/${m.homeTeam.id}/image`
             },
             awayTeam: {
@@ -63,21 +80,29 @@ async function crawlAndSync(date) {
             currentMinute: calculateMinute(m),
             startTimestamp: m.startTimestamp,
             time: m.time,
-            info: {
-                round: m.roundInfo?.round || "",
-                venue: m.venue?.name || "",
-                referee: m.referee?.name || ""
-            }
+            seasonId: m.season?.id || 0
         }));
 
-        const syncRes = await axios.post(SERVER_URL, {
+        // Đồng bộ trận đấu
+        await axios.post(`${SERVER_URL}/sync/matches`, {
             token: SYNC_TOKEN,
             matches: matches
         });
+        console.log(`[Local Crawler] ✅ ĐỒNG BỘ THÀNH CÔNG cho ngày ${date}!`);
 
-        if (syncRes.data.success) {
-            console.log(`[Local Crawler] ✅ ĐỒNG BỘ THÀNH CÔNG cho ngày ${date}!`);
+        // Đồng bộ BXH cho các giải đấu quan trọng (Premier League, La Liga, etc.)
+        // Chúng ta lấy danh sách TournamentId từ các trận đấu đang diễn ra
+        const uniqueTournaments = [...new Set(rawEvents.map(m => JSON.stringify({
+            tId: m.tournament.uniqueTournament?.id,
+            sId: m.season?.id
+        })))].map(s => JSON.parse(s)).filter(t => t.tId && t.sId);
+
+        console.log(`[Local Crawler] 📊 Đang kiểm tra BXH cho ${uniqueTournaments.length} giải đấu...`);
+        for (const t of uniqueTournaments.slice(0, 5)) { // Chỉ lấy 5 giải đấu đầu tiên mỗi chu kỳ để tránh bị chặn
+            await syncStandings(t.tId, t.sId);
+            await new Promise(r => setTimeout(r, 1000)); // Nghỉ 1s
         }
+
     } catch (err) {
         console.error(`[Local Crawler Error] ❌ Lỗi:`, err.message);
     }
@@ -89,26 +114,15 @@ async function start() {
     console.log('='.repeat(50));
 
     const today = new Date().toISOString().split('T')[0];
-    const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
-    const tomorrow = new Date(Date.now() + 86400000).toISOString().split('T')[0];
-
-    await crawlAndSync(yesterday);
     await crawlAndSync(today);
-    await crawlAndSync(tomorrow);
     
-    console.log(`\n💤 Đã xong chu kỳ. Sẽ chạy lại sau 5 phút...`);
-    console.log('Nhấn Ctrl+C nếu muốn dừng lại.');
-}
-
-// Chạy lần đầu tiên
-start().then(() => {
-    // Nếu chạy trên GitHub Actions (CI), thì thoát luôn sau khi xong
     if (process.env.GITHUB_ACTIONS) {
         console.log('\n[Local Crawler] Chạy xong trên GitHub. Thoát.');
         process.exit(0);
     } else {
-        // Nếu chạy ở máy nhà, thì lặp lại sau mỗi 5 phút
-        console.log(`\n💤 Đã xong chu kỳ. Sẽ chạy lại sau 5 phút...`);
-        setInterval(start, REFRESH_INTERVAL);
+        console.log(`\n💤 Đã xong chu kỳ. Sẽ chạy lại sau 30 giây...`);
+        setTimeout(start, REFRESH_INTERVAL);
     }
-});
+}
+
+start();

@@ -23,8 +23,12 @@ const cacheResponse = (duration) => {
         // Cache miss — override res.json để bắt response
         const originalJson = res.json.bind(res);
         res.json = (body) => {
-            // Chỉ cache response thành công
-            if (res.statusCode >= 200 && res.statusCode < 300) {
+            // 🛡️ CHỈ CACHE KHI: 
+            // 1. Status code thành công (200)
+            // 2. Dữ liệu không rỗng (Tránh việc cache kết quả rỗng khi cào hụt)
+            const isEmptyData = body && body.success && Array.isArray(body.data) && body.data.length === 0;
+            
+            if (res.statusCode >= 200 && res.statusCode < 300 && !isEmptyData) {
                 apiCache.set(key, body, duration);
             }
             return originalJson(body);
@@ -42,6 +46,7 @@ const invalidateCache = (pattern) => {
     const keys = apiCache.keys();
     const matchingKeys = keys.filter(k => k.includes(pattern));
     if (matchingKeys.length > 0) {
+        console.log(`[Cache] 🗑️ Xóa ${matchingKeys.length} bản ghi khớp với: ${pattern}`);
         apiCache.del(matchingKeys);
     }
 };

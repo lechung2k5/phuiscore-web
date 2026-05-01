@@ -31,7 +31,10 @@ const UserRepo = {
     createUser: async (userData) => {
         const command = new PutCommand({
             TableName: TABLE_NAME,
-            Item: userData,
+            Item: {
+                role: 'user', // Default fallback
+                ...userData
+            },
         });
         return await docClient.send(command);
     },

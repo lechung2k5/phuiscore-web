@@ -333,7 +333,9 @@ export default function TeamManageScreen() {
       const base64 = evt.target?.result; setLoading(true)
       try {
         const token = getToken()
-        const resUp = await axios.post(`${API}/upload/tournament-file`, { base64, filename: file.name, mimeType: file.type })
+        const resUp = await axios.post(`${API}/upload/tournament-file`, { 
+          base64, filename: file.name, mimeType: file.type, folder: 'avatars' 
+        })
         if (resUp.data.success) {
           await axios.put(`${API}/team-members/${uploadingAvatarId}`, { avatar: resUp.data.url }, { headers: { Authorization: `Bearer ${token}` } })
           fetchData()
@@ -425,7 +427,9 @@ export default function TeamManageScreen() {
     reader.onload = async (evt) => {
       setLoading(true)
       try {
-        const res = await axios.post(`${API}/upload/tournament-file`, { base64: evt.target?.result, filename: file.name, mimeType: file.type })
+        const res = await axios.post(`${API}/upload/tournament-file`, { 
+          base64: evt.target?.result, filename: file.name, mimeType: file.type, folder: 'logos' 
+        })
         if (res.data.success) setSettingsForm((prev: any) => ({ ...prev, logo_url: res.data.url }))
       } catch { setAlertMsg('Lỗi upload logo.') }
       finally { setLoading(false) }
@@ -442,7 +446,9 @@ export default function TeamManageScreen() {
       const reader = new FileReader()
       reader.onload = async (evt) => {
         try {
-          const res = await axios.post(`${API}/upload/tournament-file`, { base64: evt.target?.result, filename: file.name, mimeType: file.type })
+          const res = await axios.post(`${API}/upload/tournament-file`, { 
+            base64: evt.target?.result, filename: file.name, mimeType: file.type, folder: 'gallery' 
+          })
           if (res.data.success) resolve(res.data.url); else reject()
         } catch { reject() }
       }
@@ -745,7 +751,7 @@ export default function TeamManageScreen() {
                         <XStack gap="$2">
                           {[{ v: 'income', l: '💰 Thu', c: C.accent }, { v: 'expense', l: '📤 Chi', c: C.red }].map(opt => (
                             <Button key={opt.v} size="$3" flex={1}
-                              backgroundColor={financeForm.type === opt.v ? `${opt.c}22` : 'transparent'}
+                              backgroundColor={(financeForm.type === opt.v ? `${opt.c}22` : 'transparent') as any}
                               borderWidth={1} borderColor={financeForm.type === opt.v ? opt.c : C.cardBorder as any}
                               borderRadius={8} onPress={() => setFinanceForm(p => ({ ...p, type: opt.v }))}>
                               <Text color={financeForm.type === opt.v ? opt.c as any : C.textSub as any} fontWeight="700" fontSize={13}>{opt.l}</Text>
@@ -859,7 +865,7 @@ export default function TeamManageScreen() {
                           <XStack gap="$2">
                             {[{v:'1', l:'🥇 Vô địch'}, {v:'2', l:'🥈 Á quân'}, {v:'3', l:'🥉 Hạng Ba'}, {v:'4', l:'🙌 Top 4/8'}].map(opt => (
                               <Button key={opt.v} size="$2" flex={1}
-                                backgroundColor={trophyForm.rank === opt.v ? `${opt.v==='1' ? C.gold : opt.v==='2' ? '#ccc' : opt.v==='3' ? '#cd7f32' : C.textSub}22` : 'transparent'}
+                                backgroundColor={(trophyForm.rank === opt.v ? `${opt.v==='1' ? C.gold : opt.v==='2' ? '#ccc' : opt.v==='3' ? '#cd7f32' : C.textSub}22` : 'transparent') as any}
                                 borderWidth={1} borderColor={trophyForm.rank === opt.v ? (opt.v==='1' ? C.gold : opt.v==='2' ? '#ccc' : opt.v==='3' ? '#cd7f32' : C.textSub) : C.cardBorder as any}
                                 borderRadius={8} onPress={() => setTrophyForm(p => ({ ...p, rank: opt.v }))}>
                                 <Text fontSize={11} fontWeight="700"

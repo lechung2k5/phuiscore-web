@@ -129,6 +129,9 @@ export const RegisterScreen = () => {
                 <Button flex={1} unstyled borderRadius="$8" backgroundColor={(role === 'MANAGER' ? COLORS.green : 'transparent') as any} onPress={() => setRole('MANAGER')} justifyContent="center" alignItems="center">
                   <Text color={(role === 'MANAGER' ? 'white' : COLORS.textGray) as any} fontWeight="900" fontSize={14} fontFamily={FONT_BODY}>ĐỘI TRƯỞNG</Text>
                 </Button>
+                <Button flex={1} unstyled borderRadius="$8" backgroundColor={(role === 'MEDIA' ? COLORS.green : 'transparent') as any} onPress={() => setRole('MEDIA')} justifyContent="center" alignItems="center">
+                  <Text color={(role === 'MEDIA' ? 'white' : COLORS.textGray) as any} fontWeight="900" fontSize={14} fontFamily={FONT_BODY}>MEDIA</Text>
+                </Button>
               </XStack>
 
               {/* INPUTS SECTION */}

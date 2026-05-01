@@ -26,10 +26,10 @@
     "prepare": "husky"
   },
   "resolutions": {
-    "react": "18.3.1",
-    "react-dom": "18.3.1",
-    "@types/react": "18.3.1",
-    "@types/react-dom": "18.3.1",
+    "react": "18.2.0",
+    "react-dom": "18.2.0",
+    "@types/react": "18.2.0",
+    "@types/react-dom": "18.2.0",
     "tamagui": "2.0.0-rc.0",
     "@tamagui/core": "2.0.0-rc.0",
     "@tamagui/web": "2.0.0-rc.0",
@@ -42,7 +42,13 @@
     "@tamagui/react-native-svg": "2.0.0-rc.0",
     "@tamagui/react-native-web-lite": "2.0.0-rc.0",
     "check-dependency-version-consistency": "^4.1.0",
+    "dotenv": "^17.4.2",
+    "got-scraping": "3.2.15",
     "husky": "^9.1.6",
+    "puppeteer": "^24.42.0",
+    "puppeteer-extra": "^3.3.6",
+    "puppeteer-extra-plugin-stealth": "^2.11.2",
+    "socket.io-client": "^4.7.5",
     "tamagui": "2.0.0-rc.0",
     "turbo": "^1.13.4",
     "typescript": "~5.8.3",
@@ -51,8 +57,8 @@
     "xlsx": "^0.18.5"
   },
   "engines": {
-    "node": "22",
-    "npm": "10.8"
+    "node": ">=22",
+    "npm": ">=10.8"
   },
   "devDependencies": {
     "@biomejs/biome": "^1.9.3",

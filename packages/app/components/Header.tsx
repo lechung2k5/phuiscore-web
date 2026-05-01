@@ -103,22 +103,22 @@ const MENU_ITEMS = [
 /**
  * Component Logo - Đảm bảo không bị giật lag khi chuyển trang
  */
-const PhuiLogo = memo(() => (
+const PhuiLogo: any = (): any => (
   <View width={160} height={50} justifyContent="center">
     <Image
-      src={LogoAsset.src || LogoAsset}
+      src={(LogoAsset as any)?.src || LogoAsset}
       width={160}
       height={50}
       alt="Phui Score Logo"
       style={{ objectFit: 'contain' }} // Dùng style thay vì prop trực tiếp
     />
   </View>
-))
+)
 
 /**
  * Button kích hoạt Menu có Dropdown
  */
-const MenuTriggerButton = forwardRef<any, any>(({ label, isActive, ...props }, ref) => (
+const MenuTriggerButton: any = forwardRef<any, any>(({ label, isActive, ...props }, ref) => (
   // Bọc View và nhận ref là bắt buộc để Popover/Trigger không bị crash
   <View ref={ref}> 
     <Button 
@@ -138,7 +138,7 @@ const MenuTriggerButton = forwardRef<any, any>(({ label, isActive, ...props }, r
 // 3. COMPONENT CHÍNH (HEADER)
 // ==========================================================
 
-const HeaderComponent = () => {
+const HeaderComponent: any = (): any => {
   // --- Hooks khởi tạo ---
   const router = useRouter()
   const pathname = usePathname()
@@ -148,12 +148,20 @@ const HeaderComponent = () => {
   const [openMobileMenu, setOpenMobileMenu] = useState(false)
   const [expandedItem, setExpandedItem] = useState<string | null>(null)
   const [user, setUser] = useState<any>(null)
-  const [scrolled, setScrolled] = useState(false)
-  
-  // Notification states
   const [unreadCount, setUnreadCount] = useState(0)
-  const [recentNotifications, setRecentNotifications] = useState<any[]>([])
   const [loadingNotifs, setLoadingNotifs] = useState(false)
+  const [recentNotifications, setRecentNotifications] = useState<any[]>([])
+  const [scrolled, setScrolled] = useState(false)
+
+  // Computed menu items based on role
+  const filteredMenuItems = useMemo(() => {
+    const items = [...MENU_ITEMS]
+    const role = user?.role?.toLowerCase()
+    if (role === 'media' || role === 'admin') {
+      items.push({ label: 'Media Hub', path: '/media', icon: Shield } as any)
+    }
+    return items
+  }, [user])
 
   // --- Effects ---
   
@@ -333,7 +341,7 @@ const HeaderComponent = () => {
           justifyContent="center" 
           $ltLg={{ display: 'none' } as any}
         >
-          {MENU_ITEMS.map((item) => {
+          {filteredMenuItems.map((item: any) => {
             const isActive = item.path 
               ? (item.path === '/' ? pathname === '/' : pathname?.startsWith(item.path)) 
               : false
@@ -846,5 +854,5 @@ const HeaderComponent = () => {
 }
 
 // 4. Export Component với định danh rõ ràng
-export const Header = memo(HeaderComponent)
+export const Header: any = memo(HeaderComponent)
 

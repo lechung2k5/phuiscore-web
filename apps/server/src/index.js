@@ -13,6 +13,7 @@ const path = require('path');
 const { crawlByDate } = require('./utils/crawler'); 
 const setupCron = require('./services/cron.service');
 const { cacheResponse } = require('./middlewares/cacheMiddleware');
+const { uploadBase64ToS3 } = require('./utils/s3.utils');
 
 // Import Routes
 const authRoutes = require('./routes/auth.routes');
@@ -22,8 +23,31 @@ const standingRoutes = require('./routes/standing.routes');
 const teamRoutes = require('./routes/team.routes');
 const teamMemberRoutes = require('./routes/teamMember.routes');
 const notificationRoutes = require('./routes/notification.routes');
+const syncRoutes = require('./routes/sync.routes'); // Cầu nối Crawler & Server
 
 const app = express();
+const http = require('http');
+const { Server } = require('socket.io');
+const server = http.createServer(app);
+
+// Khởi tạo Socket.io với CORS
+const io = new Server(server, {
+    cors: {
+        origin: process.env.CORS_ORIGIN || '*',
+        methods: ["GET", "POST"]
+    }
+});
+
+// Gán io vào global để các service khác có thể truy cập
+global.io = io;
+
+io.on('connection', (socket) => {
+    console.log(`[Socket] 🔌 Người dùng mới kết nối: ${socket.id}`);
+    
+    socket.on('disconnect', () => {
+        console.log(`[Socket] 🔌 Người dùng ngắt kết nối: ${socket.id}`);
+    });
+});
 
 // ========================================
 // ⚡ MIDDLEWARE HIỆU NĂNG (MỚI)
@@ -75,9 +99,9 @@ app.use(cors({
     credentials: true
 }));
 
-// Body parser — Giảm limit từ 15MB → 5MB (đủ cho JSON thông thường + base64 ảnh nhỏ)
-app.use(express.json({ limit: '5mb' }));
-app.use(express.urlencoded({ extended: true, limit: '5mb' }));
+// Body parser — Tăng giới hạn để nhận dữ liệu cào lớn (JSON + Lineups + Stats)
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 // Serve static uploads
 app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
@@ -152,6 +176,13 @@ app.use('/api/notifications', notificationRoutes);
 const newsRoutes = require('./routes/news.routes');
 app.use('/api/news', newsRoutes);
 
+// Media routes
+const mediaRoutes = require('./routes/media.routes');
+app.use('/api/media', mediaRoutes);
+
+// Sync routes (Crawler)
+app.use('/api/sync', syncRoutes);
+
 
 // ========================================
 // 📁 UPLOAD FILE (Base64)
@@ -160,22 +191,18 @@ app.use('/api/news', newsRoutes);
 const uploadsDir = path.join(__dirname, '..', 'uploads', 'tournaments');
 if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
 
-app.post('/api/upload/tournament-file', (req, res) => {
+app.post('/api/upload/tournament-file', async (req, res) => {
     try {
-        const { base64, filename, mimeType } = req.body;
+        const { base64, filename, mimeType, folder = 'tournaments' } = req.body;
         if (!base64 || !filename) return res.status(400).json({ success: false, message: 'Thiếu dữ liệu file' });
 
-        const ext = filename.split('.').pop();
-        const safeName = `${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
-        const filePath = path.join(uploadsDir, safeName);
-        const data = base64.replace(/^data:[^;]+;base64,/, '');
-        fs.writeFileSync(filePath, Buffer.from(data, 'base64'));
-
-        const baseUrl = process.env.PUBLIC_URL || 'http://localhost:5000';
-        const url = `${baseUrl}/uploads/tournaments/${safeName}`;
+        // Upload trực tiếp lên S3
+        const url = await uploadBase64ToS3(base64, filename, folder);
+        
+        console.log(`[S3 Upload Success] 🚀 File: ${filename} -> ${url}`);
         res.json({ success: true, url });
     } catch (err) {
-        console.error('[Upload]', err.message);
+        console.error('[Upload Error]', err.message);
         res.status(500).json({ success: false, message: err.message });
     }
 });
@@ -214,6 +241,46 @@ cron.schedule('0 4 * * *', async () => {
 });
 
 
+// API Tìm kiếm giải đấu trực tiếp từ Sofascore (Search & Discover)
+app.get('/api/tournaments/search-sofa', async (req, res) => {
+    const { q } = req.query;
+    if (!q) return res.json([]);
+
+    try {
+        const headers = { 
+            'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+            'accept': '*/*',
+            'accept-language': 'vi-VN,vi;q=0.9,en-US;q=0.8,en;q=0.7',
+            'referer': 'https://www.sofascore.com/',
+            'origin': 'https://www.sofascore.com',
+            'sec-ch-ua': '"Google Chrome";v="131", "Chromium";v="131", "Not_A Brand";v="24"',
+            'sec-ch-ua-mobile': '?0',
+            'sec-ch-ua-platform': '"Windows"',
+            'sec-fetch-dest': 'empty',
+            'sec-fetch-mode': 'cors',
+            'sec-fetch-site': 'same-origin',
+            'cache-control': 'no-cache',
+            'pragma': 'no-cache',
+            'priority': 'u=1, i'
+        };
+        // Gọi API search của Sofascore thông qua domain chính
+        const response = await axios.get(`https://www.sofascore.com/api/v1/search/unique-tournaments?q=${encodeURIComponent(q)}&filter=football`, { headers });
+        
+        const results = (response.data?.results || []).map(item => ({
+            id: item.id,
+            name: item.name,
+            region: item.category?.name,
+            logo: `https://api.sofascore.app/api/v1/unique-tournament/${item.id}/image`,
+            isExternal: true
+        }));
+
+        res.json(results);
+    } catch (err) {
+        console.error('[Search Sofa Error]', err.message);
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // ========================================
 // 🛡️ GLOBAL ERROR HANDLER (MỚI)
 // ========================================
@@ -249,99 +316,7 @@ app.get('/', (req, res) => {
     res.send('⚽ PHUISCORE API Server is Running — Optimized for 10K Users ⚡');
 });
 
-// API đồng bộ dữ liệu từ local crawler
-app.post('/api/sync/matches', async (req, res) => {
-    const { token, matches } = req.body;
-    const SYNC_TOKEN = process.env.SYNC_TOKEN || 'phuiscore_secret_2026';
-
-    if (token !== SYNC_TOKEN) {
-        return res.status(403).json({ success: false, message: 'Unauthorized' });
-    }
-
-    if (!Array.isArray(matches)) {
-        return res.status(400).json({ success: false, message: 'Invalid data format' });
-    }
-
-    try {
-        const MatchRepo = require('./repositories/match.repo');
-        await MatchRepo.saveMatchesBatch(matches);
-        console.log(`[Sync] ✅ Đã nhận và cập nhật ${matches.length} trận từ Local Crawler.`);
-        res.json({ success: true, count: matches.length });
-    } catch (err) {
-        console.error('[Sync Error]', err.message);
-        res.status(500).json({ success: false, error: err.message });
-    }
-});
-
-// API đồng bộ bảng xếp hạng
-app.post('/api/sync/standings', async (req, res) => {
-    const { token, tournamentId, tournamentName, tournamentLogo, standings } = req.body;
-    const SYNC_TOKEN = process.env.SYNC_TOKEN || 'phuiscore_secret_2026';
-
-    if (token !== SYNC_TOKEN) {
-        return res.status(403).json({ success: false, message: 'Unauthorized' });
-    }
-
-    try {
-        const TournamentRepo = require('./repositories/tournament.repo');
-        await TournamentRepo.updateStandings(tournamentId, standings, { name: tournamentName, logo: tournamentLogo });
-        console.log(`[Sync Standings] ✅ Đã cập nhật BXH cho giải: ${tournamentName}`);
-        res.json({ success: true });
-    } catch (err) {
-        console.error('[Sync Standings Error]', err.message);
-        res.status(500).json({ success: false, error: err.message });
-    }
-});
-
-// API lấy danh sách các giải đấu có BXH
-app.get('/api/leagues', async (req, res) => {
-    try {
-        const TournamentRepo = require('./repositories/tournament.repo');
-        const tournaments = await TournamentRepo.getAll();
-        // Chỉ lấy các giải có dữ liệu standings
-        const leagues = tournaments
-            .filter(t => t.standings)
-            .map(t => ({
-                id: t.id,
-                name: t.name,
-                logo: t.logo || `https://api.sofascore.app/api/v1/unique-tournament/${t.id}/image`
-            }));
-        res.json(leagues);
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-
-// API lấy chi tiết BXH của 1 giải
-app.get('/api/standings/:id', async (req, res) => {
-    try {
-        const TournamentRepo = require('./repositories/tournament.repo');
-        // Ép kiểu ID về String để khớp với Key trong DynamoDB
-        const tournamentId = String(req.params.id);
-        const tournament = await TournamentRepo.getById(tournamentId);
-        
-        if (!tournament || !tournament.standings) {
-            console.log(`[API] ❌ Không tìm thấy BXH cho ID: ${tournamentId}`);
-            return res.status(404).json({ message: 'Not found', id: tournamentId });
-        }
-        
-        res.json({
-            data: {
-                tournamentInfo: {
-                    name: tournament.name || 'Giải đấu',
-                    logo: tournament.logo || `https://api.sofascore.app/api/v1/unique-tournament/${tournament.id}/image`,
-                    season: tournament.updatedAt ? `Cập nhật: ${new Date(tournament.updatedAt).toLocaleTimeString()}` : ''
-                },
-                standings: tournament.standings
-            }
-        });
-    } catch (err) {
-        console.error('[API Standings Error]', err.message);
-        res.status(500).json({ error: err.message });
-    }
-});
-
-app.listen(PORT, () => {
+server.listen(PORT, () => {
     console.log(`\n==============================================`);
     console.log(`🚀 Server đang chạy tại: http://localhost:${PORT}`);
     console.log(`⚡ Middleware: compression + helmet + rate-limit`);

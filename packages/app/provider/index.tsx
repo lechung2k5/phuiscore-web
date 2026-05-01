@@ -31,7 +31,8 @@ export function Provider({
   defaultTheme = 'dark', // Đổi mặc định thành DARK cho đúng style PHUISCORE
   ...rest
 }: ProviderProps) {
-  const colorScheme = useColorScheme()
+  // Tránh dùng hook native trên server để ngăn lỗi useContext
+  const colorScheme = typeof window !== 'undefined' ? useColorScheme() : 'dark'
 
   // Xác định theme thực tế: Ưu tiên prop truyền vào > Hệ thống
   const theme = defaultTheme || (colorScheme === 'dark' ? 'dark' : 'light')

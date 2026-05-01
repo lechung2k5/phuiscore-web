@@ -45,7 +45,12 @@ const PRIORITY_LEAGUE_IDS = [17, 8, 23, 35, 34, 7, 676];
 
 export default function MatchSchedulePage() {
   const media = useMedia()
-  const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0])
+  const [selectedDate, setSelectedDate] = useState<string>(() => {
+    const d = new Date();
+    const offset = d.getTimezoneOffset() * 60000;
+    const localISOTime = (new Date(d.getTime() - offset)).toISOString().slice(0, 10);
+    return localISOTime;
+  })
   const [leagues, setLeagues] = useState<any[]>([])
   const [loading, setLoading] = useState<boolean>(false)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
@@ -116,7 +121,44 @@ export default function MatchSchedulePage() {
     }
   }, [])
 
-  // Tìm và thay thế useEffect liên quan đến fetchMatches bằng đoạn này:
+  // 🔌 THIẾT LẬP SOCKET.IO CHO DANH SÁCH
+  useEffect(() => {
+    if (!mounted) return
+    const { socket } = require('../utils/socket')
+    
+    socket.connect()
+
+    socket.on('matchUpdate', (updatedData: any) => {
+        setLeagues(prevLeagues => {
+            return prevLeagues.map(league => {
+                // Kiểm tra xem trận đấu cập nhật có thuộc giải này không
+                const matchIndex = league.matches.findIndex((m: any) => String(m.id) === String(updatedData.matchId || updatedData.id));
+                
+                if (matchIndex !== -1) {
+                    const newMatches = [...league.matches];
+                    newMatches[matchIndex] = {
+                        ...newMatches[matchIndex],
+                        ...updatedData,
+                        // Đảm bảo các trường điểm số đồng bộ
+                        score: updatedData.score || {
+                            home: updatedData.homeScore,
+                            away: updatedData.awayScore
+                        }
+                    };
+                    return { ...league, matches: newMatches };
+                }
+                return league;
+            });
+        });
+    });
+
+    return () => {
+        socket.off('matchUpdate')
+        socket.disconnect()
+    }
+  }, [mounted])
+
+  // Tự động cập nhật mỗi 2 phút một lần (Dự phòng cho Socket)
   useEffect(() => {
     if (!mounted) return
     
@@ -125,11 +167,10 @@ export default function MatchSchedulePage() {
     const todayStr = new Date().toISOString().split('T')[0]
     let interval: any
 
-    // Tự động cập nhật mỗi phút một lần nếu là ngày hôm nay
     if (selectedDate === todayStr) {
       interval = setInterval(() => {
         fetchMatches(selectedDate, true) 
-      }, 60000)
+      }, 120000)
     }
 
     return () => { if (interval) clearInterval(interval) }
@@ -427,7 +468,7 @@ const MatchRowDesktop = ({ match, isLast }: any) => {
             >
               {match.status === 'notstarted'
                 ? "VS"
-                : `${match.score.home} - ${match.score.away}`}
+                : `${match.score?.home ?? 0} - ${match.score?.away ?? 0}`}
             </T>
           </XS>
         </V>
@@ -558,7 +599,7 @@ const MatchRowMobile = ({ match, isLast }: any) => {
             fontWeight="900"
             color={isLive ? "#f5a623" : "#fff"}
           >
-            {match.status === 'notstarted' ? "-" : match.score.home}
+            {match.status === 'notstarted' ? "-" : (match.score?.home ?? 0)}
           </T>
 
           <T
@@ -566,7 +607,7 @@ const MatchRowMobile = ({ match, isLast }: any) => {
             fontWeight="900"
             color={isLive ? "#f5a623" : "#fff"}
           >
-            {match.status === 'notstarted' ? "-" : match.score.away}
+            {match.status === 'notstarted' ? "-" : (match.score?.away ?? 0)}
           </T>
         </YS>
       </XS>

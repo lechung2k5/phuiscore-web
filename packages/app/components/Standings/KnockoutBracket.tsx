@@ -160,7 +160,11 @@ function ConnectorLines({
 }
 
 // ─── KnockoutBracket (main) ─────────────────────────────────────────────────
+import { Plus, Minus, Maximize, MousePointer2 } from '@tamagui/lucide-icons'
+
 export function KnockoutBracket({ rounds, compact = false }: { rounds: Round[]; compact?: boolean }) {
+  const [scale, setScale] = React.useState(compact ? 0.8 : 1)
+  
   const CARD_W = compact ? CARD_W_COMPACT : CARD_W_FULL
   const ROUND_GAP = compact ? ROUND_GAP_COMPACT : ROUND_GAP_FULL
   const COL_W = CARD_W + ROUND_GAP
@@ -189,6 +193,10 @@ export function KnockoutBracket({ rounds, compact = false }: { rounds: Round[]; 
     if (scrollRef.current) scrollRef.current.style.cursor = 'grab'
   }, [])
 
+  const zoomIn = () => setScale(prev => Math.min(prev + 0.1, 1.5))
+  const zoomOut = () => setScale(prev => Math.max(prev - 0.1, 0.4))
+  const resetZoom = () => setScale(compact ? 0.7 : 1)
+
   if (!rounds || rounds.length === 0) return null
 
   // Max matches = bracket height base
@@ -207,15 +215,27 @@ export function KnockoutBracket({ rounds, compact = false }: { rounds: Round[]; 
   const canvasH = totalH + HEADER_H + 24
 
   return (
-    <div style={{ width: '100%' }}>
+    <div style={{ width: '100%', position: 'relative' }}>
+      {/* Zoom Controls */}
+      <div style={{ 
+        position: 'absolute', right: 10, top: -50, zIndex: 100,
+        display: 'flex', gap: 8, backgroundColor: '#111', padding: 6, borderRadius: 12,
+        border: '1px solid #222', boxShadow: '0 4px 20px rgba(0,0,0,0.5)'
+      }}>
+        <button onClick={zoomOut} style={btnZoomStyle} title="Thu nhỏ"><Minus size={16} color="#aaa" /></button>
+        <button onClick={resetZoom} style={btnZoomStyle} title="Reset"><Maximize size={16} color="#aaa" /></button>
+        <button onClick={zoomIn} style={btnZoomStyle} title="Phóng to"><Plus size={16} color="#28a745" /></button>
+      </div>
+
       {/* Scroll hint */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16, marginLeft: 4 }}>
-        <span style={{ fontSize: 11, color: '#444', fontWeight: 700, letterSpacing: 1 }}>
-          ← KÉO ĐỂ XEM →
+        <MousePointer2 size={12} color="#444" />
+        <span style={{ fontSize: 10, color: '#444', fontWeight: 900, letterSpacing: 1 }}>
+          KÉO TRÁI-PHẢI ĐỂ XEM SƠ ĐỒ
         </span>
       </div>
 
-      {/* Scrollable bracket */}
+      {/* Scrollable bracket container */}
       <div
         ref={scrollRef}
         onMouseDown={onMouseDown}
@@ -230,68 +250,84 @@ export function KnockoutBracket({ rounds, compact = false }: { rounds: Round[]; 
           WebkitOverflowScrolling: 'touch' as any,
           scrollbarWidth: 'thin' as any,
           scrollbarColor: '#222 #0a0a0a' as any,
-          paddingBottom: 12,
+          paddingBottom: 20,
+          border: '1px solid #111',
+          borderRadius: 16,
+          backgroundColor: '#050807'
         }}
       >
-        <div style={{ position: 'relative', width: canvasW, height: canvasH, minWidth: canvasW }}>
+        <div style={{ 
+          position: 'relative', 
+          width: canvasW * scale, 
+          height: canvasH * scale,
+          minWidth: '100%'
+        }}>
+          <div style={{ 
+            position: 'absolute', 
+            left: 0, top: 0, 
+            transform: `scale(${scale})`, 
+            transformOrigin: 'top left',
+            width: canvasW,
+            height: canvasH,
+            transition: 'transform 0.2s ease-out'
+          }}>
+            {rounds.map((round, rIdx) => {
+              const x = rIdx * COL_W
+              const centers = roundCenters[rIdx]
+              const nextCenters = rIdx < rounds.length - 1 ? roundCenters[rIdx + 1] : null
+              const roundColor = ROUND_COLORS[Math.min(rIdx, ROUND_COLORS.length - 1)]
 
-          {rounds.map((round, rIdx) => {
-            const x = rIdx * COL_W
-            const centers = roundCenters[rIdx]
-            const nextCenters = rIdx < rounds.length - 1 ? roundCenters[rIdx + 1] : null
-            const roundColor = ROUND_COLORS[Math.min(rIdx, ROUND_COLORS.length - 1)]
+              const shouldConnect = nextCenters != null &&
+                round.matches.length >= nextCenters.length * 2 - 1
 
-            // Determine if connector lines make sense (next round has ~half the matches)
-            const shouldConnect = nextCenters != null &&
-              round.matches.length >= nextCenters.length * 2 - 1
-
-            return (
-              <React.Fragment key={rIdx}>
-                {/* Round header */}
-                <div style={{
-                  position: 'absolute', left: x, top: 0, width: CARD_W,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  height: HEADER_H,
-                }}>
-                  <span style={{
-                    fontSize: 10, fontWeight: 900, letterSpacing: 2,
-                    color: roundColor,
-                    textTransform: 'uppercase',
-                    borderBottom: `2px solid ${roundColor}`,
-                    paddingBottom: 2,
+              return (
+                <div key={rIdx}>
+                  {/* Round header */}
+                  <div style={{
+                    position: 'absolute', left: x, top: 0, width: CARD_W,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    height: HEADER_H,
                   }}>
-                    {round.roundName}
-                  </span>
+                    <span style={{
+                      fontSize: 10, fontWeight: 900, letterSpacing: 2,
+                      color: roundColor,
+                      textTransform: 'uppercase',
+                      borderBottom: `2px solid ${roundColor}`,
+                      paddingBottom: 2,
+                    }}>
+                      {round.roundName}
+                    </span>
+                  </div>
+
+                  {/* Match cards */}
+                  {round.matches.map((match, mIdx) => {
+                    const cy = centers[mIdx]
+                    const cardY = cy - CARD_H / 2 + HEADER_H
+                    return (
+                      <MatchCard key={mIdx} match={match} x={x} y={cardY} roundColor={roundColor} compact={compact} />
+                    )
+                  })}
+
+                  {/* SVG Connectors */}
+                  {shouldConnect && nextCenters && (
+                    <ConnectorLines
+                      leftCenters={centers}
+                      rightCenters={nextCenters}
+                      x={x}
+                      totalH={totalH}
+                      roundGap={ROUND_GAP}
+                      cardW={CARD_W}
+                    />
+                  )}
                 </div>
-
-                {/* Match cards */}
-                {round.matches.map((match, mIdx) => {
-                  const cy = centers[mIdx]
-                  const cardY = cy - CARD_H / 2 + HEADER_H
-                  return (
-                    <MatchCard key={mIdx} match={match} x={x} y={cardY} roundColor={roundColor} compact={compact} />
-                  )
-                })}
-
-                {/* SVG Connectors */}
-                {shouldConnect && nextCenters && (
-                  <ConnectorLines
-                    leftCenters={centers}
-                    rightCenters={nextCenters}
-                    x={x}
-                    totalH={totalH}
-                    roundGap={ROUND_GAP}
-                    cardW={CARD_W}
-                  />
-                )}
-              </React.Fragment>
-            )
-          })}
+              )
+            })}
+          </div>
         </div>
       </div>
 
       {/* Legend */}
-      <div style={{ display: 'flex', gap: 20, marginTop: 20, marginLeft: 4 }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 20, marginTop: 20, marginLeft: 4 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           <div style={{ width: 12, height: 12, borderRadius: 3, backgroundColor: 'rgba(40,167,69,0.15)', border: '1px solid #28a745' }} />
           <span style={{ fontSize: 11, color: '#555', fontWeight: 700 }}>Đội thắng</span>
@@ -305,4 +341,10 @@ export function KnockoutBracket({ rounds, compact = false }: { rounds: Round[]; 
       </div>
     </div>
   )
+}
+
+const btnZoomStyle: React.CSSProperties = {
+  width: 32, height: 32, borderRadius: 8, border: 'none',
+  backgroundColor: '#1a1a1a', display: 'flex', alignItems: 'center', justifyContent: 'center',
+  cursor: 'pointer', outline: 'none'
 }

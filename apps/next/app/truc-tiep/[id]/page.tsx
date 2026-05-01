@@ -36,7 +36,23 @@ export async function generateMetadata({ params }: { params: { id: string } }): 
   }
 }
 
-export default function MatchDetailPage({ params }: { params: { id: string } }) {
+export default async function MatchDetailPage({ params }: { params: { id: string } }) {
   const { id: matchId, date } = parseMatchSlug(params.id)
-  return <LiveMatchDetailScreen matchId={matchId} overrideDate={date} />
+  
+  let initialData = null
+  try {
+    const res = await fetch(`${API}/matches/detail/${matchId}?date=${date}`, { 
+      next: { revalidate: 60 },
+      // Thêm timeout để không treo page quá lâu nếu crawler bị chậm
+      signal: AbortSignal.timeout(8000) 
+    })
+    const json = await res.json()
+    if (json.success) {
+      initialData = json.data
+    }
+  } catch (e) {
+    console.error('Server-side fetch error:', e)
+  }
+
+  return <LiveMatchDetailScreen matchId={matchId} overrideDate={date} initialData={initialData} />
 }

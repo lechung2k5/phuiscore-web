@@ -4,6 +4,7 @@ import { XStack, YStack, Text, View, useMedia, Spinner } from 'tamagui'
 import { ChevronRight } from '@tamagui/lucide-icons'
 import { LiveMatchCard } from './LiveMatchCard'
 import axios from 'axios'
+import { getImageUrl } from '../utils/image'
 
 const API = process.env.NEXT_PUBLIC_API_URL || (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api')
 
@@ -53,11 +54,11 @@ export const LiveMatchStrip = () => {
                startTimestamp: m.startTimestamp,
                teamA: {
                  name: m.homeTeam?.name || m.homeTeamName || 'Đội Nhà',
-                 logo: m.homeTeam?.logo || m.homeTeamLogo || 'https://api.dicebear.com/7.x/identicon/svg?seed=home'
+                 logo: getImageUrl(m.homeTeam?.logo || m.homeTeamLogo, 'logo', m.homeTeam?.id)
                },
                teamB: {
                  name: m.awayTeam?.name || m.awayTeamName || 'Đội Khách',
-                 logo: m.awayTeam?.logo || m.awayTeamLogo || 'https://api.dicebear.com/7.x/identicon/svg?seed=away'
+                 logo: getImageUrl(m.awayTeam?.logo || m.awayTeamLogo, 'logo', m.awayTeam?.id)
                },
                scoreA: m.homeScore ?? m.score?.home ?? 0,
                scoreB: m.awayScore ?? m.score?.away ?? 0

@@ -18,7 +18,7 @@ const register = async (req, res) => {
         const newUser = {
             username, fullName, email, phoneNumber,
             password: hashedPassword,
-            role: role || 'USER',
+            role: role?.toLowerCase() || 'user',
             plan: 'FREE',
             usage: { matchesCreated: 0, leaguesCreated: 0, limitMatches: 5, limitLeagues: 2 },
             status: 'ACTIVE',

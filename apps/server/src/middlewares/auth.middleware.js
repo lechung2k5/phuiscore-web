@@ -15,9 +15,17 @@ const verifyToken = (req, res, next) => {
 };
 
 const isAdmin = (req, res, next) => {
-    // Kiểm tra role từ token (đã giải mã ở verifyToken)
-    if (req.user.role !== 'MANAGER' && req.user.role !== 'ADMIN') {
+    const role = req.user?.role?.toLowerCase();
+    if (role !== 'manager' && role !== 'admin') {
         return res.status(403).json({ message: "Quyền hạn không đủ! Chỉ Chủ sân/Admin mới được làm lệnh này." });
+    }
+    next();
+};
+
+const isMedia = (req, res, next) => {
+    const role = req.user?.role?.toLowerCase();
+    if (role !== 'media' && role !== 'admin') {
+        return res.status(403).json({ message: "Đại ca cần quyền Media hoặc Admin để vào khu vực này!" });
     }
     next();
 };
@@ -37,4 +45,4 @@ const verifyTokenOptional = (req, res, next) => {
     next();
 };
 
-module.exports = { verifyToken, isAdmin, verifyTokenOptional };
+module.exports = { verifyToken, isAdmin, isMedia, verifyTokenOptional };

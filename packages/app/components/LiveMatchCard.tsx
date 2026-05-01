@@ -4,6 +4,7 @@ import { Card, XStack, YStack, Text, Image, Button, View, useMedia } from 'tamag
 import { Link } from 'solito/link'
 import { Play } from '@tamagui/lucide-icons'
 import { generateMatchSlug } from '../utils/slug'
+import { getImageUrl } from '../utils/image'
 
 const COLORS = {
   green: '#28a745',
@@ -137,7 +138,7 @@ export const LiveMatchCard = (props: any) => {
             borderColor="rgba(255,255,255,0.08)"
             style={{ boxShadow: '0 4px 15px rgba(0,0,0,0.4)' }}
           >
-            <Image src={teamA?.logo} width={isMobile ? 40 : 50} height={isMobile ? 40 : 50} style={{ objectFit: 'contain' } as any} />
+            <Image src={getImageUrl(teamA?.logo, 'logo', teamA?.id)} width={isMobile ? 40 : 50} height={isMobile ? 40 : 50} style={{ objectFit: 'contain' } as any} />
           </View>
           <Text color="white" fontSize={isMobile ? 11 : 12} fontWeight="800" textAlign="center" numberOfLines={2} height={32} paddingHorizontal="$1">
             {teamA?.name}
@@ -186,7 +187,7 @@ export const LiveMatchCard = (props: any) => {
             borderColor="rgba(255,255,255,0.08)"
             style={{ boxShadow: '0 4px 15px rgba(0,0,0,0.4)' }}
           >
-            <Image src={teamB?.logo} width={isMobile ? 40 : 50} height={isMobile ? 40 : 50} style={{ objectFit: 'contain' } as any} />
+            <Image src={getImageUrl(teamB?.logo, 'logo', teamB?.id)} width={isMobile ? 40 : 50} height={isMobile ? 40 : 50} style={{ objectFit: 'contain' } as any} />
           </View>
           <Text color="white" fontSize={isMobile ? 11 : 12} fontWeight="800" textAlign="center" numberOfLines={2} height={32} paddingHorizontal="$1">
             {teamB?.name}

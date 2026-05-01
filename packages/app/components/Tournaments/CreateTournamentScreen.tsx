@@ -35,6 +35,7 @@ async function uploadFile(file: File): Promise<string> {
       try {
         const res = await axios.post(`${API}/upload/tournament-file`.replace('/api/api/', '/api/'), {
           base64: reader.result, filename: file.name, mimeType: file.type,
+          folder: file.type.startsWith('image/') ? 'banners' : 'regulations'
         })
         res.data.success ? resolve(res.data.url) : reject(new Error(res.data.message))
       } catch (e: any) { reject(e) }

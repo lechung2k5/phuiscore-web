@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react'
 import { LiveMatchCard } from '../LiveMatchCard' // Reuse the existing card component
 import { generateMatchSlug } from '../../utils/slug'
+import { getImageUrl } from '../../utils/image'
 
 const API = process.env.NEXT_PUBLIC_API_URL || (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api')
 
@@ -98,12 +99,12 @@ function UpcomingMatchCard({ m }: { m: any }) {
       </div>
       <div className="up-teams">
         <div className="up-team">
-          <div className="up-logo"><img src={m.teamA?.logo} alt="" /></div>
+          <div className="up-logo"><img src={getImageUrl(m.teamA?.logo, 'logo', m.teamA?.id)} alt="" /></div>
           <span className="up-name">{m.teamA?.name}</span>
         </div>
         <span className="up-vs">VS</span>
         <div className="up-team right">
-          <div className="up-logo"><img src={m.teamB?.logo} alt="" /></div>
+          <div className="up-logo"><img src={getImageUrl(m.teamB?.logo, 'logo', m.teamB?.id)} alt="" /></div>
           <span className="up-name">{m.teamB?.name}</span>
         </div>
       </div>
@@ -120,10 +121,13 @@ function UpcomingMatchCard({ m }: { m: any }) {
   )
 }
 
+// 🚀 GLOBAL CACHE TO PERSIST DATA BETWEEN NAVIGATION
+let matchesCache: any[] | null = null;
+
 export default function LiveScreen() {
+  const [matches, setMatches] = useState<any[]>(matchesCache || [])
+  const [loading, setLoading] = useState(!matchesCache)
   const [activeTab, setActiveTab] = useState('all')
-  const [matches, setMatches] = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
 
   const fetchMatches = async () => {
     try {
@@ -151,11 +155,11 @@ export default function LiveScreen() {
             location: m.location || m.venue,
             teamA: {
               name: m.homeTeam?.name || m.homeTeamName || 'Đội Nhà',
-              logo: m.homeTeam?.logo || m.homeTeamLogo || 'https://api.dicebear.com/7.x/identicon/svg?seed=home'
+              logo: getImageUrl(m.homeTeam?.logo || m.homeTeamLogo, 'logo', m.homeTeam?.id)
             },
             teamB: {
               name: m.awayTeam?.name || m.awayTeamName || 'Đội Khách',
-              logo: m.awayTeam?.logo || m.awayTeamLogo || 'https://api.dicebear.com/7.x/identicon/svg?seed=away'
+              logo: getImageUrl(m.awayTeam?.logo || m.awayTeamLogo, 'logo', m.awayTeam?.id)
             },
             scoreA: m.homeScore ?? m.score?.home ?? 0,
             scoreB: m.awayScore ?? m.score?.away ?? 0,
@@ -164,6 +168,7 @@ export default function LiveScreen() {
         })
         
         setMatches(formatted)
+        matchesCache = formatted
       }
     } catch (e) {
       console.error(e)

@@ -1,0 +1,24 @@
+# Sử dụng image Node.js có sẵn Chrome để chạy Puppeteer
+FROM ghcr.io/puppeteer/puppeteer:latest
+
+USER root
+WORKDIR /app
+
+# Copy các file config của monorepo
+COPY package.json yarn.lock ./
+COPY apps/server/package.json ./apps/server/
+COPY apps/next/package.json ./apps/next/
+COPY packages/app/package.json ./packages/app/
+
+# Cài đặt dependencies (skip puppeteer download vì đã có sẵn trong image)
+RUN yarn install --frozen-lockfile
+
+# Copy toàn bộ code
+COPY . .
+
+# Biến môi trường cho Puppeteer chạy trong Docker
+ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
+ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/google-chrome-stable
+
+# Chạy crawler
+CMD ["node", "local-crawler.js"]

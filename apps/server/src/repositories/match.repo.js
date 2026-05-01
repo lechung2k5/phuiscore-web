@@ -55,53 +55,70 @@ const MatchRepo = {
     saveMatchesBatch: async (matches) => {
         if (!matches || matches.length === 0) return [];
 
-        // Chia nhỏ mảng thành các nhóm 25 phần tử (giới hạn của BatchWrite)
-        const chunks = [];
-        for (let i = 0; i < matches.length; i += 25) {
-            chunks.push(matches.slice(i, i + 25));
-        }
-
-        const results = [];
-        for (const chunk of chunks) {
-            const params = {
-                RequestItems: {
-                    [TABLE_NAME]: chunk.map(match => ({
-                        PutRequest: {
-                           Item: {
-                                pk: `DATE#${match.dateString}`,
-                                sk: `MATCH#${match.id}`,
-                                gsi1_pk: `TOURNAMENT#${match.tournamentId}`,
-                                tournamentId: match.tournamentId, 
-                                tournamentName: match.tournamentName,
-                                tournamentLogo: match.tournamentLogo,
-                                homeTeam: match.homeTeam,
-                                awayTeam: match.awayTeam,
-                                status: match.status,
-                                dateString: match.dateString,
-                                stadium: match.stadium,
-                                pitchNumber: match.pitchNumber,
-                                timeString: match.timeString,
-                                round: match.round,
-                                score: match.score,
-                                currentMinute: match.currentMinute,
-                                startTimestamp: match.startTimestamp,
-                                // 🔥 Thêm các trường chi tiết
-                                statistics: match.statistics || null,
-                                incidents: match.incidents || [],
-                                lineups: match.lineups || null,
-                                h2h: match.h2h || null,
-                                nextMatches: match.nextMatches || null,
-                                standings: match.standings || null,
-                                info: match.info || null,
-                                updatedAt: new Date().toISOString()
-                            }
-                        }
-                    }))
-                }
+        const updatePromises = matches.map(async (match) => {
+            const pk = `DATE#${match.dateString}`;
+            const sk = `MATCH#${match.id}`;
+            
+            // Chỉ lấy các trường có giá trị hợp lệ để tránh lỗi DynamoDB
+            const updateFields = {};
+            const potentialFields = {
+                tournamentId: match.tournamentId,
+                tournamentName: match.tournamentName,
+                tournamentLogo: match.tournamentLogo,
+                homeTeam: match.homeTeam,
+                awayTeam: match.awayTeam,
+                status: match.status,
+                score: match.score,
+                currentMinute: match.currentMinute,
+                startTimestamp: match.startTimestamp,
+                gsi1_pk: match.tournamentId ? `TOURNAMENT#${match.tournamentId}` : undefined,
+                statistics: match.statistics,
+                incidents: match.incidents,
+                lineups: match.lineups,
+                h2h: match.h2h,
+                nextMatches: match.nextMatches,
+                info: match.info,
+                time: match.time,
+                seasonId: match.seasonId,
+                updatedAt: new Date().toISOString()
             };
-            results.push(await docClient.send(new BatchWriteCommand(params)));
-        }
-        return results;
+
+            // Lọc bỏ các trường undefined hoặc null
+            Object.keys(potentialFields).forEach(key => {
+                if (potentialFields[key] !== undefined && potentialFields[key] !== null) {
+                    updateFields[key] = potentialFields[key];
+                }
+            });
+
+            if (Object.keys(updateFields).length === 0) return;
+
+            let updateExp = "SET ";
+            const attrNames = {};
+            const attrValues = {};
+            const keys = Object.keys(updateFields);
+
+            keys.forEach((key, index) => {
+                updateExp += `#field${index} = :val${index}${index < keys.length - 1 ? ", " : ""}`;
+                attrNames[`#field${index}`] = key;
+                attrValues[`:val${index}`] = updateFields[key];
+            });
+
+            try {
+                await client.send(new UpdateCommand({
+                    TableName: TABLE_NAME,
+                    Key: { pk, sk },
+                    UpdateExpression: updateExp,
+                    ExpressionAttributeNames: attrNames,
+                    ExpressionAttributeValues: attrValues
+                }));
+            } catch (err) {
+                console.error(`[MatchRepo] ❌ Lỗi cập nhật trận ${match.id}:`, err.message);
+            }
+        });
+
+        await Promise.all(updatePromises);
+        console.log(`[MatchRepo] ✅ Đã cập nhật ${matches.length} trận đấu.`);
+        return matches;
     },
 
     /**
@@ -116,7 +133,13 @@ const MatchRepo = {
             }
         });
         const response = await docClient.send(command);
-        return response.Items || [];
+        const items = response.Items || [];
+        
+        // Trả về id sạch từ sk (MATCH#123 -> 123)
+        return items.map(item => ({
+            ...item,
+            id: item.id || (item.sk ? item.sk.replace('MATCH#', '') : null)
+        }));
     },
 
     /**
@@ -168,7 +191,8 @@ const MatchRepo = {
     updateMatchLive: async (date, matchId, data) => {
         const { 
             homeScore, awayScore, status, currentMinute, 
-            statistics, incidents, lineups, h2h, nextMatches, standings, info 
+            statistics, incidents, lineups, h2h, nextMatches, standings, info,
+            liveStatus, streamUrl, streamKey
         } = data;
 
         const command = new UpdateCommand({
@@ -189,6 +213,9 @@ const MatchRepo = {
                     nextMatches = :next,
                     standings = :st,
                     info = :info,
+                    liveStatus = :ls,
+                    streamUrl = :su,
+                    streamKey = :sk_val,
                     updatedAt = :u
             `,
             ExpressionAttributeNames: {
@@ -197,7 +224,7 @@ const MatchRepo = {
             ExpressionAttributeValues: {
                 ":h": homeScore ?? 0,
                 ":a": awayScore ?? 0,
-                ":s": status,
+                ":s": status || "inprogress",
                 ":m": currentMinute || "",
                 ":stats": statistics || null,
                 ":inc": incidents || [],
@@ -206,11 +233,52 @@ const MatchRepo = {
                 ":next": nextMatches || null,
                 ":st": standings || null,
                 ":info": info || null,
+                ":ls": liveStatus || 'idle',
+                ":su": streamUrl || null,
+                ":sk_val": streamKey || null,
                 ":u": new Date().toISOString()
             },
             ReturnValues: "ALL_NEW"
         });
         return await docClient.send(command);
+    },
+
+    /**
+     * ⚡ CẬP NHẬT NHANH TỈ SỐ & PHÚT (Cho BLV)
+     */
+    updateMatchScoreboard: async (date, matchId, { homeScore, awayScore, currentMinute, liveStatus }) => {
+        const command = new UpdateCommand({
+            TableName: TABLE_NAME,
+            Key: { pk: `DATE#${date}`, sk: `MATCH#${matchId}` },
+            UpdateExpression: `
+                SET score.home = :h, 
+                    score.away = :a, 
+                    currentMinute = :m,
+                    liveStatus = :ls,
+                    updatedAt = :u
+            `,
+            ExpressionAttributeValues: {
+                ":h": homeScore,
+                ":a": awayScore,
+                ":m": currentMinute,
+                ":ls": liveStatus || 'streaming',
+                ":u": new Date().toISOString()
+            },
+            ReturnValues: "ALL_NEW"
+        });
+        const res = await docClient.send(command);
+        
+        // 📢 Phát tín hiệu Socket.io ngay lập tức
+        if (global.io) {
+            global.io.emit('matchUpdate', {
+                matchId,
+                homeScore,
+                awayScore,
+                currentMinute,
+                liveStatus
+            });
+        }
+        return res;
     },
 
     /**

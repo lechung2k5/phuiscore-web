@@ -32,4 +32,35 @@ const mapSofaStandingToPhuiScore = (rawData, formMap = {}) => {
     });
 };
 
-module.exports = { mapSofaStandingToPhuiScore };
+// Helper: format một trận đấu cho Knockout
+function formatMatchData(m) {
+    return {
+        homeTeam: { 
+            name: m.homeTeam?.name, 
+            logo: `https://api.sofascore.app/api/v1/team/${m.homeTeam?.id}/image` 
+        },
+        awayTeam: { 
+            name: m.awayTeam?.name, 
+            logo: `https://api.sofascore.app/api/v1/team/${m.awayTeam?.id}/image` 
+        },
+        homeScore: m.homeScore?.display ?? m.homeScore?.current ?? (m.status?.type === 'finished' ? '0' : '-'),
+        awayScore: m.awayScore?.display ?? m.awayScore?.current ?? (m.status?.type === 'finished' ? '0' : '-'),
+        homePenalty: m.homeScore?.period1 || null,
+        awayPenalty: m.awayScore?.period1 || null
+    };
+}
+
+/**
+ * Chuyển đổi dữ liệu cupTree từ SofaScore sang định dạng Phui Score
+ */
+const formatCupTree = (tree) => {
+    if (!Array.isArray(tree)) return null;
+    return tree
+        .filter(round => Array.isArray(round.matches) && round.matches.length > 0)
+        .map(round => ({
+            roundName: round.name,
+            matches: round.matches.map(formatMatchData)
+        }));
+};
+
+module.exports = { mapSofaStandingToPhuiScore, formatCupTree, formatMatchData };

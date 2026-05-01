@@ -3,6 +3,110 @@ import React, { useState, useEffect } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { Link } from 'solito/link'
 import { generateMatchSlug } from '../../utils/slug'
+import { getImageUrl } from '../../utils/image'
+import { 
+  LiveKitRoom, 
+  useTracks,
+  useParticipants,
+  VideoTrack,
+  RoomAudioRenderer
+} from '@livekit/components-react';
+import { Track } from 'livekit-client';
+import '@livekit/components-styles';
+
+// Component con để lấy tracks cho khán giả
+function Monitor({ setLkToken }: { setLkToken: (t: string) => void }) {
+  const [started, setStarted] = useState(false);
+  const tracks = useTracks([
+    { source: Track.Source.Camera, withPlaceholder: false }
+  ]).filter(t => t.participant.identity.includes('obs_'));
+
+  // Debug: Xem có ai trong phòng
+  const participants = useParticipants();
+  console.log("[Viewer] 👥 Danh sách định danh trong phòng:", 
+    participants.map(p => p.identity)
+  );
+
+  console.log("[Viewer] 🎥 Số lượng Tracks từ OBS phát hiện:", tracks.length);
+
+  if (!started) {
+    return (
+      <div style={{ 
+        height: '100%', width: '100%', display: 'flex', flexDirection: 'column', 
+        alignItems: 'center', justifyContent: 'center', background: '#000', gap: 20 
+      }}>
+         <div style={{ width: 80, height: 80, borderRadius: '50%', background: '#22c55e', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 0 30px rgba(34,197,94,0.3)' }} onClick={() => setStarted(true)}>
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="#000"><path d="M8 5v14l11-7z"/></svg>
+         </div>
+         <span style={{ color: '#fff', fontWeight: 900, fontSize: 16 }}>BẮT ĐẦU XEM TRỰC TIẾP</span>
+         <span style={{ color: '#5a6a5e', fontSize: 12 }}>Nhấn để kích hoạt âm thanh và video</span>
+      </div>
+    );
+  }
+
+  const obsTrack = tracks[0];
+
+  return (
+    <div style={{ height: '100%', width: '100%', position: 'relative', background: '#000', overflow: 'hidden' }} id="lmd-player-container">
+      {obsTrack ? (
+        <div style={{ height: '100%', width: '100%' }}>
+            <VideoTrack trackRef={obsTrack as any} style={{ height: '100%', width: '100%', objectFit: 'contain' }} />
+            
+            {/* Custom Control Bar */}
+            <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'linear-gradient(transparent, rgba(0,0,0,0.8))', padding: '20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', opacity: 1, transition: 'opacity 0.3s' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 15 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'rgba(255,0,0,0.8)', padding: '4px 12px', borderRadius: 4 }}>
+                        <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#fff', animation: 'pulse 1.5s infinite' }} />
+                        <span style={{ color: '#fff', fontSize: 11, fontWeight: 900 }}>TRỰC TIẾP</span>
+                    </div>
+                </div>
+                
+                <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
+                    {/* Nút Âm thanh */}
+                    <button 
+                        onClick={() => {
+                            const video = document.querySelector('#lmd-player-container video') as HTMLVideoElement;
+                            if (video) video.muted = !video.muted;
+                        }}
+                        style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer' }}
+                    >
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 5L6 9H2v6h4l5 4V5zM15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+                    </button>
+                    
+                    {/* Nút Toàn màn hình */}
+                    <button 
+                        onClick={() => {
+                            const container = document.getElementById('lmd-player-container');
+                            if (container) {
+                                if (!document.fullscreenElement) container.requestFullscreen();
+                                else document.exitFullscreen();
+                            }
+                        }}
+                        style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer' }}
+                    >
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M8 3H5a2 2 0 0 0-2 2v3M21 8V5a2 2 0 0 0-2-2h-3M3 16v3a2 2 0 0 0 2 2h3M16 21h3a2 2 0 0 0 2-2v-3"/></svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+      ) : (
+        <div style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#5a6a5e', fontSize: 14, gap: 12 }}>
+           <div className="pulse-icon" style={{ marginBottom: 10 }}>
+              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M15.66 15c1.11 0 2.01-.9 2.01-2.01V6.01C17.67 4.9 16.77 4 15.66 4H4c-1.11 0-2.01.9-2.01 2.01v6.98C1.99 14.1 2.89 15 4 15h11.66zM17.67 8.5l4.34-3.5v14l-4.34-3.5v-7z"/></svg>
+           </div>
+           <span>Đang chờ tín hiệu từ OBS...</span>
+           <button 
+              onClick={() => { setLkToken(""); setTimeout(() => window.location.reload(), 100); }}
+              style={{ background: 'rgba(34,197,94,0.1)', border: '1px solid #22c55e', color: '#22c55e', padding: '8px 16px', borderRadius: 8, fontSize: 11, cursor: 'pointer', fontWeight: 800, marginTop: 10 }}
+           >
+              LÀM MỚI TRÌNH PHÁT
+           </button>
+        </div>
+      )}
+      <RoomAudioRenderer />
+    </div>
+  );
+}
 
 const CSS = `
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
@@ -197,13 +301,41 @@ const CSS = `
 
    .lmd-upcoming-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; }
    @media (max-width: 768px) { .lmd-upcoming-grid { grid-template-columns: 1fr; gap: 20px; } }
+
+   /* Hide LiveKit Meeting UI elements */
+   .lk-disconnect-button, .lk-chat-toggle { display: none !important; }
+   .lk-control-bar { background: rgba(0,0,0,0.8) !important; border-top: 1px solid rgba(255,255,255,0.05) !important; }
 `;
 
 const TabBtn = ({ active, label, onClick }: { active: boolean, label: string, onClick: () => void }) => (
   <button className={`lmd-tab-btn ${active ? 'active' : ''}`} onClick={onClick}>{label}</button>
 )
 
-const InfoRow = ({ label, value }: { label: string, value: string }) => (
+const SectionSkeleton = ({ height = 200 }) => (
+  <div className="skeleton-container" style={{ height, width: '100%', borderRadius: 16, overflow: 'hidden', position: 'relative', background: 'rgba(255,255,255,0.02)' }}>
+    <div className="skeleton-shimmer" />
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 12, padding: 24 }}>
+      <div style={{ height: 20, width: '40%', background: 'rgba(255,255,255,0.05)', borderRadius: 4 }} />
+      <div style={{ height: 40, width: '100%', background: 'rgba(255,255,255,0.03)', borderRadius: 4 }} />
+      <div style={{ height: 12, width: '80%', background: 'rgba(255,255,255,0.03)', borderRadius: 4 }} />
+      <div style={{ height: 12, width: '60%', background: 'rgba(255,255,255,0.03)', borderRadius: 4 }} />
+    </div>
+    <style>{`
+      @keyframes shimmer {
+        0% { transform: translateX(-100%); }
+        100% { transform: translateX(100%); }
+      }
+      .skeleton-shimmer {
+        position: absolute;
+        top: 0; left: 0; right: 0; bottom: 0;
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.03), transparent);
+        animation: shimmer 1.5s infinite;
+      }
+    `}</style>
+  </div>
+);
+
+const InfoRow = ({ label, value }: { label: string; value: any }) => (
   <div className="lmd-info-row">
     <span className="lmd-info-l">{label}</span>
     <span className="lmd-info-v">{value}</span>
@@ -211,13 +343,17 @@ const InfoRow = ({ label, value }: { label: string, value: string }) => (
 )
 
 const PlayerSlot = ({ p, pos, teamColor }: any) => {
-  const photoUrl = `https://api.sofascore.app/api/v1/player/${p.player.id}/image`;
-  const rating = p.statistics?.rating || p.avgRating || (Math.random() * 3 + 6).toFixed(1); // Demo rating if missing
+  const photoUrl = getImageUrl(null, 'avatar', p.player?.id);
+  const rating = p.statistics?.rating || p.avgRating || null;
   return (
     <div className="player-slot" style={{ left: pos.x, top: pos.y }}>
        <div className="player-photo-wrap">
           <img src={photoUrl} className="player-img" style={{ borderColor: teamColor }} onError={(e: any) => e.target.src = 'https://www.sofascore.com/static/images/placeholders/player.png'} />
-          <div className="player-rt" style={{ background: rating >= 7 ? '#22c55e' : rating >= 6 ? '#eab308' : '#ef4444' }}>{rating}</div>
+          {rating && (
+            <div className="player-rt" style={{ background: rating >= 7 ? '#22c55e' : rating >= 6 ? '#eab308' : '#ef4444' }}>
+              {rating}
+            </div>
+          )}
           <div className="player-num">{p.jerseyNumber}</div>
        </div>
        <span className="player-name-p">{p.player.shortName || p.player.name}</span>
@@ -225,31 +361,55 @@ const PlayerSlot = ({ p, pos, teamColor }: any) => {
   )
 }
 
-const StreamSection = () => {
+const StreamSection = ({ matchId, API }: { matchId: string, API: string }) => {
     const [selectedServer, setSelectedServer] = useState(1);
+    const [lkToken, setLkToken] = useState("");
+    const LK_SERVER_URL = "wss://phuiscore-lhf9kjp2.livekit.cloud";
+
+    useEffect(() => {
+        const fetchPublicToken = async () => {
+            console.log("[Viewer] 🔑 Đang lấy Token cho phòng:", matchId);
+            try {
+                const res = await fetch(`${API}/media/public-token?room=${matchId}`);
+                const json = await res.json();
+                if (json.success) {
+                    setLkToken(json.token);
+                }
+            } catch (e) {
+                console.error("Public Token Error:", e);
+            }
+        };
+        fetchPublicToken();
+    }, [matchId, API]);
     
     return (
         <div className="lmd-stream-wrap">
             <div className="lmd-video-area">
-                <div className="lmd-video-player">
-                    <div className="lmd-video-placeholder">
-                        <div className="lmd-video-play-btn">
-                            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+                <div className="lmd-video-player" style={{ minHeight: 500 }}>
+                    {lkToken ? (
+                        <LiveKitRoom
+                            video={false}
+                            audio={false}
+                            token={lkToken}
+                            serverUrl={LK_SERVER_URL}
+                            connect={true}
+                            style={{ height: '100%', width: '100%' }}
+                        >
+                            <Monitor setLkToken={setLkToken} />
+                        </LiveKitRoom>
+                    ) : (
+                        <div className="lmd-video-placeholder">
+                            <div className="lmd-video-play-btn">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+                            </div>
+                            <span>Đang chuẩn bị luồng trực tiếp...</span>
                         </div>
-                        <span>Đang tải luồng phát trực tiếp...</span>
-                    </div>
+                    )}
                 </div>
                 <div className="lmd-video-controls">
                     <span style={{ fontSize: 11, fontWeight: 900, color: '#5a6a5e' }}>SERVER:</span>
-                    {[1, 2, 3].map(s => (
-                        <button 
-                            key={s} 
-                            className={`lmd-server-btn ${selectedServer === s ? 'active' : ''}`}
-                            onClick={() => setSelectedServer(s)}
-                        >
-                            SERVER {s}
-                        </button>
-                    ))}
+                    <button className="lmd-server-btn active">LIVEKIT PRO (TRỰC TIẾP)</button>
+                    <button className="lmd-server-btn">SAO LƯU 1</button>
                 </div>
             </div>
 
@@ -260,12 +420,8 @@ const StreamSection = () => {
                 </div>
                 <div className="lmd-chat-messages">
                     <div className="lmd-msg">
-                        <span className="lmd-msg-user">Phủi Thủ 01</span>
-                        <span className="lmd-msg-text">Trận này kèo trên chấp sâu quá ae ơi!</span>
-                    </div>
-                    <div className="lmd-msg">
-                        <span className="lmd-msg-user">Admin</span>
-                        <span className="lmd-msg-text">Chào mừng anh em đến với Phủi Score!</span>
+                        <span className="lmd-msg-user">Hệ thống</span>
+                        <span className="lmd-msg-text">Luồng video LiveKit đã sẵn sàng!</span>
                     </div>
                 </div>
                 <div className="lmd-chat-input-wrap">
@@ -279,30 +435,76 @@ const StreamSection = () => {
     )
 }
 
-export default function LiveMatchDetailScreen({ matchId, overrideDate }: { matchId: string, overrideDate?: string }) {
-  const [match, setMatch] = useState<any>(null)
+export default function LiveMatchDetailScreen({ matchId, overrideDate, initialData }: { matchId: string, overrideDate?: string, initialData?: any }) {
+  const [match, setMatch] = useState<any>(initialData || null)
   const [activeTab, setActiveTab] = useState('lineup')
   const [liveMinute, setLiveMinute] = useState('')
   const [loadingStandings, setLoadingStandings] = useState(false)
   const searchParams = useSearchParams()
-  const isLiveMode = searchParams.get('type') === 'live' || (match?.status === 'inprogress' || match?.status === 'live')
+  const isLiveMode = searchParams.get('type') === 'live' || 
+                    ['inprogress', 'live', 'streaming'].includes(match?.status?.type || match?.status);
+  
+  console.log("[Viewer] 🔴 Chế độ Live:", { isLiveMode, status: match?.status });
   
   const API = process.env.NEXT_PUBLIC_API_URL || (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api')
 
+  // 🔌 THIẾT LẬP SOCKET.IO
+  useEffect(() => {
+    const { socket } = require('../../utils/socket')
+    
+    socket.connect()
+    console.log('[Socket] 📡 Đang kết nối...')
+
+    socket.on('connect', () => {
+        console.log('[Socket] ✅ Đã kết nối thành công!')
+    })
+
+    socket.on('matchUpdate', (updatedData: any) => {
+        // Chỉ cập nhật nếu trùng matchId đang xem
+        if (String(updatedData.matchId) === String(matchId)) {
+            console.log('[Socket] ⚽ Cập nhật trận đấu mới:', updatedData)
+            setMatch((prev: any) => ({
+                ...prev,
+                ...updatedData
+            }))
+        }
+    })
+
+    return () => {
+        socket.off('matchUpdate')
+        socket.disconnect()
+    }
+  }, [matchId])
+
   const fetchStandings = async () => {
-    if (!match?.tournamentId || loadingStandings) return
+    // Aggressive ID search
+    const tid = match?.tournamentId || 
+                match?.tournament?.uniqueTournament?.id || 
+                match?.tournament?.id || 
+                match?.info?.tournamentId || 
+                match?.info?.tournament?.id ||
+                (match?.gsi1_pk ? String(match.gsi1_pk).replace('TOURNAMENT#', '') : null);
+    
+    // Đảm bảo tid là số hợp lệ trước khi gọi API (tránh lỗi NaN trên server)
+    const isValidTid = tid && !isNaN(Number(tid));
+    
+    if (!isValidTid || loadingStandings) {
+      console.log('[Standings] ⚠️ Bỏ qua fetch vì ID không hợp lệ hoặc đang tải:', { tid, loadingStandings });
+      return;
+    }
+
     setLoadingStandings(true)
     try {
-      const res = await fetch(`${API}/standings/${match.tournamentId}?refresh=true`)
+      console.log(`[Standings] 🔄 Đang lấy BXH cho giải ${tid}...`);
+      const res = await fetch(`${API}/standings/${tid}?refresh=true`)
       const json = await res.json()
       if (json.success) {
-        // Update both standings and tournamentInfo if needed
         setMatch((prev: any) => ({ 
           ...prev, 
-          standings: json.data.standings,
-          // Update tournament name/logo if they changed
+          standingsData: json.data,
+          standings: json.data.standings || (Array.isArray(json.data) ? json.data : []),
           tournamentName: json.data.tournamentInfo?.name || prev.tournamentName,
-          tournamentLogo: json.data.tournamentInfo?.logo || prev.tournamentLogo
+          tournamentLogo: getImageUrl(json.data.tournamentInfo?.logo || prev.tournamentLogo, 'logo', tid)
         }))
       }
     } catch (e) {
@@ -311,6 +513,19 @@ export default function LiveMatchDetailScreen({ matchId, overrideDate }: { match
       setLoadingStandings(false)
     }
   }
+
+  // 🏆 TỰ ĐỘNG TẢI BXH KHI CHUYỂN TAB
+  useEffect(() => {
+    const tid = match?.tournamentId || 
+                match?.tournament?.uniqueTournament?.id || 
+                match?.tournament?.id || 
+                match?.info?.tournamentId || 
+                match?.info?.tournament?.id ||
+                (match?.gsi1_pk ? String(match.gsi1_pk).replace('TOURNAMENT#', '') : null);
+    if (activeTab === 'bxh' && (!match?.standingsData) && tid) {
+      fetchStandings()
+    }
+  }, [activeTab, match?.tournamentId, match?.tournament?.id, match?.tournament?.uniqueTournament?.id])
 
   useEffect(() => {
     if (!match?.time?.currentPeriodStartTimestamp) {
@@ -335,25 +550,45 @@ export default function LiveMatchDetailScreen({ matchId, overrideDate }: { match
 
   const matchDate = overrideDate || searchParams.get('date') || new Date().toISOString().split('T')[0]
 
+  const fetchDetail = async () => {
+    try {
+      console.log(`[API] 🔄 Đang tải lại chi tiết trận ${matchId}...`);
+      const res = await fetch(`${API}/matches/detail/${matchId}?date=${matchDate}`)
+      const json = await res.json()
+      if (json.success && json.data) {
+        // Merge with existing match info to preserve tournamentId if it was already there
+        setMatch((prev: any) => ({ ...prev, ...json.data }))
+      }
+    } catch (e) {}
+  }
+
   useEffect(() => {
-    const fetchDetails = async () => {
-      try {
-        const res = await fetch(`${API}/matches/detail/${matchId}?date=${matchDate}`)
-        const json = await res.json()
-        if (json.success) {
-           setMatch(json.data)
+    // 🔌 Lắng nghe Socket để cập nhật Real-time
+    const { socket } = require('../../utils/socket')
+    const handleUpdate = (data: any) => {
+        if (String(data.matchId) === String(matchId)) {
+            console.log('[Socket] 🚀 Nhận tín hiệu đã cào xong! Đang làm mới dữ liệu...');
+            fetchDetail();
         }
-      } catch (e) {}
     }
-    fetchDetails()
-    const interval = setInterval(fetchDetails, 15000)
-    return () => clearInterval(interval)
-  }, [matchId, matchDate, API])
+    
+    socket.on('matchUpdated', handleUpdate);
 
-  if (!match) return <div className="lmd-root"></div>
+    // Chỉ fetch nếu chưa có dữ liệu chi tiết từ Server-side
+    if (!initialData || !initialData.statistics) {
+        fetchDetail()
+    }
 
-  const stats = match.statistics?.[0]?.groups?.flatMap((g: any) => g.statisticsItems) || []
-  const incidents = [...(match.incidents || [])].sort((a,b) => b.time - a.time)
+    const interval = setInterval(fetchDetail, 60000)
+    return () => {
+        clearInterval(interval);
+        socket.off('matchUpdated', handleUpdate);
+    }
+  }, [matchId, matchDate, API, initialData])
+
+  // Mặc định cho phép render khung layout trước, thông số load sau
+  const stats = match?.statistics?.[0]?.groups?.flatMap((g: any) => g.statisticsItems) || []
+  const incidents = [...(match?.incidents || [])].sort((a,b) => b.time - a.time)
   
   const homeScorers = incidents.filter(n => (n.team === 'home' || n.incidentClass === 'home') && (n.type === 'goal' || n.incidentType === 'goal'))
   const awayScorers = incidents.filter(n => (n.team === 'away' || n.incidentClass === 'away') && (n.type === 'goal' || n.incidentType === 'goal'))
@@ -368,25 +603,25 @@ export default function LiveMatchDetailScreen({ matchId, overrideDate }: { match
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m9 18 6-6-6-6"/></svg>
           <a href="/live">Trực tiếp</a> 
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m9 18 6-6-6-6"/></svg>
-          <span>{match.homeTeam.name} vs {match.awayTeam.name}</span>
+          <span>{match?.homeTeam?.name || '...'} vs {match?.awayTeam?.name || '...'}</span>
         </div>
 
-        {isLiveMode && <StreamSection />}
+        {isLiveMode && <StreamSection matchId={matchId} API={API} />}
 
         {/* Match Header Section */}
         <div className="lmd-header-card">
            <div className="lmd-header-top">
               <div className="lmd-header-team">
-                 <img src={match.homeTeam.logo} className="lmd-header-logo" />
-                 <span className="lmd-header-name">{match.homeTeam.name}</span>
+                 <img src={getImageUrl(match?.homeTeam?.logo, 'logo', match?.homeTeam?.id)} className="lmd-header-logo" />
+                 <span className="lmd-header-name">{match?.homeTeam?.name || '...'}</span>
               </div>
               <div className="lmd-header-score-wrap">
-                 <div className="lmd-header-score">{(match.score?.home ?? match.homeScore) || 0} - {(match.score?.away ?? match.awayScore) || 0}</div>
+                 <div className="lmd-header-score">{(match?.score?.home ?? match?.homeScore) || 0} - {(match?.score?.away ?? match?.awayScore) || 0}</div>
                  <div className="lmd-header-status">{liveMinute}</div>
               </div>
               <div className="lmd-header-team">
-                 <img src={match.awayTeam.logo} className="lmd-header-logo" />
-                 <span className="lmd-header-name">{match.awayTeam.name}</span>
+                 <img src={getImageUrl(match?.awayTeam?.logo, 'logo', match?.awayTeam?.id)} className="lmd-header-logo" />
+                 <span className="lmd-header-name">{match?.awayTeam?.name || '...'}</span>
               </div>
            </div>
 
@@ -481,7 +716,7 @@ export default function LiveMatchDetailScreen({ matchId, overrideDate }: { match
                                    })}
 
                                    {/* Away Players */}
-                                   {(match.lineups.away?.players || []).filter((p: any) => !p.substitute).map((p: any, i: number) => {
+                                   {(match.lineups?.away?.players || []).filter((p: any) => !p.substitute).map((p: any, i: number) => {
                                       const rows = [1, 4, 3, 3];
                                       let rowIdx = 0, colIdx = 0, count = 0;
                                       for(let r=0; r<rows.length; r++) {
@@ -501,7 +736,7 @@ export default function LiveMatchDetailScreen({ matchId, overrideDate }: { match
                                      `}</style>
                                       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                                          <div style={{ color: '#22c55e', fontSize: 13, fontWeight: 900, borderBottom: '2px solid #22c55e', paddingBottom: 8 }}>DỰ BỊ {match.homeTeam.name.toUpperCase()}</div>
-                                         {match.lineups.home.players?.filter((p: any) => p.substitute).map((p: any, i: number) => (
+                                         {match.lineups?.home?.players?.filter((p: any) => p.substitute).map((p: any, i: number) => (
                                             <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '8px 0', borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
                                                <img src={`https://api.sofascore.app/api/v1/player/${p.player.id}/image`} style={{ width: 32, height: 32, borderRadius: '50%', background: '#252a29' }} />
                                                <span style={{ fontSize: 14 }}>{p.player.name}</span>
@@ -511,7 +746,7 @@ export default function LiveMatchDetailScreen({ matchId, overrideDate }: { match
                                       </div>
                                       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                                          <div style={{ color: '#ef4444', fontSize: 13, fontWeight: 900, borderBottom: '2px solid #ef4444', paddingBottom: 8, textAlign: 'right' }}>DỰ BỊ {match.awayTeam.name.toUpperCase()}</div>
-                                         {match.lineups.away.players?.filter((p: any) => p.substitute).map((p: any, i: number) => (
+                                         {match.lineups?.away?.players?.filter((p: any) => p.substitute).map((p: any, i: number) => (
                                             <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '8px 0', borderBottom: '1px solid rgba(255,255,255,0.03)', flexDirection: 'row-reverse' }}>
                                                <img src={`https://api.sofascore.app/api/v1/player/${p.player.id}/image`} style={{ width: 32, height: 32, borderRadius: '50%', background: '#252a29' }} />
                                                <span style={{ fontSize: 14 }}>{p.player.name}</span>
@@ -522,7 +757,7 @@ export default function LiveMatchDetailScreen({ matchId, overrideDate }: { match
                                  </div>
                               </>
                            ) : (
-                              <div style={{ padding: 100, textAlign: 'center', opacity: 0.4 }}>Thông tin đội hình đang chờ cập nhật...</div>
+                              <SectionSkeleton height={600} />
                            )}
                         </div>
                      )}
@@ -662,55 +897,103 @@ export default function LiveMatchDetailScreen({ matchId, overrideDate }: { match
                                    .lmd-bxh-table th:nth-child(7), .lmd-bxh-table td:nth-child(7) { display: none; }
                                 }
                             `}</style>
-                           {(() => {
-                              // Check for knockout stage
-                              const roundName = match.info?.roundName?.toLowerCase() || '';
-                              const isKnockout = match.info?.cupRoundType || 
-                                 roundName.includes('final') || 
-                                 roundName.includes('quarter') || 
-                                 roundName.includes('semi') || 
-                                 roundName.includes('round of') ||
-                                 roundName.includes('knockout') ||
-                                 roundName.includes('playoff') ||
-                                 roundName.includes('1/8') ||
-                                 roundName.includes('1/4') ||
-                                 roundName.includes('1/2');
+                            {(() => {
+                               // Check for knockout stage
+                               const roundName = match.info?.roundName?.toLowerCase() || '';
+                               const isKnockoutMatch = match.info?.cupRoundType || 
+                                  roundName.includes('final') || 
+                                  roundName.includes('quarter') || 
+                                  roundName.includes('semi') || 
+                                  roundName.includes('round of') ||
+                                  roundName.includes('knockout') ||
+                                  roundName.includes('playoff') ||
+                                  roundName.includes('1/8') ||
+                                  roundName.includes('1/4') ||
+                                  roundName.includes('1/2');
 
-                              if (isKnockout) {
-                                 return (
-                                    <div style={{ padding: 80, textAlign: 'center', opacity: 0.5, display: 'flex', flexDirection: 'column', gap: 16 }}>
-                                       <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" style={{ margin: '0 auto' }}><path d="M12 2v20M17 5v14M7 5v14"/></svg>
-                                       <span>Trận đấu này thuộc vòng loại trực tiếp (Knockout/Playoff). Thể thức này không có bảng xếp hạng tổng.</span>
-                                    </div>
-                                 );
-                              }
+                               // Try to get standings list
+                               let standingsList: any[] = [];
+                               if (match.standingsData?.standings) standingsList = match.standingsData.standings;
+                               else if (Array.isArray(match.standings)) standingsList = match.standings;
+                               else if (match.standingsData && Array.isArray(match.standingsData)) standingsList = match.standingsData;
 
-                              // Handle dynamic group selection
-                              let sData: any = null;
-                              let standingsList: any[] = [];
-                              if (match.standings?.standings) standingsList = match.standings.standings;
-                              else if (Array.isArray(match.standings)) standingsList = match.standings;
-                              else if (match.standings) standingsList = [match.standings];
+                               if (standingsList.length > 0 && standingsList[0].team && standingsList[0].rank) {
+                                  standingsList = [{ name: 'Bảng xếp hạng', rows: standingsList }];
+                               }
 
-                              for (const group of standingsList) {
-                                 const groupRows = group.rows || [];
-                                 const hasTeam = groupRows.some((row: any) => row.team.id === match.homeTeam.id || row.team.id === match.awayTeam.id);
-                                 if (hasTeam) {
-                                    sData = group;
-                                    break;
-                                 }
-                              }
-                              if (!sData && standingsList.length > 0) sData = standingsList[0];
+                               // Try to get knockout data
+                               const knockoutData = match.standingsData?.knockoutData;
 
-                              const rows = sData?.rows || null;
-                              
-                              if (!rows) return (
-                                 <div style={{ padding: 80, textAlign: 'center', opacity: 0.3, display: 'flex', flexDirection: 'column', gap: 16 }}>
-                                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" style={{ margin: '0 auto' }}><path d="M3 3h18v18H3z"/><path d="M3 9h18"/><path d="M9 21V9"/></svg>
-                                    <span>Chưa có dữ liệu bảng xếp hạng cho giải đấu này</span>
-                                 </div>
-                              );
+                               if (isKnockoutMatch && !standingsList.length && knockoutData) {
+                                  // RENDER KNOCKOUT BRACKET (Simplified view)
+                                  return (
+                                     <div style={{ padding: 24 }}>
+                                        <div style={{ color: '#22c55e', fontSize: 13, fontWeight: 900, marginBottom: 20, borderBottom: '2px solid #22c55e', paddingBottom: 8 }}>SƠ ĐỒ THI ĐẤU (KNOCKOUT)</div>
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: 32 }}>
+                                           {knockoutData.map((round: any, ri: number) => (
+                                              <div key={ri}>
+                                                 <div style={{ fontSize: 11, fontWeight: 900, color: '#5a6a5e', marginBottom: 12, textTransform: 'uppercase' }}>{round.roundName || round.name}</div>
+                                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                                                    {round.matches?.slice(0, 4).map((m: any, mi: number) => (
+                                                       <div key={mi} style={{ background: 'rgba(255,255,255,0.03)', padding: 12, borderRadius: 10, border: '1px solid rgba(255,255,255,0.05)' }}>
+                                                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+                                                             <span style={{ fontSize: 12, fontWeight: 600 }}>{m.homeTeam.name}</span>
+                                                             <span style={{ fontWeight: 900, color: '#22c55e' }}>{m.homeScore}</span>
+                                                          </div>
+                                                          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                                             <span style={{ fontSize: 12, fontWeight: 600 }}>{m.awayTeam.name}</span>
+                                                             <span style={{ fontWeight: 900, color: '#22c55e' }}>{m.awayScore}</span>
+                                                          </div>
+                                                       </div>
+                                                    ))}
+                                                 </div>
+                                              </div>
+                                           ))}
+                                        </div>
+                                     </div>
+                                  );
+                               }
 
+                               if (isKnockoutMatch && !standingsList.length && !knockoutData) {
+                                  return (
+                                     <div style={{ padding: 80, textAlign: 'center', opacity: 0.5, display: 'flex', flexDirection: 'column', gap: 16 }}>
+                                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" style={{ margin: '0 auto' }}><path d="M12 2v20M17 5v14M7 5v14"/></svg>
+                                        <span>Trận đấu này thuộc vòng loại trực tiếp. Hiện chưa có dữ liệu sơ đồ thi đấu.</span>
+                                        <button onClick={() => { fetchDetail(); fetchStandings(); }} style={{ background: 'rgba(34,197,94,0.1)', color: '#22c55e', border: '1px solid #22c55e', padding: '8px 16px', borderRadius: 8, cursor: 'pointer', fontSize: 12, fontWeight: 700 }}>Thử tải lại</button>
+                                     </div>
+                                  );
+                               }
+
+                               // Handle dynamic group selection
+                               let sData: any = null;
+                               for (const group of standingsList) {
+                                  const groupRows = group.rows || [];
+                                  const hasTeam = groupRows.some((row: any) => 
+                                     String(row.team?.id) === String(match.homeTeam?.id) || 
+                                     String(row.team?.id) === String(match.awayTeam?.id)
+                                  );
+                                  if (hasTeam) {
+                                     sData = group;
+                                     break;
+                                  }
+                               }
+                               if (!sData && standingsList.length > 0) sData = standingsList[0];
+
+                               const rows = sData?.rows || null;
+                               
+                               if (!rows) return (
+                                  <div style={{ padding: 40 }}>
+                                     {loadingStandings ? (
+                                        <SectionSkeleton height={400} />
+                                     ) : (
+                                        <div style={{ textAlign: 'center', opacity: 0.5 }}>
+                                           <p>Không tìm thấy dữ liệu bảng xếp hạng.</p>
+                                           <button onClick={fetchStandings} style={{ marginTop: 12, background: 'rgba(34,197,94,0.1)', color: '#22c55e', border: '1px solid #22c55e', padding: '8px 16px', borderRadius: 8, cursor: 'pointer' }}>Tải lại BXH</button>
+                                        </div>
+                                     )}
+                                  </div>
+                               );
+                               
                               const legendMap = new Map();
                               rows.forEach((row: any) => {
                                  if (row.description) {
@@ -734,7 +1017,7 @@ export default function LiveMatchDetailScreen({ matchId, overrideDate }: { match
                                            onClick={fetchStandings}
                                            title="Nhấn để cập nhật BXH"
                                         >
-                                           <img src={match.tournamentLogo} style={{ width: 24, height: 24, objectFit: 'contain' }} />
+                                           <img src={getImageUrl(match.tournamentLogo, 'logo', match.tournamentId || match.tournament?.uniqueTournament?.id)} style={{ width: 24, height: 24, objectFit: 'contain' }} />
                                            <span style={{ 
                                               fontSize: 13, 
                                               fontWeight: 900, 
@@ -757,18 +1040,14 @@ export default function LiveMatchDetailScreen({ matchId, overrideDate }: { match
                                                  <th style={{ padding: '12px 16px', textAlign: 'center', fontSize: 10, fontWeight: 900, color: '#5a6a5e', width: 40 }}>#</th>
                                                  <th style={{ padding: '12px 0', textAlign: 'left', fontSize: 10, fontWeight: 900, color: '#5a6a5e' }}>ĐỘI BÓNG</th>
                                                  <th style={{ padding: '12px 8px', textAlign: 'center', fontSize: 10, fontWeight: 900, color: '#5a6a5e', width: 40 }}>P</th>
-                                                 <th style={{ padding: '12px 8px', textAlign: 'center', fontSize: 10, fontWeight: 900, color: '#5a6a5e', width: 40 }}>W</th>
-                                                 <th style={{ padding: '12px 8px', textAlign: 'center', fontSize: 10, fontWeight: 900, color: '#5a6a5e', width: 40 }}>D</th>
-                                                 <th style={{ padding: '12px 8px', textAlign: 'center', fontSize: 10, fontWeight: 900, color: '#5a6a5e', width: 40 }}>L</th>
-                                                 <th style={{ padding: '12px 8px', textAlign: 'center', fontSize: 10, fontWeight: 900, color: '#5a6a5e', width: 60 }}>G</th>
                                                  <th style={{ padding: '12px 8px', textAlign: 'center', fontSize: 10, fontWeight: 900, color: '#5a6a5e', width: 40 }}>+/-</th>
                                                  <th style={{ padding: '12px 16px', textAlign: 'center', fontSize: 10, fontWeight: 900, color: '#22c55e', width: 50 }}>PTS</th>
                                               </tr>
                                            </thead>
                                            <tbody>
                                               {rows.map((row: any, i: number) => {
-                                                 const isHome = row.team.id === match.homeTeam.id;
-                                                 const isAway = row.team.id === match.awayTeam.id;
+                                                 const isHome = String(row.team?.id) === String(match.homeTeam?.id);
+                                                 const isAway = String(row.team?.id) === String(match.awayTeam?.id);
                                                  const isCurrent = isHome || isAway;
                                                  
                                                  // Position logic color
@@ -779,8 +1058,8 @@ export default function LiveMatchDetailScreen({ matchId, overrideDate }: { match
                                                     indicatorColor = legendMap.get(row.description) || '#f59e0b';
                                                  } else {
                                                     // Fallback basic rules
-                                                    if (row.position <= 4) posColor = '#22c55e';
-                                                    else if (row.position >= rows.length - 2) posColor = '#ef4444';
+                                                    if (row.rank <= 4) posColor = '#22c55e';
+                                                    else if (row.rank >= rows.length - 2) posColor = '#ef4444';
                                                  }
 
                                                  return (
@@ -793,27 +1072,23 @@ export default function LiveMatchDetailScreen({ matchId, overrideDate }: { match
                                                           {indicatorColor !== 'transparent' && (
                                                              <div style={{ position: 'absolute', left: 0, top: '20%', bottom: '20%', width: 3, background: indicatorColor, borderRadius: '0 4px 4px 0' }} />
                                                           )}
-                                                          <span style={{ fontSize: 13, fontWeight: 900, color: isCurrent ? '#fff' : posColor }}>{row.position}</span>
+                                                          <span style={{ fontSize: 13, fontWeight: 900, color: isCurrent ? '#fff' : posColor }}>{row.rank}</span>
                                                        </td>
                                                        <td style={{ padding: '14px 0' }}>
                                                           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                                                             <img src={`https://api.sofascore.app/api/v1/team/${row.team.id}/image`} style={{ width: 24, height: 24, objectFit: 'contain' }} />
+                                                             <img src={getImageUrl(row.team.logo, 'logo', row.team.id)} style={{ width: 24, height: 24, objectFit: 'contain' }} />
                                                              <span style={{ 
                                                                 fontSize: 13, 
                                                                 fontWeight: isCurrent ? 900 : 600, 
                                                                 color: isCurrent ? '#22c55e' : (isHome || isAway ? '#fff' : '#ddd') 
-                                                             }}>{row.team.name}</span>
+                                                             }}>{row.team?.name}</span>
                                                           </div>
                                                        </td>
-                                                       <td style={{ textAlign: 'center', fontSize: 13, color: '#7a8c7e' }}>{row.matches}</td>
-                                                       <td style={{ textAlign: 'center', fontSize: 13, color: '#ddd' }}>{row.wins}</td>
-                                                       <td style={{ textAlign: 'center', fontSize: 13, color: '#ddd' }}>{row.draws}</td>
-                                                       <td style={{ textAlign: 'center', fontSize: 13, color: '#ddd' }}>{row.losses}</td>
-                                                       <td style={{ textAlign: 'center', fontSize: 12, color: '#5a6a5e' }}>{row.scoresFor}:{row.scoresAgainst}</td>
-                                                       <td style={{ textAlign: 'center', fontSize: 13, color: row.scoresFor - row.scoresAgainst > 0 ? '#22c55e' : (row.scoresFor - row.scoresAgainst < 0 ? '#ef4444' : '#7a8c7e') }}>
-                                                          {row.scoresFor - row.scoresAgainst > 0 ? `+${row.scoresFor - row.scoresAgainst}` : row.scoresFor - row.scoresAgainst}
+                                                       <td style={{ textAlign: 'center', fontSize: 13, color: '#7a8c7e' }}>{row.mp}</td>
+                                                       <td style={{ textAlign: 'center', fontSize: 13, color: (row.gd || 0) > 0 ? '#22c55e' : ((row.gd || 0) < 0 ? '#ef4444' : '#7a8c7e') }}>
+                                                          {(row.gd || 0) > 0 ? `+${row.gd}` : row.gd}
                                                        </td>
-                                                       <td style={{ textAlign: 'center', fontSize: 14, fontWeight: 900, color: isCurrent ? '#22c55e' : '#fff' }}>{row.points}</td>
+                                                       <td style={{ textAlign: 'center', fontSize: 14, fontWeight: 900, color: isCurrent ? '#22c55e' : '#fff' }}>{row.pts}</td>
                                                     </tr>
                                                  )
                                               })}
@@ -879,7 +1154,6 @@ export default function LiveMatchDetailScreen({ matchId, overrideDate }: { match
                                         
                                         let result = 'D';
                                         let resColor = '#7a8c7e';
-                                        
                                         if (hScore > aScore) {
                                            if (isHomeActual) { result = 'W'; resColor = '#22c55e'; }
                                            else if (isAwayActual) { result = 'L'; resColor = '#ef4444'; }
@@ -889,26 +1163,31 @@ export default function LiveMatchDetailScreen({ matchId, overrideDate }: { match
                                         }
 
                                         return (
-                                           <div key={i} className="lmd-h2h-row" style={{ display: 'grid', gridTemplateColumns: '32px 80px 140px 1fr 70px 1fr', alignItems: 'center', padding: '14px 20px', background: 'rgba(255,255,255,0.02)', borderRadius: 12, gap: 16, border: '1px solid rgba(255,255,255,0.03)' }}>
+                                           <div key={i} className="lmd-h2h-row" style={{ display: 'grid', gridTemplateColumns: '32px 80px 140px 1fr 30px 70px 30px 1fr', alignItems: 'center', padding: '14px 20px', background: 'rgba(255,255,255,0.02)', borderRadius: 12, gap: 16, border: '1px solid rgba(255,255,255,0.03)' }}>
                                               <div style={{ width: 24, height: 24, borderRadius: 6, background: resColor, color: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 900, boxShadow: `0 0 8px ${resColor}44` }}>{result}</div>
                                               <div style={{ fontSize: 11, color: '#5a6a7e', fontWeight: 700 }}>{new Date(m.startTimestamp * 1000).toLocaleDateString('vi-VN')}</div>
                                               <div style={{ fontSize: 11, color: '#22c55e', fontWeight: 800, textTransform: 'uppercase', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', opacity: 0.8 }} title={m.tournament?.name}>{m.tournament?.name}</div>
                                               <div style={{ textAlign: 'right', fontWeight: hScore > aScore ? '900' : '600', fontSize: 13, color: hScore > aScore ? '#fff' : '#7a8c7e', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.homeTeam?.name}</div>
+                                              <img src={getImageUrl(m.homeTeam?.logo, 'logo', m.homeTeam?.id)} style={{ width: 20, height: 20, objectFit: 'contain' }} />
                                               <div style={{ textAlign: 'center', background: 'rgba(255,255,255,0.05)', color: '#fff', padding: '4px 0', borderRadius: 6, fontWeight: '900', fontSize: 13, border: '1px solid rgba(255,255,255,0.05)' }}>{hScore} - {aScore}</div>
+                                              <img src={getImageUrl(m.awayTeam?.logo, 'logo', m.awayTeam?.id)} style={{ width: 20, height: 20, objectFit: 'contain' }} />
                                               <div style={{ textAlign: 'left', fontWeight: aScore > hScore ? '900' : '600', fontSize: 13, color: aScore > hScore ? '#fff' : '#7a8c7e', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.awayTeam?.name}</div>
                                            </div>
-                                        );
+                                        )
                                      })}
                                  </div>
                               </div>
-                           ) : (
-                              <div style={{ padding: 60, textAlign: 'center', opacity: 0.4 }}>Chưa có dữ liệu đối đầu</div>
-                           )}
+                            ) : (
+                               <SectionSkeleton height={500} />
+                            )}
                         </div>
                      )}
 
                      {activeTab === 'upcoming' && (
                         <div style={{ padding: 24 }}>
+                           {!match.nextMatches ? (
+                              <SectionSkeleton height={500} />
+                           ) : (
                            <div className="lmd-upcoming-grid">
                               {/* Home Next */}
                               <div>
@@ -920,12 +1199,12 @@ export default function LiveMatchDetailScreen({ matchId, overrideDate }: { match
                                               <div style={{ fontSize: 11, color: '#5a6a5e', marginBottom: 8 }}>{new Date(m.startTimestamp * 1000).toLocaleString('vi-VN')} • {m.tournament.name}</div>
                                               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1 }}>
-                                                    <img src={`https://api.sofascore.app/api/v1/team/${m.homeTeam.id}/image`} style={{ width: 20, height: 20, objectFit: 'contain' }} />
+                                                    <img src={getImageUrl(m.homeTeam?.logo, 'logo', m.homeTeam?.id)} style={{ width: 20, height: 20, objectFit: 'contain' }} />
                                                     <span style={{ fontWeight: 700, fontSize: 13 }}>{m.homeTeam.name}</span>
                                                  </div>
                                                  <span style={{ color: '#22c55e', fontWeight: 900, fontSize: 12, margin: '0 12px' }}>VS</span>
                                                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, flexDirection: 'row-reverse', textAlign: 'right' }}>
-                                                    <img src={`https://api.sofascore.app/api/v1/team/${m.awayTeam.id}/image`} style={{ width: 20, height: 20, objectFit: 'contain' }} />
+                                                    <img src={getImageUrl(m.awayTeam?.logo, 'logo', m.awayTeam?.id)} style={{ width: 20, height: 20, objectFit: 'contain' }} />
                                                     <span style={{ fontWeight: 700, fontSize: 13 }}>{m.awayTeam.name}</span>
                                                  </div>
                                               </div>
@@ -946,12 +1225,12 @@ export default function LiveMatchDetailScreen({ matchId, overrideDate }: { match
                                               <div style={{ fontSize: 11, color: '#5a6a5e', marginBottom: 8 }}>{new Date(m.startTimestamp * 1000).toLocaleString('vi-VN')} • {m.tournament.name}</div>
                                               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1 }}>
-                                                    <img src={`https://api.sofascore.app/api/v1/team/${m.homeTeam.id}/image`} style={{ width: 20, height: 20, objectFit: 'contain' }} />
+                                                    <img src={getImageUrl(m.homeTeam?.logo, 'logo', m.homeTeam?.id)} style={{ width: 20, height: 20, objectFit: 'contain' }} />
                                                     <span style={{ fontWeight: 700, fontSize: 13 }}>{m.homeTeam.name}</span>
                                                  </div>
                                                  <span style={{ color: '#22c55e', fontWeight: 900, fontSize: 12, margin: '0 12px' }}>VS</span>
                                                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, flexDirection: 'row-reverse', textAlign: 'right' }}>
-                                                    <img src={`https://api.sofascore.app/api/v1/team/${m.awayTeam.id}/image`} style={{ width: 20, height: 20, objectFit: 'contain' }} />
+                                                    <img src={getImageUrl(m.awayTeam?.logo, 'logo', m.awayTeam?.id)} style={{ width: 20, height: 20, objectFit: 'contain' }} />
                                                     <span style={{ fontWeight: 700, fontSize: 13 }}>{m.awayTeam.name}</span>
                                                  </div>
                                               </div>
@@ -962,6 +1241,7 @@ export default function LiveMatchDetailScreen({ matchId, overrideDate }: { match
                                  </div>
                               </div>
                            </div>
+                           )}
                         </div>
                      )}
                  </div>

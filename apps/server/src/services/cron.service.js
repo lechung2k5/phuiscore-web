@@ -7,12 +7,13 @@ const { invalidateCache } = require('../middlewares/cacheMiddleware');
 let isCrawling = false; // Mutex lock chống chồng chéo
 
 const setupCron = () => {
-    // 1. Cào dữ liệu mỗi 20 giây cho ngày hôm nay (Dành cho trận đang LIVE)
-    //    ⚡ Tăng tốc từ 60s -> 20s để có dữ liệu "Real-time" nhất cho người dùng
-    cron.schedule('*/20 * * * * *', async () => {
+    // 1. Cào dữ liệu mỗi 1 phút cho ngày hôm nay (Dành cho trận đang LIVE)
+    //    ⚡ Chỉnh lại từ 20s -> 60s để tránh làm loạn log và bảo vệ IP
+    cron.schedule('0 * * * * *', async () => {
         if (isCrawling) return;
 
-        const today = new Date().toISOString().split('T')[0];
+        // Lấy ngày theo múi giờ Việt Nam (GMT+7)
+        const today = new Date(new Date().getTime() + 7 * 60 * 60 * 1000).toISOString().split('T')[0];
         isCrawling = true;
         try {
             await crawlByDate(today);
@@ -25,7 +26,7 @@ const setupCron = () => {
 
     // 2. Cào dữ liệu ngày mai mỗi 30 phút
     cron.schedule('0 */30 * * * *', async () => {
-        const tomorrow = new Date();
+        const tomorrow = new Date(new Date().getTime() + 7 * 60 * 60 * 1000);
         tomorrow.setDate(tomorrow.getDate() + 1);
         const dateStr = tomorrow.toISOString().split('T')[0];
         

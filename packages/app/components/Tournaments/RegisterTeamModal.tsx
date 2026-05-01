@@ -107,13 +107,30 @@ const JerseyPicker = ({ label, value, onChange }: any) => (
 )
 
 // ─── Player photo upload ──────────────────────────────────────────
-const PlayerPhoto = ({ photo, onChange }: { photo: string; onChange: (b64: string) => void }) => {
+const PlayerPhoto = ({ photo, onChange, folder = 'avatars' }: { photo: string; onChange: (url: string) => void, folder?: string }) => {
   const ref = useRef<HTMLInputElement>(null)
+  const [uploading, setUploading] = useState(false)
+
   const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
-    const b64 = await readFileAsBase64(file)
-    onChange(b64)
+    setUploading(true)
+    try {
+      const b64 = await readFileAsBase64(file)
+      const res = await axios.post(`${API}/upload/tournament-file`, {
+        base64: b64,
+        filename: file.name,
+        mimeType: file.type,
+        folder
+      })
+      if (res.data.success) {
+        onChange(res.data.url)
+      }
+    } catch (err) {
+      console.error("Upload failed:", err)
+    } finally {
+      setUploading(false)
+    }
   }
   return (
     <View
@@ -122,23 +139,27 @@ const PlayerPhoto = ({ photo, onChange }: { photo: string; onChange: (b64: strin
       borderWidth={photo ? 0 : 1.5}
       borderColor={"rgba(255,255,255,0.12)" as any}
       alignItems="center" justifyContent="center"
-      onPress={() => ref.current?.click()}
-      style={{ cursor: 'pointer', overflow: 'hidden', flexShrink: 0, position: 'relative' }}
+      onPress={() => !uploading && ref.current?.click()}
+      style={{ cursor: uploading ? 'wait' : 'pointer', overflow: 'hidden', flexShrink: 0, position: 'relative' }}
     >
-      {photo ? (
+      {uploading ? (
+        <Spinner size="small" color={C.primary as any} />
+      ) : photo ? (
         <img src={photo} alt="avatar"
           style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} />
       ) : (
         <Camera size={18} color={"#555" as any} />
       )}
       {/* Overlay khi hover */}
-      <View position="absolute" top={0} left={0} right={0} bottom={0}
-        backgroundColor={"rgba(0,0,0,0.4)" as any}
-        alignItems="center" justifyContent="center"
-        style={{ opacity: 0, transition: 'opacity 0.2s' }}
-        hoverStyle={{ opacity: 1 } as any}>
-        <Camera size={14} color={"white" as any} />
-      </View>
+      {!uploading && (
+        <View position="absolute" top={0} left={0} right={0} bottom={0}
+          backgroundColor={"rgba(0,0,0,0.4)" as any}
+          alignItems="center" justifyContent="center"
+          style={{ opacity: 0, transition: 'opacity 0.2s' }}
+          hoverStyle={{ opacity: 1 } as any}>
+          <Camera size={14} color={"white" as any} />
+        </View>
+      )}
       <input ref={ref} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleFile} />
     </View>
   )
@@ -351,7 +372,16 @@ export default function RegisterTeamModal({ tournament, onClose, onSuccess, init
       if (file.name.endsWith('.csv')) {
         const text = await file.text()
         const imported = parseCSV(text)
-        if (imported.length === 0) throw new Error('Không tìm thây dữ liệu cầu thủ trong file CSV')
+        if (imported.length === 0) throw new Error('Không tìm thấy dữ liệu cầu thủ trong file CSV')
+        
+        // Upload file gốc lên S3 để lưu trữ (tùy chọn nhưng tốt cho record)
+        try {
+          const b64 = await readFileAsBase64(file)
+          await axios.post(`${API}/upload/tournament-file`, {
+            base64: b64, filename: file.name, mimeType: file.type, folder: 'imports'
+          })
+        } catch(e) { console.error("Lưu file import thất bại", e) }
+
         setPlayers(imported)
         setImportStatus(`✅ Đã import ${imported.length} cầu thủ từ CSV`)
       } else if (file.name.endsWith('.xlsx') || file.name.endsWith('.xls')) {
@@ -380,6 +410,15 @@ export default function RegisterTeamModal({ tournament, onClose, onSuccess, init
         if (imported.length === 0) throw new Error('Không tìm thấy dữ liệu. Kiểm tra lại cấu trúc file Excel.')
         const maxP = tournament.config?.maxPlayers || 20
         const capped = imported.slice(0, maxP)
+        
+        // Upload file gốc lên S3
+        try {
+          const b64 = await readFileAsBase64(file)
+          await axios.post(`${API}/upload/tournament-file`, {
+            base64: b64, filename: file.name, mimeType: file.type, folder: 'imports'
+          })
+        } catch(e) { console.error("Lưu file import thất bại", e) }
+
         setPlayers(capped)
         setImportStatus(`✅ Đã import ${capped.length} cầu thủ từ Excel${capped.length < imported.length ? ` (giới hạn ${maxP})` : ''}`)
       } else {
@@ -581,7 +620,7 @@ export default function RegisterTeamModal({ tournament, onClose, onSuccess, init
                 <XStack gap="$3" alignItems="center">
                   <YStack gap="$1" width={60} alignItems="center">
                     <Text color="#888" fontSize={10} fontWeight="700">LOGO ĐỘI</Text>
-                    <PlayerPhoto photo={form.logo} onChange={set('logo')} />
+                    <PlayerPhoto photo={form.logo} onChange={set('logo')} folder="logos" />
                   </YStack>
                   <YStack flex={1}>
                     <Field label="Tên đội" placeholder="VD: FC Sao Vàng 2026" required value={form.teamName} onChange={set('teamName')} />

@@ -125,6 +125,50 @@ const TournamentRepo = {
     await docClient.send(new PutCommand({ TableName: TABLE, Item: item }));
     return item;
   },
+
+  registerTeam: async (id, teamData) => {
+    const tournament = await TournamentRepo.getById(id);
+    if (!tournament) throw new Error('Không tìm thấy giải đấu');
+
+    const teams = tournament.teams || [];
+    const newTeam = {
+      ...teamData,
+      id: teamData.id || uuidv4(),
+      status: 'Pending',
+      registeredAt: Date.now(),
+      updatedAt: Date.now(),
+    };
+    teams.push(newTeam);
+
+    const updated = await TournamentRepo.update(id, { teams });
+    return updated;
+  },
+
+  publish: async (id) => {
+    return await TournamentRepo.update(id, { status: 'Registration' });
+  },
+
+  updateTeamStatus: async (id, teamId, status, btcNote) => {
+    const tournament = await TournamentRepo.getById(id);
+    if (!tournament) throw new Error('Không tìm thấy giải đấu');
+
+    const teams = (tournament.teams || []).map(t => {
+      if (t.id === teamId) {
+        return { ...t, status, btcNote, updatedAt: Date.now() };
+      }
+      return t;
+    });
+
+    return await TournamentRepo.update(id, { teams });
+  },
+
+  removeTeam: async (id, teamId) => {
+    const tournament = await TournamentRepo.getById(id);
+    if (!tournament) throw new Error('Không tìm thấy giải đấu');
+
+    const teams = (tournament.teams || []).filter(t => t.id !== teamId);
+    return await TournamentRepo.update(id, { teams });
+  },
 };
 
 module.exports = TournamentRepo;

@@ -1,7 +1,7 @@
 import axios from 'axios';
+import { API_BASE } from '../utils/api-config';
 
-// Đây là địa chỉ Backend của ông chạy ở apps/server
-const API_BASE_URL = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'); 
+const API_BASE_URL = API_BASE;
 
 export const standingApi = {
   fetchLeagueStandings: async (tournamentId: number) => {

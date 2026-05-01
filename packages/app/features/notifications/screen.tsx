@@ -10,8 +10,9 @@ import axios from 'axios'
 import { Link } from 'solito/link'
 import { formatDistanceToNow } from 'date-fns'
 import { vi } from 'date-fns/locale'
+import { API_BASE } from '../../utils/api-config'
 
-const API = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api')
+const API = API_BASE
 
 // Design Tokens (đồng bộ phong cách dark mode)
 const C = {

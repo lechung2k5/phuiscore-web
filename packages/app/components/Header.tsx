@@ -44,8 +44,9 @@ import { formatDistanceToNow } from 'date-fns'
 import { vi } from 'date-fns/locale'
 
 import LogoAsset from '../assets/logo.svg'
+import { API_BASE } from '../utils/api-config'
 
-const API = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api')
+const API = API_BASE
 
 // ==========================================================
 // 1. CẤU HÌNH HỆ THỐNG & HẰNG SỐ

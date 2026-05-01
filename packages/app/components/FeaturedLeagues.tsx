@@ -4,8 +4,9 @@ import { YStack, XStack, Text, View, Image, Card, useMedia, Spinner } from 'tama
 import { ChevronRight, MapPin, CalendarDays } from '@tamagui/lucide-icons'
 import axios from 'axios'
 import { useRouter } from 'solito/navigation'
+import { API_BASE } from '../utils/api-config'
 
-const API = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api')
+const API = API_BASE
 
 const COLORS = {
   primary: '#28a745',

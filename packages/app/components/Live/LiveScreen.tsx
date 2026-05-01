@@ -4,7 +4,9 @@ import { LiveMatchCard } from '../LiveMatchCard' // Reuse the existing card comp
 import { generateMatchSlug } from '../../utils/slug'
 import { getImageUrl } from '../../utils/image'
 
-const API = process.env.NEXT_PUBLIC_API_URL || (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api')
+import { API_BASE } from '../../utils/api-config'
+
+const API = API_BASE
 
 const CSS = `
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');

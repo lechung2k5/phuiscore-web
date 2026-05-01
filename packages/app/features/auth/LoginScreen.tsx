@@ -6,6 +6,7 @@ import { useRouter } from 'solito/navigation'
 
 // 1. IMPORT LOGO ASSET
 import LogoAsset from '../../assets/logo.svg' 
+import { API_BASE } from '../../utils/api-config'
 
 const COLORS: any = {
   green: '#28a745',
@@ -61,7 +62,7 @@ export const LoginScreen = () => {
     if (!validate()) return
 
     setLoading(true)
-    const API = process.env.NEXT_PUBLIC_API_URL || (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api')
+    const API = API_BASE
     try {
       const response = await fetch(`${API}/auth/login`, {
         method: "POST",

@@ -4,6 +4,7 @@ import { useSearchParams } from 'next/navigation'
 import { Link } from 'solito/link'
 import { generateMatchSlug } from '../../utils/slug'
 import { getImageUrl } from '../../utils/image'
+import { API_BASE } from '../../utils/api-config'
 import { 
   LiveKitRoom, 
   useTracks,
@@ -446,7 +447,7 @@ export default function LiveMatchDetailScreen({ matchId, overrideDate, initialDa
   
   console.log("[Viewer] 🔴 Chế độ Live:", { isLiveMode, status: match?.status });
   
-  const API = process.env.NEXT_PUBLIC_API_URL || (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api')
+  const API = API_BASE
 
   // 🔌 THIẾT LẬP SOCKET.IO
   useEffect(() => {

@@ -11,6 +11,7 @@ import {
 import axios from 'axios'
 import { Link } from 'solito/link'
 import { generateMatchSlug } from '../utils/slug'
+import { API_BASE } from '../utils/api-config'
 
 // Components
 
@@ -20,7 +21,7 @@ const BTN: any = Button; const IMG: any = Image;
 const DLG: any = Dialog; const SH: any = Sheet; const IPT: any = Input;
 const SEP: any = Separator; const V: any = View;
 
-const API_BASE_URL = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api')
+const API_BASE_URL = API_BASE
 
 const THEME_COLORS: any = {
   bgDark: '#0a0f0d',

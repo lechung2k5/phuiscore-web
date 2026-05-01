@@ -5,8 +5,9 @@ import { ChevronRight } from '@tamagui/lucide-icons'
 import { LiveMatchCard } from './LiveMatchCard'
 import axios from 'axios'
 import { getImageUrl } from '../utils/image'
+import { API_BASE } from '../utils/api-config'
 
-const API = process.env.NEXT_PUBLIC_API_URL || (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api')
+const API = API_BASE
 
 export const LiveMatchStrip = () => {
   const media = useMedia()

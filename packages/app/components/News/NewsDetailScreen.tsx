@@ -1,7 +1,9 @@
 "use client"
 import React, { useState, useEffect } from 'react'
 
-const API = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api')
+import { API_BASE } from '../../utils/api-config'
+
+const API = API_BASE
 
 // ─── CSS ─────────────────────────────────────────────────────────
 const CSS = `

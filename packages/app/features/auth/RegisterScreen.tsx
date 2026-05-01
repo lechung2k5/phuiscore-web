@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react'
 import { YStack, XStack, Text, Input, Button, Card, View, Label, H2, Image, ScrollView, AnimatePresence } from 'tamagui'
 import { Eye, EyeOff, ArrowRight, Gift, Facebook, Chrome, User, Lock, Mail, Phone, Contact, CheckCircle2 } from '@tamagui/lucide-icons'
 import { useRouter } from 'solito/navigation'
+import { API_BASE } from '../../utils/api-config'
 
 // Import Logo Asset chuẩn
 import LogoAsset from '../../assets/logo.svg' 
@@ -72,7 +73,7 @@ export const RegisterScreen = () => {
   const handleRegister = async () => {
     if (!validate()) return
     setLoading(true)
-    const API = process.env.NEXT_PUBLIC_API_URL || (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api')
+    const API = API_BASE
     try {
       const response = await fetch(`${API}/auth/register`, {
         method: "POST",

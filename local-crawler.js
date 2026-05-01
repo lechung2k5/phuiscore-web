@@ -1,3 +1,4 @@
+require('dotenv').config();
 const puppeteer = require('puppeteer-extra');
 const StealthPlugin = require('puppeteer-extra-plugin-stealth');
 const axios = require('axios');
@@ -13,21 +14,39 @@ const socket = io(SERVER_URL);
 // 🚀 GLOBAL BROWSER INSTANCE FOR SPEED
 let sharedBrowser = null;
 async function getBrowser() {
-    if (sharedBrowser) return sharedBrowser;
-    sharedBrowser = await puppeteer.launch({ 
-        headless: "new", 
-        args: [
-            '--no-sandbox', 
-            '--disable-setuid-sandbox',
-            '--disable-dev-shm-usage',
-            '--disable-accelerated-2d-canvas',
-            '--disable-gpu',
-            '--no-first-run',
-            '--no-zygote',
-            '--single-process'
-        ] 
-    });
-    return sharedBrowser;
+    try {
+        if (sharedBrowser && sharedBrowser.isConnected()) return sharedBrowser;
+        
+        if (sharedBrowser) {
+            console.log('[Puppeteer] 🔄 Trình duyệt cũ bị ngắt kết nối, đang khởi động lại...');
+            await sharedBrowser.close().catch(() => {});
+        }
+
+        sharedBrowser = await puppeteer.launch({ 
+            headless: "new", 
+            args: [
+                '--no-sandbox', 
+                '--disable-setuid-sandbox',
+                '--disable-dev-shm-usage',
+                '--disable-accelerated-2d-canvas',
+                '--disable-gpu',
+                '--no-first-run',
+                '--no-zygote',
+                '--single-process'
+            ] 
+        });
+        
+        sharedBrowser.on('disconnected', () => {
+            console.warn('[Puppeteer] ⚠️ Trình duyệt đã bị đóng/ngắt kết nối!');
+            sharedBrowser = null;
+        });
+
+        return sharedBrowser;
+    } catch (err) {
+        console.error('[Puppeteer Error] ❌ Không thể khởi động trình duyệt:', err.message);
+        sharedBrowser = null;
+        throw err;
+    }
 }
 
 // 🚀 OPTIMIZED PAGE CREATION (Block assets)

@@ -101,27 +101,33 @@ function Monitor({ setLkToken }: { setLkToken: (t: string) => void }) {
                     <button 
                         onClick={async () => {
                             const container = document.getElementById('lmd-player-container');
+                            const video = container?.querySelector('video');
+                            
                             if (container) {
                                 try {
-                                    if (!document.fullscreenElement) {
-                                        await container.requestFullscreen();
-                                        // 🔄 Tự động xoay ngang trên Mobile nếu trình duyệt hỗ trợ
+                                    if (!document.fullscreenElement && !(document as any).webkitFullscreenElement) {
+                                        // 1. Thử Fullscreen cho cả Container (Android/PC)
+                                        const requestFS = container.requestFullscreen || (container as any).webkitRequestFullscreen;
+                                        if (requestFS) {
+                                            await requestFS.call(container);
+                                        } else if (video && (video as any).webkitEnterFullscreen) {
+                                            // 2. Dự phòng cho iPhone: Phóng to trực tiếp thẻ Video
+                                            (video as any).webkitEnterFullscreen();
+                                        }
+                                        
+                                        // 🔄 Tự động xoay ngang trên Mobile
                                         if (window.screen && (window.screen as any).orientation && (window.screen as any).orientation.lock) {
-                                            await (window.screen as any).orientation.lock('landscape').catch((e: any) => {
-                                                console.log("Xoay màn hình không được hỗ trợ hoặc bị chặn:", e);
-                                            });
+                                            await (window.screen as any).orientation.lock('landscape').catch(() => {});
                                         }
                                     } else {
-                                        if (document.exitFullscreen) {
-                                            await document.exitFullscreen();
-                                            // 🔓 Trả lại quyền xoay tự do
-                                            if (window.screen && (window.screen as any).orientation && (window.screen as any).orientation.unlock) {
-                                                (window.screen as any).orientation.unlock();
-                                            }
-                                        }
+                                        // Thoát Fullscreen
+                                        const exitFS = document.exitFullscreen || (document as any).webkitExitFullscreen;
+                                        if (exitFS) await exitFS.call(document);
                                     }
                                 } catch (err) {
                                     console.error("Fullscreen error:", err);
+                                    // Thử dự phòng cuối cùng cho Video nếu container lỗi
+                                    if (video && (video as any).webkitEnterFullscreen) (video as any).webkitEnterFullscreen();
                                 }
                             }
                         }}

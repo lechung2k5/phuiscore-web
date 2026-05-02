@@ -99,11 +99,30 @@ function Monitor({ setLkToken }: { setLkToken: (t: string) => void }) {
                     
                     {/* Nút Toàn màn hình */}
                     <button 
-                        onClick={() => {
+                        onClick={async () => {
                             const container = document.getElementById('lmd-player-container');
                             if (container) {
-                                if (!document.fullscreenElement) container.requestFullscreen();
-                                else document.exitFullscreen();
+                                try {
+                                    if (!document.fullscreenElement) {
+                                        await container.requestFullscreen();
+                                        // 🔄 Tự động xoay ngang trên Mobile nếu trình duyệt hỗ trợ
+                                        if (window.screen && (window.screen as any).orientation && (window.screen as any).orientation.lock) {
+                                            await (window.screen as any).orientation.lock('landscape').catch((e: any) => {
+                                                console.log("Xoay màn hình không được hỗ trợ hoặc bị chặn:", e);
+                                            });
+                                        }
+                                    } else {
+                                        if (document.exitFullscreen) {
+                                            await document.exitFullscreen();
+                                            // 🔓 Trả lại quyền xoay tự do
+                                            if (window.screen && (window.screen as any).orientation && (window.screen as any).orientation.unlock) {
+                                                (window.screen as any).orientation.unlock();
+                                            }
+                                        }
+                                    }
+                                } catch (err) {
+                                    console.error("Fullscreen error:", err);
+                                }
                             }
                         }}
                         style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer', padding: 4 }}

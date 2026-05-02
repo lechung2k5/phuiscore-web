@@ -18,17 +18,34 @@ import '@livekit/components-styles';
 // Component con để lấy tracks cho khán giả
 function Monitor({ setLkToken }: { setLkToken: (t: string) => void }) {
   const [started, setStarted] = useState(false);
+  const [volume, setVolume] = useState(1);
   const tracks = useTracks([
     { source: Track.Source.Camera, withPlaceholder: false }
   ]).filter(t => t.participant.identity.includes('obs_'));
 
-  // Debug: Xem có ai trong phòng
   const participants = useParticipants();
+  const obsTrack = tracks[0];
+
+  // Cập nhật âm lượng cho video và audio
+  useEffect(() => {
+    const applyVolume = () => {
+        // Tìm tất cả video và audio trong container của trình phát
+        const mediaElements = document.querySelectorAll('#lmd-player-container video, #lmd-player-container audio, .lk-room-container audio');
+        mediaElements.forEach((el: any) => {
+            el.volume = volume;
+            el.muted = volume === 0;
+        });
+    };
+
+    applyVolume();
+    // Thử lại sau một khoảng thời gian ngắn để đảm bảo bắt được các thẻ audio mới khởi tạo
+    const timer = setTimeout(applyVolume, 1000);
+    return () => clearTimeout(timer);
+  }, [volume, obsTrack, started, participants.length]);
+
   console.log("[Viewer] 👥 Danh sách định danh trong phòng:", 
     participants.map(p => p.identity)
   );
-
-  console.log("[Viewer] 🎥 Số lượng Tracks từ OBS phát hiện:", tracks.length);
 
   if (!started) {
     return (
@@ -45,13 +62,13 @@ function Monitor({ setLkToken }: { setLkToken: (t: string) => void }) {
     );
   }
 
-  const obsTrack = tracks[0];
-
   return (
     <div style={{ height: '100%', width: '100%', position: 'relative', background: '#000', overflow: 'hidden' }} id="lmd-player-container">
-      {obsTrack ? (
-        <div style={{ height: '100%', width: '100%' }}>
-            <VideoTrack trackRef={obsTrack as any} style={{ height: '100%', width: '100%', objectFit: 'contain' }} />
+      {obsTrack ? (() => {
+        const TrackComponent = VideoTrack as any;
+        return (
+          <div style={{ height: '100%', width: '100%' }}>
+            <TrackComponent trackRef={obsTrack as any} style={{ height: '100%', width: '100%', objectFit: 'contain' }} />
             
             {/* Custom Control Bar */}
             <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'linear-gradient(transparent, rgba(0,0,0,0.8))', padding: '20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', opacity: 1, transition: 'opacity 0.3s' }}>
@@ -63,16 +80,17 @@ function Monitor({ setLkToken }: { setLkToken: (t: string) => void }) {
                 </div>
                 
                 <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
-                    {/* Nút Âm thanh */}
-                    <button 
-                        onClick={() => {
-                            const video = document.querySelector('#lmd-player-container video') as HTMLVideoElement;
-                            if (video) video.muted = !video.muted;
-                        }}
-                        style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer' }}
-                    >
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 5L6 9H2v6h4l5 4V5zM15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
-                    </button>
+                    {/* Bộ điều khiển Âm lượng */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'rgba(255,255,255,0.1)', padding: '5px 12px', borderRadius: 20 }}>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2"><path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+                        <input 
+                            type="range" min="0" max="1" step="0.1" 
+                            value={volume} 
+                            onChange={(e) => setVolume(parseFloat(e.target.value))}
+                            style={{ width: 80, accentColor: '#22c55e', cursor: 'pointer' }}
+                        />
+                        <span style={{ color: '#fff', fontSize: 10, fontWeight: 800, minWidth: 30 }}>{Math.round(volume * 100)}%</span>
+                    </div>
                     
                     {/* Nút Toàn màn hình */}
                     <button 
@@ -89,8 +107,9 @@ function Monitor({ setLkToken }: { setLkToken: (t: string) => void }) {
                     </button>
                 </div>
             </div>
-        </div>
-      ) : (
+          </div>
+        );
+      })() : (
         <div style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#5a6a5e', fontSize: 14, gap: 12 }}>
            <div className="pulse-icon" style={{ marginBottom: 10 }}>
               <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M15.66 15c1.11 0 2.01-.9 2.01-2.01V6.01C17.67 4.9 16.77 4 15.66 4H4c-1.11 0-2.01.9-2.01 2.01v6.98C1.99 14.1 2.89 15 4 15h11.66zM17.67 8.5l4.34-3.5v14l-4.34-3.5v-7z"/></svg>
@@ -362,7 +381,8 @@ const PlayerSlot = ({ p, pos, teamColor }: any) => {
   )
 }
 
-const StreamSection = ({ matchId, API }: { matchId: string, API: string }) => {
+// Sử dụng memo để đảm bảo StreamSection không bị render lại khi dữ liệu trận đấu (tỉ số, stats) cập nhật
+const StreamSection: any = React.memo(({ matchId, API }: { matchId: string, API: string }): JSX.Element => {
     const [selectedServer, setSelectedServer] = useState(1);
     const [lkToken, setLkToken] = useState("");
     const LK_SERVER_URL = "wss://phuiscore-lhf9kjp2.livekit.cloud";
@@ -382,13 +402,14 @@ const StreamSection = ({ matchId, API }: { matchId: string, API: string }) => {
         };
         fetchPublicToken();
     }, [matchId, API]);
-    
+    const Room = LiveKitRoom as any;
+
     return (
         <div className="lmd-stream-wrap">
             <div className="lmd-video-area">
                 <div className="lmd-video-player" style={{ minHeight: 500 }}>
                     {lkToken ? (
-                        <LiveKitRoom
+                        <Room
                             video={false}
                             audio={false}
                             token={lkToken}
@@ -397,7 +418,7 @@ const StreamSection = ({ matchId, API }: { matchId: string, API: string }) => {
                             style={{ height: '100%', width: '100%' }}
                         >
                             <Monitor setLkToken={setLkToken} />
-                        </LiveKitRoom>
+                        </Room>
                     ) : (
                         <div className="lmd-video-placeholder">
                             <div className="lmd-video-play-btn">
@@ -434,7 +455,7 @@ const StreamSection = ({ matchId, API }: { matchId: string, API: string }) => {
             </div>
         </div>
     )
-}
+}, (prevProps, nextProps) => prevProps.matchId === nextProps.matchId);
 
 export default function LiveMatchDetailScreen({ matchId, overrideDate, initialData }: { matchId: string, overrideDate?: string, initialData?: any }) {
   const [match, setMatch] = useState<any>(initialData || null)
@@ -442,10 +463,18 @@ export default function LiveMatchDetailScreen({ matchId, overrideDate, initialDa
   const [liveMinute, setLiveMinute] = useState('')
   const [loadingStandings, setLoadingStandings] = useState(false)
   const searchParams = useSearchParams()
-  const isLiveMode = searchParams.get('type') === 'live' || 
-                    ['inprogress', 'live', 'streaming'].includes(match?.status?.type || match?.status);
+  const isLiveMode = (
+    searchParams.get('type') === 'live' || 
+    ['inprogress', 'live', 'streaming'].includes(match?.status?.type || match?.status) ||
+    ['inprogress', 'live'].includes(match?.liveStatus)
+  ) && match?.status !== 'finished' && match?.liveStatus !== 'finished';
   
-  console.log("[Viewer] 🔴 Chế độ Live:", { isLiveMode, status: match?.status });
+  console.log("[Viewer] 🔴 Trạng thái Live:", { 
+    isLiveMode, 
+    status: match?.status, 
+    liveStatus: match?.liveStatus,
+    typeParam: searchParams.get('type') 
+  });
   
   const API = API_BASE
 
@@ -460,13 +489,14 @@ export default function LiveMatchDetailScreen({ matchId, overrideDate, initialDa
         console.log('[Socket] ✅ Đã kết nối thành công!')
     })
 
-    socket.on('matchUpdate', (updatedData: any) => {
+    socket.on('scoreUpdate', (updatedData: any) => {
         // Chỉ cập nhật nếu trùng matchId đang xem
         if (String(updatedData.matchId) === String(matchId)) {
-            console.log('[Socket] ⚽ Cập nhật trận đấu mới:', updatedData)
+            console.log('[Socket] ⚽ Cập nhật tỉ số/trạng thái mới:', updatedData)
             setMatch((prev: any) => ({
                 ...prev,
-                ...updatedData
+                ...updatedData,
+                status: updatedData.liveStatus || updatedData.status || prev.status
             }))
         }
     })
@@ -504,7 +534,9 @@ export default function LiveMatchDetailScreen({ matchId, overrideDate, initialDa
           ...prev, 
           standingsData: json.data,
           standings: json.data.standings || (Array.isArray(json.data) ? json.data : []),
-          tournamentName: json.data.tournamentInfo?.name || prev.tournamentName,
+          tournamentName: (json.data.tournamentInfo?.name && json.data.tournamentInfo.name !== 'Giải đấu') 
+            ? json.data.tournamentInfo.name 
+            : prev.tournamentName,
           tournamentLogo: getImageUrl(json.data.tournamentInfo?.logo || prev.tournamentLogo, 'logo', tid)
         }))
       }
@@ -557,8 +589,14 @@ export default function LiveMatchDetailScreen({ matchId, overrideDate, initialDa
       const res = await fetch(`${API}/matches/detail/${matchId}?date=${matchDate}`)
       const json = await res.json()
       if (json.success && json.data) {
-        // Merge with existing match info to preserve tournamentId if it was already there
-        setMatch((prev: any) => ({ ...prev, ...json.data }))
+        setMatch((prev: any) => {
+          const newData = { ...json.data };
+          // Nếu tên giải đấu mới là "Giải đấu" hoặc rỗng, hãy giữ lại tên cũ
+          if (!newData.tournamentName || newData.tournamentName === 'Giải đấu') {
+             newData.tournamentName = prev.tournamentName;
+          }
+          return { ...prev, ...newData };
+        });
       }
     } catch (e) {}
   }
@@ -617,7 +655,12 @@ export default function LiveMatchDetailScreen({ matchId, overrideDate, initialDa
                  <span className="lmd-header-name">{match?.homeTeam?.name || '...'}</span>
               </div>
               <div className="lmd-header-score-wrap">
-                 <div className="lmd-header-score">{(match?.score?.home ?? match?.homeScore) || 0} - {(match?.score?.away ?? match?.awayScore) || 0}</div>
+                 <div className="lmd-header-score">{(() => {
+                        const h = match?.score?.home ?? match?.homeScore;
+                        const a = match?.score?.away ?? match?.awayScore;
+                        const getVal = (v: any) => (typeof v === 'object' && v !== null) ? (v.current ?? v.display ?? 0) : (v ?? 0);
+                        return `${getVal(h)} - ${getVal(a)}`;
+                    })()}</div>
                  <div className="lmd-header-status">{liveMinute}</div>
               </div>
               <div className="lmd-header-team">
@@ -653,7 +696,7 @@ export default function LiveMatchDetailScreen({ matchId, overrideDate, initialDa
               <div className="lmd-side-card">
                  <div className="lmd-side-title">THÔNG TIN TRẬN ĐẤU</div>
                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                    <InfoRow label="Giải đấu" value={match.tournamentName} />
+                    <InfoRow label="Giải đấu" value={typeof match.tournamentName === 'string' ? match.tournamentName : 'Giải đấu'} />
                     <InfoRow label="Vòng đấu" value={match.info?.round || match.round || 'N/A'} />
                     <InfoRow label="Sân vận động" value={match.info?.venue || match.stadium || 'N/A'} />
                     <InfoRow label="Trọng tài" value={match.info?.referee || 'N/A'} />
@@ -664,7 +707,7 @@ export default function LiveMatchDetailScreen({ matchId, overrideDate, initialDa
                  <div className="lmd-side-title">AI SẼ THẮNG?</div>
                  <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, fontWeight: 700 }}>
-                       <span>{match.homeTeam.name}</span>
+                       <span>{typeof match.homeTeam?.name === 'string' ? match.homeTeam.name : 'Đội Nhà'}</span>
                        <span style={{ color: '#22c55e' }}>45%</span>
                     </div>
                     <div style={{ height: 8, background: 'rgba(255,255,255,0.05)', borderRadius: 4, overflow: 'hidden', display: 'flex' }}>
@@ -674,7 +717,7 @@ export default function LiveMatchDetailScreen({ matchId, overrideDate, initialDa
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, fontWeight: 700 }}>
                        <span style={{ color: '#ef4444' }}>35%</span>
-                       <span>{match.awayTeam.name}</span>
+                       <span>{typeof match.awayTeam?.name === 'string' ? match.awayTeam.name : 'Đội Khách'}</span>
                     </div>
                  </div>
               </div>

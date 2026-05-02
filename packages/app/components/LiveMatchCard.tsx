@@ -113,7 +113,7 @@ export const LiveMatchCard = (props: any) => {
              <View width={18} height={18} backgroundColor="white" borderRadius={3} alignItems="center" justifyContent="center">
                 <Text fontSize={8}>🏆</Text>
              </View>
-             <Text color="white" fontSize={11} fontWeight="800" numberOfLines={1}>{league || "V-LEAGUE 1"}</Text>
+             <Text color="white" fontSize={11} fontWeight="800" numberOfLines={1}>{typeof league === 'string' ? league : 'GIẢI ĐẤU'}</Text>
         </XStack>
 
         {/* Hot Badge */}
@@ -147,8 +147,11 @@ export const LiveMatchCard = (props: any) => {
 
         {/* Score & Time */}
         <YStack alignItems="center" gap="$2" minWidth={110}>
-          <Text color="#f97316" fontSize={13} fontWeight="900" style={{ textShadow: '0 0 10px rgba(249,115,22,0.3)' }}>
-            {isLive ? displayMinute || 'ĐANG ĐÁ' : isFinished ? 'KẾT THÚC' : formattedTime}
+          <Text color="#22c55e" fontSize={14} fontWeight="900" style={{ letterSpacing: 0.5 }}>
+            {formattedTime}
+          </Text>
+          <Text color="#f97316" fontSize={11} fontWeight="900" style={{ textShadow: '0 0 10px rgba(249,115,22,0.3)', marginTop: -4 }}>
+            {isLive ? (displayMinute || 'ĐANG ĐÁ') : isFinished ? 'KẾT THÚC' : 'CHƯA ĐÁ'}
           </Text>
           <Text
             color="white"
@@ -161,15 +164,15 @@ export const LiveMatchCard = (props: any) => {
           </Text>
           
           <View 
-            backgroundColor="rgba(255,255,255,0.03)" 
+            backgroundColor="rgba(34,197,94,0.15)" 
             paddingHorizontal="$3" 
             paddingVertical="$1.5" 
             borderRadius={20}
             borderWidth={1}
-            borderColor="rgba(255,255,255,0.1)"
+            borderColor="rgba(34,197,94,0.3)"
           >
-            <Text color="#888" fontSize={9} fontWeight="800">
-               {formattedTime} {formattedDate}
+            <Text color="#22c55e" fontSize={10} fontWeight="900">
+               {isLive ? "LIVE" : isFinished ? "FT" : "CHỜ ĐÁ"}
             </Text>
           </View>
         </YStack>
@@ -210,7 +213,7 @@ export const LiveMatchCard = (props: any) => {
             <Text color="#aaa" fontSize={13} fontWeight="700">Phủi Score</Text>
         </XStack>
 
-        <Link href={`/truc-tiep/${generateMatchSlug(teamA?.name || 'team-a', teamB?.name || 'team-b', new Date().toISOString().split('T')[0], props.id || '123')}`} style={{ textDecoration: 'none' }}>
+        <Link href={`/truc-tiep/${generateMatchSlug(teamA?.name || 'team-a', teamB?.name || 'team-b', new Date().toISOString().split('T')[0], props.id || '123')}${isLive ? '?type=live' : ''}`} style={{ textDecoration: 'none' }}>
           <Button
               flex={1}
               height={46}

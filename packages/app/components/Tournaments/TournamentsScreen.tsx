@@ -9,7 +9,9 @@ import Link from 'next/link'
 import { useRouter } from 'solito/navigation'
 import axios from 'axios'
 
-const API = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api')
+import { API_BASE } from '../../utils/api-config'
+
+const API = API_BASE
 
 const COLORS = {
   primary: '#28a745',

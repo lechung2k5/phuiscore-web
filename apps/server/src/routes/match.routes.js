@@ -44,14 +44,14 @@ router.get('/:date', cacheResponse(10), async (req, res) => {
                 global.io.emit('requestMatches', { date });
             }
 
-            // VÒNG LẶP ĐỢI DỮ LIỆU (Đợi tối đa 15 giây vì Puppeteer cần thời gian)
+            // VÒNG LẶP ĐỢI DỮ LIỆU (Đợi tối đa 2.5 giây để đảm bảo response < 3s)
             let attempts = 0;
-            while (attempts < 15) {
-                await new Promise(r => setTimeout(r, 1000)); // Đợi 1 giây mỗi lần
+            while (attempts < 12) {
+                await new Promise(r => setTimeout(r, 200)); // Kiểm tra mỗi 200ms
                 matches = await MatchRepo.getMatchesByDate(date);
                 
                 if (matches && matches.length > 0) {
-                    console.log(`[API] ⚡ Đã nhận được dữ liệu ngày ${date} từ Crawler!`);
+                    console.log(`[API] ⚡ Đã nhận được dữ liệu ngày ${date} từ Crawler sau ${attempts * 0.2}s!`);
                     break;
                 }
                 attempts++;
@@ -114,15 +114,15 @@ router.get('/detail/:matchId', cacheResponse(60), async (req, res) => {
                 if (global.io) global.io.emit('requestDetail', { matchId, date });
             }
 
-            // VÒNG LẶP KIỂM TRA DB (Tối đa 5 giây, mỗi 300ms kiểm tra 1 lần)
+            // VÒNG LẶP KIỂM TRA DB (Đợi tối đa 2.5 giây để đảm bảo response < 3s)
             let attempts = 0;
-            while (attempts < 15) {
-                await new Promise(r => setTimeout(r, 300));
+            while (attempts < 12) {
+                await new Promise(r => setTimeout(r, 200)); // Kiểm tra mỗi 200ms
                 const updatedMatch = await MatchRepo.getMatch(date, matchId);
                 
-                // Nếu đã có dữ liệu Statistics hoặc H2H (nghĩa là Crawler đã xong)
+                // Nếu đã có dữ liệu Statistics hoặc H2H
                 if (updatedMatch && updatedMatch.statistics && updatedMatch.statistics.length > 0) {
-                    console.log(`[API] ⚡ Đã thấy dữ liệu trận ${matchId} sau ${attempts * 0.3}s!`);
+                    console.log(`[API] ⚡ Đã thấy dữ liệu trận ${matchId} sau ${attempts * 0.2}s!`);
                     match = updatedMatch;
                     invalidateCache(`/api/matches/detail/${matchId}`);
                     break; 

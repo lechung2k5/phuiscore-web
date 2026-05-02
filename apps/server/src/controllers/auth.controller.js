@@ -42,11 +42,31 @@ const login = async (req, res) => {
         if (!isMatch) return res.status(400).json({ message: "Mật khẩu sai!" });
 
         const secret = process.env.JWT_SECRET || 'PHUI_SCORE_SECRET';
-        const token = jwt.sign({ username: user.username, role: user.role }, secret, { expiresIn: '24h' });
+        
+        // Tạo một Session ID duy nhất (Ví dụ: dùng timestamp)
+        // Mỗi lần đăng nhập mới sẽ tạo ra một sessionId mới
+        const sessionId = Date.now().toString();
+
+        // Lưu sessionId vào Database cho User này
+        await UserRepo.updateUserSession(user.username, sessionId);
+
+        // Gắn sessionId vào trong Token
+        const token = jwt.sign(
+            { username: user.username, role: user.role, sessionId }, 
+            secret, 
+            { expiresIn: '24h' }
+        );
 
         res.json({
             token,
-            user: { username: user.username, fullName: user.fullName, email: user.email, phoneNumber: user.phoneNumber, role: user.role, usage: user.usage }
+            user: { 
+                username: user.username, 
+                fullName: user.fullName, 
+                email: user.email, 
+                phoneNumber: user.phoneNumber, 
+                role: user.role, 
+                usage: user.usage 
+            }
         });
     } catch (error) {
         res.status(500).json({ message: "Lỗi đăng nhập!" });

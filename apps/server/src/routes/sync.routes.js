@@ -151,8 +151,12 @@ router.post('/standings', validateSyncToken, async (req, res) => {
         // 3. Lưu vào DB
         await StandingRepo.saveStandings(tournamentId, seasonId, finalData);
 
-        // 4. Xóa cache
+        // 4. Xóa cache và Phát tín hiệu Real-time
         invalidateCache(`/api/standings/${tournamentId}`);
+        if (global.io) {
+            global.io.emit('standingsUpdated', { tournamentId });
+            console.log(`[Socket] 📢 Đã phát tín hiệu cập nhật BXH cho giải ${tournamentId}`);
+        }
 
         res.status(200).json({ success: true, message: `Synced standings/knockout for ${tournamentId}` });
     } catch (error) {

@@ -93,7 +93,7 @@ export const StandingRow = ({ item, isLast, compact }: any) => {
           numberOfLines={1}
           flex={1}
         >
-          {item.team?.name || 'N/A'}
+          {typeof item.team?.name === 'string' ? item.team.name : 'N/A'}
         </Text>
       </XStack>
 
@@ -107,15 +107,15 @@ export const StandingRow = ({ item, isLast, compact }: any) => {
           fontSize={compact ? 12 : 13}
           fontWeight="700"
         >
-          {item.mp ?? '-'}
+          {String(item.mp ?? '-')}
         </Text>
 
         {/* W D L GD — chỉ desktop */}
         {isDesktop && (
           <XStack>
-            <Text width={36} textAlign="center" color="#666" fontSize={12} fontWeight="600">{item.w ?? '-'}</Text>
-            <Text width={36} textAlign="center" color="#666" fontSize={12} fontWeight="600">{item.d ?? '-'}</Text>
-            <Text width={36} textAlign="center" color="#666" fontSize={12} fontWeight="600">{item.l ?? '-'}</Text>
+            <Text width={36} textAlign="center" color="#666" fontSize={12} fontWeight="600">{String(item.w ?? '-')}</Text>
+            <Text width={36} textAlign="center" color="#666" fontSize={12} fontWeight="600">{String(item.d ?? '-')}</Text>
+            <Text width={36} textAlign="center" color="#666" fontSize={12} fontWeight="600">{String(item.l ?? '-')}</Text>
           </XStack>
         )}
 
@@ -127,7 +127,7 @@ export const StandingRow = ({ item, isLast, compact }: any) => {
           fontSize={compact ? 12 : 13}
           fontWeight="700"
         >
-          {item.gd != null ? (item.gd > 0 ? `+${item.gd}` : item.gd) : '-'}
+          {item.gd != null ? (typeof item.gd === 'object' ? '0' : (item.gd > 0 ? `+${item.gd}` : item.gd)) : '-'}
         </Text>
 
         {/* Điểm — luôn hiện */}
@@ -138,7 +138,7 @@ export const StandingRow = ({ item, isLast, compact }: any) => {
           fontSize={compact ? 15 : 17}
           fontWeight="900"
         >
-          {item.pts ?? '-'}
+          {String(item.pts ?? '-')}
         </Text>
 
         {/* Phong độ 5 trận — chỉ desktop */}

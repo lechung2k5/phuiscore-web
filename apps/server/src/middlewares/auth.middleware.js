@@ -1,11 +1,24 @@
 const jwt = require('jsonwebtoken');
+const UserRepo = require('../repositories/user.repo');
 
-const verifyToken = (req, res, next) => {
+const verifyToken = async (req, res, next) => {
     const token = req.header('Authorization')?.split(' ')[1];
     if (!token) return res.status(401).json({ message: "Đại ca chưa đăng nhập (Thiếu Token)!" });
 
     try {
         const verified = jwt.verify(token, process.env.JWT_SECRET || 'PHUI_SCORE_SECRET');
+        
+        // --- MỚI: Kiểm tra Session ID để ngăn đăng nhập đồng thời ---
+        if (verified.sessionId) {
+            const user = await UserRepo.findUserByUsername(verified.username);
+            // Nếu Session ID trong Token không khớp với Session ID mới nhất trong DB
+            if (!user || user.currentSessionId !== verified.sessionId) {
+                return res.status(401).json({ 
+                    message: "Tài khoản của đại ca vừa đăng nhập ở máy khác! Vui lòng đăng nhập lại để tiếp tục." 
+                });
+            }
+        }
+
         req.user = verified;
         next();
     } catch (err) {

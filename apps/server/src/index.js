@@ -8,6 +8,7 @@ const cron = require('node-cron');
 const moment = require('moment');
 const fs = require('fs');
 const path = require('path');
+const axios = require('axios');
 
 // Import Utils & Services
 const { crawlByDate } = require('./utils/crawler'); 
@@ -238,6 +239,14 @@ cron.schedule('0 4 * * *', async () => {
     console.log('[Cron] 🏆 Đang cập nhật Bảng xếp hạng các giải tiêu biểu...');
     const hotLeagues = [17, 8, 23, 35, 34, 626];
     // Logic cập nhật cache BXH tại đây nếu cần
+});
+
+// Job: Tự gọi chính mình mỗi 10 phút để tránh bị Render tắt server (Sleep)
+// Điều này cực kỳ quan trọng để đảm bảo tốc độ phản hồi luôn < 3s
+cron.schedule('*/10 * * * *', () => {
+    const serverUrl = process.env.SERVER_URL || `http://localhost:${PORT}`;
+    console.log('[Keep-Alive] 🛡️ Đang tự đánh thức server để tránh bị Sleep...');
+    axios.get(serverUrl).catch(() => {});
 });
 
 

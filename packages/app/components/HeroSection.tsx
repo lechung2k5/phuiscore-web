@@ -3,6 +3,7 @@ import React from 'react'
 import { YStack, XStack, Text, Button, View, Image, ZStack, useMedia } from 'tamagui'
 import { PlayCircle, Calendar, ChevronRight, ChevronLeft, Zap } from '@tamagui/lucide-icons'
 import { useState, useEffect } from 'react'
+import { Link } from 'solito/link'
 
 const COLORS = {
   primary: '#28a745',
@@ -124,33 +125,37 @@ export const HeroSection = () => {
 
           {/* CTA Buttons */}
           <XStack gap="$3" marginTop={isMobile ? "$1" : "$3"}>
-            <Button
-              backgroundColor={COLORS.primary}
-              flex={isMobile ? 1 : 0}
-              size={isMobile ? "$4" : "$5"}
-              borderRadius="$10"
-              iconAfter={<PlayCircle size={18} color="white" />}
-              hoverStyle={{ backgroundColor: COLORS.primaryHover } as any}
-              pressStyle={{ scale: 0.97 } as any}
-              style={{ boxShadow: '0 4px 16px rgba(40,167,69,0.4)' }}
-            >
-              <Text color="white" fontWeight="900" fontSize={isMobile ? 14 : 15}>XEM TRỰC TIẾP</Text>
-            </Button>
+            <Link href="/live" style={{ textDecoration: 'none' }}>
+                <Button
+                    backgroundColor={COLORS.primary}
+                    size={isMobile ? "$3.5" : "$4.5"}
+                    borderRadius="$10"
+                    paddingHorizontal="$5"
+                    iconAfter={<PlayCircle size={16} color="white" />}
+                    hoverStyle={{ backgroundColor: COLORS.primaryHover, scale: 1.05 } as any}
+                    pressStyle={{ scale: 0.97 } as any}
+                    style={{ boxShadow: '0 4px 16px rgba(40,167,69,0.4)' }}
+                >
+                    <Text color="white" fontWeight="900" fontSize={isMobile ? 13 : 14}>XEM TRỰC TIẾP</Text>
+                </Button>
+            </Link>
 
-            <Button
-              backgroundColor={"rgba(255,255,255,0.06)" as any}
-              borderWidth={1}
-              borderColor={"rgba(255,255,255,0.15)" as any}
-              flex={isMobile ? 1 : 0}
-              size={isMobile ? "$4" : "$5"}
-              borderRadius="$10"
-              iconAfter={<Calendar size={18} color="white" />}
-              hoverStyle={{ backgroundColor: 'rgba(255,255,255,0.1)' } as any}
-              pressStyle={{ scale: 0.97 } as any}
-              style={{ backdropFilter: 'blur(10px)' }}
-            >
-              <Text color="white" fontWeight="800" fontSize={isMobile ? 14 : 15}>LỊCH THI ĐẤU</Text>
-            </Button>
+            <Link href="/lich-thi-dau" style={{ textDecoration: 'none' }}>
+                <Button
+                    backgroundColor={"rgba(255,255,255,0.06)" as any}
+                    borderWidth={1}
+                    borderColor={"rgba(255,255,255,0.15)" as any}
+                    size={isMobile ? "$3.5" : "$4.5"}
+                    borderRadius="$10"
+                    paddingHorizontal="$5"
+                    iconAfter={<Calendar size={16} color="white" />}
+                    hoverStyle={{ backgroundColor: 'rgba(255,255,255,0.1)', scale: 1.05 } as any}
+                    pressStyle={{ scale: 0.97 } as any}
+                    style={{ backdropFilter: 'blur(10px)' }}
+                >
+                    <Text color="white" fontWeight="800" fontSize={isMobile ? 13 : 14}>LỊCH THI ĐẤU</Text>
+                </Button>
+            </Link>
           </XStack>
 
           {/* Carousel Next/Prev Constraints */}

@@ -195,49 +195,60 @@ const MatchRepo = {
             liveStatus, streamUrl, streamKey
         } = data;
 
+        // Lấy dữ liệu hiện tại để kiểm tra isManualControl
+        const getCommand = new GetCommand({
+            TableName: TABLE_NAME,
+            Key: { pk: `DATE#${date}`, sk: `MATCH#${matchId}` }
+        });
+        const currentMatch = await docClient.send(getCommand);
+        const isManual = currentMatch.Item?.isManualControl === true;
+
+        const exprAttrValues = {
+            ":s": status || "inprogress",
+            ":stats": statistics || null,
+            ":inc": incidents || [],
+            ":line": lineups || null,
+            ":h2h": h2h || null,
+            ":next": nextMatches || null,
+            ":st": standings || null,
+            ":info": info || null,
+            ":ls": liveStatus || 'idle',
+            ":su": streamUrl || null,
+            ":sk_val": streamKey || null,
+            ":u": new Date().toISOString(),
+            ":false": false
+        };
+
+        let setClause = `
+            #stat = :s, 
+            statistics = :stats, 
+            incidents = :inc, 
+            lineups = :line, 
+            h2h = :h2h,
+            nextMatches = :next,
+            standings = :st,
+            info = :info,
+            liveStatus = :ls,
+            streamUrl = :su,
+            streamKey = :sk_val,
+            updatedAt = :u,
+            isManualControl = if_not_exists(isManualControl, :false)
+        `;
+
+        // Chỉ cập nhật tỉ số và phút nếu KHÔNG ở chế độ thủ công
+        if (!isManual) {
+            setClause += `, score.home = :h, score.away = :a, currentMinute = :m`;
+            exprAttrValues[":h"] = homeScore ?? 0;
+            exprAttrValues[":a"] = awayScore ?? 0;
+            exprAttrValues[":m"] = currentMinute || "";
+        }
+
         const command = new UpdateCommand({
             TableName: TABLE_NAME,
-            Key: {
-                pk: `DATE#${date}`,
-                sk: `MATCH#${matchId}`
-            },
-            UpdateExpression: `
-                SET score.home = :h, 
-                    score.away = :a, 
-                    #stat = :s, 
-                    currentMinute = :m, 
-                    statistics = :stats, 
-                    incidents = :inc, 
-                    lineups = :line, 
-                    h2h = :h2h,
-                    nextMatches = :next,
-                    standings = :st,
-                    info = :info,
-                    liveStatus = :ls,
-                    streamUrl = :su,
-                    streamKey = :sk_val,
-                    updatedAt = :u
-            `,
-            ExpressionAttributeNames: {
-                "#stat": "status" 
-            },
-            ExpressionAttributeValues: {
-                ":h": homeScore ?? 0,
-                ":a": awayScore ?? 0,
-                ":s": status || "inprogress",
-                ":m": currentMinute || "",
-                ":stats": statistics || null,
-                ":inc": incidents || [],
-                ":line": lineups || null,
-                ":h2h": h2h || null,
-                ":next": nextMatches || null,
-                ":st": standings || null,
-                ":info": info || null,
-                ":ls": liveStatus || 'idle',
-                ":su": streamUrl || null,
-                ":sk_val": streamKey || null,
-                ":u": new Date().toISOString()
-            },
+            Key: { pk: `DATE#${date}`, sk: `MATCH#${matchId}` },
+            UpdateExpression: `SET ${setClause}`,
+            ExpressionAttributeNames: { "#stat": "status" },
+            ExpressionAttributeValues: exprAttrValues,
             ReturnValues: "ALL_NEW"
         });
         return await docClient.send(command);
@@ -246,36 +257,47 @@ const MatchRepo = {
     /**
      * ⚡ CẬP NHẬT NHANH TỈ SỐ & PHÚT (Cho BLV)
      */
-    updateMatchScoreboard: async (date, matchId, { homeScore, awayScore, currentMinute, liveStatus }) => {
+    updateMatchScoreboard: async (date, matchId, { homeScore, awayScore, currentMinute, liveStatus, statistics }) => {
+        let updateExp = `
+            SET score.home = :h, 
+                score.away = :a, 
+                currentMinute = :m,
+                liveStatus = :ls,
+                isManualControl = :true,
+                updatedAt = :u
+        `;
+        const exprAttrValues = {
+            ":h": homeScore,
+            ":a": awayScore,
+            ":m": currentMinute,
+            ":ls": liveStatus || 'streaming',
+            ":true": true,
+            ":u": new Date().toISOString()
+        };
+
+        if (statistics) {
+            updateExp += `, statistics = :stats`;
+            exprAttrValues[":stats"] = statistics;
+        }
+
         const command = new UpdateCommand({
             TableName: TABLE_NAME,
             Key: { pk: `DATE#${date}`, sk: `MATCH#${matchId}` },
-            UpdateExpression: `
-                SET score.home = :h, 
-                    score.away = :a, 
-                    currentMinute = :m,
-                    liveStatus = :ls,
-                    updatedAt = :u
-            `,
-            ExpressionAttributeValues: {
-                ":h": homeScore,
-                ":a": awayScore,
-                ":m": currentMinute,
-                ":ls": liveStatus || 'streaming',
-                ":u": new Date().toISOString()
-            },
+            UpdateExpression: updateExp,
+            ExpressionAttributeValues: exprAttrValues,
             ReturnValues: "ALL_NEW"
         });
         const res = await docClient.send(command);
         
         // 📢 Phát tín hiệu Socket.io ngay lập tức
         if (global.io) {
-            global.io.emit('matchUpdate', {
+            global.io.emit('scoreUpdate', { // Đổi thành scoreUpdate cho đồng bộ với FE
                 matchId,
                 homeScore,
                 awayScore,
                 currentMinute,
-                liveStatus
+                liveStatus,
+                statistics
             });
         }
         return res;

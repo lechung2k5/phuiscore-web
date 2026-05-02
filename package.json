@@ -33,7 +33,9 @@
     "tamagui": "2.0.0-rc.0",
     "@tamagui/core": "2.0.0-rc.0",
     "@tamagui/web": "2.0.0-rc.0",
-    "react-native-web": "0.19.10"
+    "react-native-web": "0.19.10",
+    "metro": "0.81.0",
+    "metro-resolver": "0.81.0"
   },
   "dependencies": {
     "@babel/runtime": "^7.24.6",

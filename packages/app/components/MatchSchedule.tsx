@@ -86,14 +86,10 @@ export default function MatchSchedulePage() {
 
     leagues.forEach(league => {
       const hasLiveMatch = league.matches.some((m: any) => {
-        // Trận được coi là LIVE nếu status inprogress HOẶC đang trong giờ đá (heuristic)
-        if (m.status === 'finished' || m.status === 'canceled' || m.status === 'postponed') return false
-        if (m.status === 'inprogress' || m.status === 'live' || m.status === 'in_progress') return true
-        if (m.startTimestamp) {
-          const elapsed = nowSec - m.startTimestamp
-          return elapsed >= 0 && elapsed <= MATCH_DURATION_SEC
-        }
-        return false
+        // Chỉ coi là LIVE nếu status là inprogress/live hoặc được media xác nhận (liveStatus)
+        if (m.liveStatus === 'inprogress' || m.liveStatus === 'live') return true;
+        if (m.status === 'inprogress' || m.status === 'live' || m.status === 'in_progress') return true;
+        return false;
       });
       const isPriority = PRIORITY_LEAGUE_IDS.includes(Number(league.id));
 
@@ -129,7 +125,7 @@ export default function MatchSchedulePage() {
     
     socket.connect()
 
-    socket.on('matchUpdate', (updatedData: any) => {
+    socket.on('scoreUpdate', (updatedData: any) => {
         setLeagues(prevLeagues => {
             return prevLeagues.map(league => {
                 // Kiểm tra xem trận đấu cập nhật có thuộc giải này không
@@ -351,7 +347,7 @@ const LeagueContainer = ({ league, isExpandedDefault, onToggle }: any) => {
             </V>
             <YS>
               <T color="#fff" fontWeight="800" fontSize={13} letterSpacing={0.5}>
-                {league.name.toUpperCase()}
+                {typeof league.name === 'string' ? league.name.toUpperCase() : 'GIẢI ĐẤU'}
               </T>
               <T color="#666" fontSize={9} fontWeight="700">{league.matches.length} TRẬN ĐẤU</T>
             </YS>
@@ -440,15 +436,15 @@ const MatchRowDesktop = ({ match, isLast }: any) => {
       <XS flex={1} flexDirection="row" alignItems="center" justifyContent="center" gap="$6">
         {/* Tên + logo nhà - căn phải sát tỉ số */}
         <XS flex={1} justifyContent="flex-end" alignItems="center" gap="$3" maxWidth={300}>
-          <T
-            fontSize={15}
-            fontWeight="700"
-            numberOfLines={1}
-            textAlign="right"
-          >
-            {match.homeTeam.name}
-          </T>
-          <IMG src={match.homeTeam.logo} width={32} height={32} />
+            <T
+              fontSize={15}
+              fontWeight="700"
+              numberOfLines={1}
+              textAlign="right"
+            >
+              {typeof match.homeTeam?.name === 'string' ? match.homeTeam.name : 'Đội Nhà'}
+            </T>
+            <IMG src={match.homeTeam.logo} width={32} height={32} />
         </XS>
 
         {/* Tỉ số - CỐ ĐỊNH Ở GIỮA */}
@@ -469,7 +465,7 @@ const MatchRowDesktop = ({ match, isLast }: any) => {
             >
               {match.status === 'notstarted'
                 ? "VS"
-                : `${match.score?.home ?? 0} - ${match.score?.away ?? 0}`}
+                : `${typeof match.score?.home === 'object' ? (match.score.home.current ?? 0) : (match.score?.home ?? 0)} - ${typeof match.score?.away === 'object' ? (match.score.away.current ?? 0) : (match.score?.away ?? 0)}`}
             </T>
           </XS>
         </V>
@@ -483,7 +479,7 @@ const MatchRowDesktop = ({ match, isLast }: any) => {
             numberOfLines={1}
             textAlign="left"
           >
-            {match.awayTeam.name}
+            {typeof match.awayTeam?.name === 'string' ? match.awayTeam.name : 'Đội Khách'}
           </T>
         </XS>
       </XS>
@@ -560,11 +556,11 @@ const MatchRowMobile = ({ match, isLast }: any) => {
               color="#eaeaea"
               fontSize={14}
               fontWeight="700"
-              numberOfLines={0} // Không giới hạn dòng, hiển thị hết tên dài
+              numberOfLines={0}
               flex={1}
               style={{ wordBreak: 'break-word', overflowWrap: 'break-word' }}
             >
-              {match.homeTeam.name}
+              {typeof match.homeTeam?.name === 'string' ? match.homeTeam.name : 'Đội Nhà'}
             </T>
           </XS>
 
@@ -579,7 +575,7 @@ const MatchRowMobile = ({ match, isLast }: any) => {
               flex={1}
               style={{ wordBreak: 'break-word', overflowWrap: 'break-word' }}
             >
-              {match.awayTeam.name}
+              {typeof match.awayTeam?.name === 'string' ? match.awayTeam.name : 'Đội Khách'}
             </T>
           </XS>
         </YS>
@@ -600,7 +596,7 @@ const MatchRowMobile = ({ match, isLast }: any) => {
             fontWeight="900"
             color={isLive ? "#f5a623" : "#fff"}
           >
-            {match.status === 'notstarted' ? "-" : (match.score?.home ?? 0)}
+            {match.status === 'notstarted' ? "-" : (typeof match.score?.home === 'object' ? (match.score.home.current ?? 0) : (match.score?.home ?? 0))}
           </T>
 
           <T
@@ -608,7 +604,7 @@ const MatchRowMobile = ({ match, isLast }: any) => {
             fontWeight="900"
             color={isLive ? "#f5a623" : "#fff"}
           >
-            {match.status === 'notstarted' ? "-" : (match.score?.away ?? 0)}
+            {match.status === 'notstarted' ? "-" : (typeof match.score?.away === 'object' ? (match.score.away.current ?? 0) : (match.score?.away ?? 0))}
           </T>
         </YS>
       </XS>

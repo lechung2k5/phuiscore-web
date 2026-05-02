@@ -1,5 +1,6 @@
 "use client"
 import React, { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { NewsEditor } from './NewsEditor'
 import { ArticleList } from './ArticleList'
 import { LiveControl } from './LiveControl'
@@ -7,9 +8,20 @@ import { MEDIA_DASHBOARD_CSS } from './MediaDashboardStyles'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'
 
-export default function MediaDashboard() {
+export default function MediaDashboard({ params }: { params?: { slug?: string[] } }) {
+  const router = useRouter()
   const [activeTab, setActiveTab] = useState('news')
   const [toast, setToast] = useState({ show: false, message: '' })
+
+  // Xử lý Routing từ URL slug
+  useEffect(() => {
+    if (params?.slug) {
+      const [tab] = params.slug;
+      if (['news', 'manage', 'live', 'assets'].includes(tab)) {
+        setActiveTab(tab);
+      }
+    }
+  }, [params?.slug]);
 
   // News States
   const [title, setTitle] = useState('')
@@ -153,7 +165,7 @@ export default function MediaDashboard() {
             <button 
               key={tab}
               className={`md-tab ${activeTab === tab ? 'active' : ''}`} 
-              onClick={() => setActiveTab(tab)}
+              onClick={() => router.push(`/media/${tab}`)}
             >
               {tab === 'news' && 'BÀI VIẾT & TIN TỨC'}
               {tab === 'manage' && 'QUẢN LÝ BÀI VIẾT'}
@@ -187,7 +199,13 @@ export default function MediaDashboard() {
           />
         )}
 
-        {activeTab === 'live' && <LiveControl API={API} showToast={showToast} />}
+        {activeTab === 'live' && (
+          <LiveControl 
+            API={API} 
+            showToast={showToast} 
+            matchId={params?.slug?.[1] as string | undefined} 
+          />
+        )}
 
         {activeTab === 'assets' && (
           <div className="md-card" style={{ textAlign: 'center', padding: '100px 0' }}>

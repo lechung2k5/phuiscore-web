@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { XStack, YStack, Text, View, useMedia, Spinner } from 'tamagui'
 import { ChevronRight } from '@tamagui/lucide-icons'
 import { LiveMatchCard } from './LiveMatchCard'
+import { Link } from 'solito/link'
 import axios from 'axios'
 import { getImageUrl } from '../utils/image'
 import { API_BASE } from '../utils/api-config'
@@ -81,6 +82,9 @@ export const LiveMatchStrip = () => {
     return () => clearInterval(interval)
   }, [])
 
+  const [showAll, setShowAll] = useState(false)
+  const displayedMatches = showAll ? liveMatches : liveMatches.slice(0, 15)
+
   if (loading) {
      return (
         <YStack alignItems="center" justifyContent="center" paddingVertical="$10">
@@ -124,27 +128,29 @@ export const LiveMatchStrip = () => {
           </View>
         </XStack>
 
-        <XStack
-          alignItems="center"
-          gap="$1"
-          cursor="pointer"
-          hoverStyle={{ opacity: 0.7 } as any}
-        >
-          <Text color="#666" fontWeight="700" fontSize={13}>Tất cả</Text>
-          <ChevronRight size={15} color="#666" />
-        </XStack>
+        <Link href="/truc-tiep" style={{ textDecoration: 'none' }}>
+            <XStack
+                alignItems="center"
+                gap="$1"
+                cursor="pointer"
+                hoverStyle={{ opacity: 0.7 } as any}
+            >
+                <Text color="#666" fontWeight="700" fontSize={13}>Tất cả</Text>
+                <ChevronRight size={15} color="#666" />
+            </XStack>
+        </Link>
       </XStack>
 
       {/* Cards — vertical on mobile, grid on desktop */}
       {isMobile ? (
         <YStack gap="$3">
-          {liveMatches.map((match) => (
+          {displayedMatches.map((match) => (
             <LiveMatchCard key={match.id} {...match} />
           ))}
         </YStack>
       ) : (
         <XStack flexWrap={"wrap" as any} gap="$4" alignItems="stretch">
-          {liveMatches.map((match) => (
+          {displayedMatches.map((match) => (
             <View
               key={match.id}
               flexGrow={1}
@@ -156,6 +162,29 @@ export const LiveMatchStrip = () => {
             </View>
           ))}
         </XStack>
+      )}
+
+      {/* Nút Xem thêm nếu còn trận chưa hiển thị */}
+      {!showAll && liveMatches.length > 15 && (
+          <View 
+            marginTop="$4" 
+            alignSelf="center"
+            paddingHorizontal="$6"
+            paddingVertical="$3"
+            borderRadius={100}
+            borderWidth={1}
+            borderColor="rgba(255,77,79,0.4)"
+            backgroundColor="rgba(255,77,79,0.05)"
+            hoverStyle={{ backgroundColor: 'rgba(255,77,79,0.15)', borderColor: '#ff4d4f', scale: 1.02 } as any}
+            pressStyle={{ scale: 0.98 } as any}
+            cursor="pointer"
+            onPress={() => setShowAll(true)}
+            style={{ transition: 'all 0.2s' } as any}
+          >
+              <Text color="#ff4d4f" fontWeight="900" fontSize={13}>
+                XEM THÊM {liveMatches.length - 15} TRẬN ĐANG DIỄN RA
+              </Text>
+          </View>
       )}
     </YStack>
   )

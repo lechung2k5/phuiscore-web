@@ -9,6 +9,7 @@ import { Header } from 'app/components/Header'
 import { StandingRow } from './StandingRow'
 import { KnockoutBracket } from './KnockoutBracket'
 import { API_BASE } from 'app/utils/api-config'
+import { socket } from 'app/utils/socket'
 
 // Alias
 const YS: any = YStack; const XS: any = XStack; const Txt: any = Text
@@ -234,14 +235,42 @@ export default function StandingsScreen() {
     }
   }, [mounted])
 
+  const fetchStandings = useCallback(async () => {
+    setLoading(true)
+    try {
+      const res = await axios.get(`${API_BASE_URL}/standings/${currentId}`)
+      setData(res.data?.data || null)
+    } catch (e) {
+      setData(null)
+    } finally {
+      setLoading(false)
+    }
+  }, [currentId])
+
   useEffect(() => {
     if (!mounted) return
-    setLoading(true)
-    axios.get(`${API_BASE_URL}/standings/${currentId}`)
-      .then(res => setData(res.data?.data || null))
-      .catch(() => setData(null))
-      .finally(() => setLoading(false))
-  }, [currentId, mounted])
+    fetchStandings()
+  }, [currentId, mounted, fetchStandings])
+
+  // 📡 REAL-TIME UPDATE
+  useEffect(() => {
+    if (!mounted) return
+    
+    if (!socket.connected) socket.connect();
+
+    const handleUpdate = (payload: any) => {
+      if (Number(payload.tournamentId) === Number(currentId)) {
+        console.log(`[Socket] ⚡ Nhận thông báo cập nhật BXH cho giải ${currentId}. Đang làm mới...`);
+        fetchStandings();
+      }
+    }
+
+    socket.on('standingsUpdated', handleUpdate);
+
+    return () => {
+      socket.off('standingsUpdated', handleUpdate);
+    };
+  }, [currentId, mounted, fetchStandings])
 
   const groupsToRender = useMemo(() => {
     if (!data) return []
@@ -395,8 +424,12 @@ export default function StandingsScreen() {
                           <IMG src={l.icon} width={24} height={24} style={{ objectFit: 'contain' }} />
                         </View>
                         <YS flex={1}>
-                          <Txt color={currentId === l.id ? "#28a745" : "#ddd"} fontWeight="800" fontSize={13.5}>{l.name}</Txt>
-                          <Txt color="#444" fontSize={10} fontWeight="700">{l.country.toUpperCase()}</Txt>
+                          <Txt color={currentId === l.id ? "#28a745" : "#ddd"} fontWeight="800" fontSize={13.5}>
+                            {typeof l.name === 'string' ? l.name : 'Giải đấu'}
+                          </Txt>
+                          <Txt color="#444" fontSize={10} fontWeight="700">
+                            {typeof l.country === 'string' ? l.country.toUpperCase() : ''}
+                          </Txt>
                         </YS>
                         {currentId === l.id && <View width={6} height={6} borderRadius={3} backgroundColor="#28a745" />}
                       </BTN>
@@ -443,10 +476,10 @@ export default function StandingsScreen() {
                       letterSpacing={isMobile ? 0 : -0.5}
                       numberOfLines={1}
                     >
-                      {data?.tournamentInfo?.name || 'Bảng xếp hạng'}
+                      {typeof data?.tournamentInfo?.name === 'string' ? data.tournamentInfo.name : 'Bảng xếp hạng'}
                     </Txt>
                     <Txt color="#28a745" fontSize={isMobile ? 11 : 13} fontWeight="700">
-                      {data?.tournamentInfo?.season || ''}
+                      {typeof data?.tournamentInfo?.season === 'string' ? data.tournamentInfo.season : ''}
                     </Txt>
                   </YS>
                 </XS>

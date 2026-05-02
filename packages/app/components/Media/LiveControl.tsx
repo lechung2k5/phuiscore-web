@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react'
+import { useSearchParams, useRouter } from 'next/navigation'
 import { 
   LiveKitRoom, 
   GridLayout,
@@ -12,139 +13,280 @@ import { getImageUrl } from '../../utils/image'
 
 // Component phụ để hiển thị Video Grid mà không bị lỗi TS
 function Monitor() {
-  // Lấy chỉ duy nhất track Camera từ OBS (Tránh hiện 2 ô khi OBS gửi cả ScreenShare)
+  const [volume, setVolume] = useState(1);
   const tracks = useTracks([
     { source: Track.Source.Camera, withPlaceholder: false }
-  ]).filter(t => t.participant.identity.includes('obs_'));
+  ]).filter(t => t.participant.identity.includes('encoder_') || t.participant.identity.includes('host_') || t.participant.identity.includes('obs_'));
+
+  const Tile = ParticipantTile as any;
+  const Grid = GridLayout as any;
+  const Audio = RoomAudioRenderer as any;
+
+  // Cập nhật âm lượng cho các thẻ audio/video trong monitor
+  useEffect(() => {
+    const mediaElements = document.querySelectorAll('.monitor-container video, .monitor-container audio');
+    mediaElements.forEach((el: any) => {
+      el.volume = volume;
+    });
+  }, [volume, tracks.length]);
 
   return (
-    <div style={{ height: '100%', position: 'relative' }}>
+    <div style={{ height: '100%', position: 'relative' }} className="monitor-container">
       {tracks.length > 0 ? (
-        <GridLayout tracks={tracks} style={{ height: '100%' }}>
-          <ParticipantTile />
-        </GridLayout>
+        <>
+          <Grid tracks={tracks} style={{ height: '100%' }}>
+            <Tile />
+          </Grid>
+          {/* Volume Control Overlay */}
+          <div style={{ position: 'absolute', bottom: 20, right: 20, background: 'rgba(0,0,0,0.7)', padding: '10px 15px', borderRadius: 20, display: 'flex', alignItems: 'center', gap: 10, zIndex: 100 }}>
+             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2"><path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+             <input 
+               type="range" min="0" max="1" step="0.1" 
+               value={volume} 
+               onChange={(e) => setVolume(parseFloat(e.target.value))}
+               style={{ width: 80, accentColor: '#1ed760', cursor: 'pointer' }}
+             />
+             <span style={{ fontSize: 10, fontWeight: 800, minWidth: 30, textAlign: 'right' }}>{Math.round(volume * 100)}%</span>
+          </div>
+        </>
       ) : (
-        <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#5a6a5e', fontSize: 14 }}>
-           Đang chờ tín hiệu từ OBS...
+        <div style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#b3b3b3', gap: 15 }}>
+           <div className="spinner-spotify" />
+           <span style={{ fontSize: 14, fontWeight: 600, letterSpacing: 0.5 }}>ĐANG CHỜ TÍN HIỆU LUỒNG PHÁT...</span>
         </div>
       )}
-      <RoomAudioRenderer />
+      <Audio />
     </div>
   );
 }
 
-// Định nghĩa kiểu cho IVS Player (để tránh lỗi TS khi dùng window.IVSPlayer)
 declare global {
   interface Window {
     IVSPlayer: any;
   }
 }
 
-interface LiveControlProps {
+export interface LiveControlProps {
   API: string;
   showToast: (m: string) => void;
+  matchId?: string;
 }
+
+const CSS = `
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap');
+  
+  .lc-root {
+    font-family: 'Inter', sans-serif;
+    background-color: #121212;
+    min-height: 100vh;
+    color: #ffffff;
+    padding: 32px;
+  }
+
+  .lc-container {
+    max-width: 1400px;
+    margin: 0 auto;
+  }
+
+  /* Spotify-style Typography */
+  h2, h3 { font-weight: 800; letter-spacing: -0.04em; }
+  .text-secondary { color: #b3b3b3; font-size: 14px; font-weight: 500; }
+
+  /* Pill Geometry */
+  .pill-btn {
+    border-radius: 500px;
+    border: none;
+    font-weight: 700;
+    font-size: 14px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    padding: 12px 32px;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.3, 0, 0, 1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+
+  .pill-btn-primary { background-color: #1ed760; color: #000; }
+  .pill-btn-primary:hover { transform: scale(1.04); background-color: #1fdf64; }
+  
+  .pill-btn-secondary { background-color: #1f1f1f; color: #fff; border: 1px solid #4d4d4d; }
+  .pill-btn-secondary:hover { border-color: #fff; background-color: #2a2a2a; }
+
+  /* Cards */
+  .spotify-card {
+    background-color: #181818;
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: rgba(0,0,0,0.5) 0px 8px 24px;
+    transition: background-color 0.3s;
+  }
+  .spotify-card:hover { background-color: #282828; }
+
+  /* Search Input Pill */
+  .search-pill {
+    background-color: #242424;
+    border: none;
+    border-radius: 500px;
+    padding: 14px 48px;
+    color: white;
+    width: 100%;
+    font-size: 14px;
+    font-weight: 500;
+    box-shadow: rgb(18,18,18) 0px 1px 0px, rgb(124,124,124) 0px 0px 0px 1px inset;
+  }
+  .search-pill:focus { outline: 2px solid #fff; outline-offset: 2px; }
+
+  /* Match Card Premium */
+  .m-card {
+    background: #181818;
+    border-radius: 8px;
+    padding: 20px;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+    overflow: hidden;
+  }
+  .m-card:hover { background: #282828; transform: translateY(-4px); }
+  
+  .m-status-live { 
+    color: #1ed760; 
+    font-size: 11px; 
+    font-weight: 800; 
+    text-transform: uppercase;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .live-dot { width: 8px; height: 8px; border-radius: 50%; background: #1ed760; animation: pulse 1.5s infinite; }
+
+  /* Controls */
+  .control-group {
+    background: #1f1f1f;
+    border-radius: 16px;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .score-display {
+    font-size: 84px;
+    font-weight: 900;
+    letter-spacing: -4px;
+    color: #fff;
+    line-height: 1;
+  }
+
+  .circle-btn {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    border: 1px solid #4d4d4d;
+    background: transparent;
+    color: #fff;
+    font-size: 20px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .circle-btn:hover { border-color: #fff; transform: scale(1.1); }
+  
+  @keyframes pulse {
+    0% { opacity: 1; box-shadow: 0 0 0 0 rgba(30, 215, 96, 0.4); }
+    70% { opacity: 0.5; box-shadow: 0 0 0 10px rgba(30, 215, 96, 0); }
+    100% { opacity: 1; box-shadow: 0 0 0 0 rgba(30, 215, 96, 0); }
+  }
+
+  .spinner-spotify {
+    width: 40px;
+    height: 40px;
+    border: 3px solid rgba(255,255,255,0.1);
+    border-top-color: #1ed760;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+`;
 
 const USE_MOCK_STREAM = process.env.NEXT_PUBLIC_USE_MOCK_STREAM === 'true' || true;
 const MOCK_PLAYBACK_URL = "https://www.facebook.com/bongdasomedia.blvnhattocvang/videos/1268866832063949";
 
-export function LiveControl({ API, showToast }: LiveControlProps) {
+export function LiveControl({ API, showToast, matchId }: LiveControlProps) {
+  const router = useRouter()
+
   const [matches, setMatches] = useState<any[]>([])
   const [selectedMatch, setSelectedMatch] = useState<any>(null)
   const [loading, setLoading] = useState(false)
   
-  // LiveKit States
   const [lkToken, setLkToken] = useState<string>("");
   const LK_SERVER_URL = "wss://phuiscore-lhf9kjp2.livekit.cloud";
 
-  // Stream States
   const [streamData, setStreamData] = useState<any>(null)
   const [isLive, setIsLive] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
-  const [streamHealth, setStreamHealth] = useState({ bitrate: 0, latency: 0, fps: 0 })
   const videoRef = useRef<HTMLVideoElement>(null)
   const playerRef = useRef<any>(null)
 
-  // 1. Tải SDK Amazon IVS (Dành cho VOD/Replay sau này)
+  // Tự động chọn trận đấu nếu có matchId từ Props (URL)
   useEffect(() => {
-    const script = document.createElement('script')
-    script.src = "https://player.live-video.net/1.24.0/amazon-ivs-player.min.js"
-    script.async = true
-    script.onload = () => console.log("IVS Player SDK Loaded")
-    document.body.appendChild(script)
-    return () => { document.body.removeChild(script) }
-  }, [])
-
-  // 2. Lọc danh sách trận đấu
-  const filteredMatches = matches.filter(m => {
-    const query = searchQuery.toLowerCase();
-    return (
-      m.id?.toString().includes(query) ||
-      m.homeTeam?.name?.toLowerCase().includes(query) ||
-      m.awayTeam?.name?.toLowerCase().includes(query) ||
-      m.tournamentName?.toLowerCase().includes(query)
-    );
-  });
-
-  // 2. Khởi tạo Player khi chọn trận có luồng phát
-  useEffect(() => {
-    const url = selectedMatch?.playbackUrl || (USE_MOCK_STREAM && selectedMatch ? MOCK_PLAYBACK_URL : null);
-    
-    if (url && window.IVSPlayer) {
-      if (playerRef.current) playerRef.current.delete()
-      
-      const PlayerFactory = window.IVSPlayer;
-      if (!PlayerFactory.isPlayerSupported) {
-        showToast("Trình duyệt không hỗ trợ IVS Player")
-        return
+    if (matchId && matches.length > 0) {
+      const match = matches.find(m => String(m.id) === String(matchId));
+      if (match) {
+        setSelectedMatch(match);
       }
-
-      const player = PlayerFactory.create();
-      player.attachHTMLVideoElement(videoRef.current);
-      player.load(url);
-      player.play();
-      
-      player.addEventListener(PlayerFactory.PlayerEventType.STATE_CHANGED, (state: any) => {
-        if (state === PlayerFactory.PlayerState.PLAYING) setIsLive(true)
-      });
-
-      // Lắng nghe sức khỏe luồng
-      const healthInterval = setInterval(() => {
-        const stats = player.getQuality();
-        if (stats) {
-          setStreamHealth({
-            bitrate: Math.round(player.getLiveLatency() * 1000), // Demo: Latency
-            latency: Math.round(player.getLiveLatency() * 1000),
-            fps: 60
-          })
-        }
-      }, 3000);
-
-      playerRef.current = player;
-      return () => {
-        clearInterval(healthInterval)
-        player.delete()
-      }
+    } else if (!matchId) {
+        setSelectedMatch(null);
     }
-  }, [selectedMatch?.playbackUrl])
+  }, [matchId, matches]);
 
+  // Hàm chọn trận đấu và cập nhật URL
+  const handleSelectMatch = (match: any) => {
+    setSelectedMatch(match);
+    router.push(`/media/live/${match.id}`);
+  }
+
+  // Hàm quay lại và cập nhật URL
+  const handleBack = () => {
+    setSelectedMatch(null);
+    setLkToken("");
+    setStreamData(null);
+    router.push('/media/live');
+  }
+
+  // Fetch matches
   const fetchLiveMatches = async () => {
     setLoading(true)
     try {
       const now = new Date();
       const vnTime = new Date(now.getTime() + (7 * 60 * 60 * 1000));
       const today = vnTime.toISOString().split('T')[0];
-      
-      const res = await fetch(`${API}/matches/${today}`)
+      const res = await fetch(`${API}/matches/${today}?t=${Date.now()}`)
       const json = await res.json()
-      
       if (json.success && Array.isArray(json.data)) {
-        const allMatches = json.data.flatMap((league: any) => league.matches || [])
-        const live = allMatches.filter((m: any) => {
-          const status = m.status?.type || m.status;
-          return status === 'inprogress' || status === 'live' || status === 'notstarted'
-        })
-        setMatches(live)
+        const formatted = json.data.flatMap((league: any) => {
+          const matchesInLeague = league.matches || [];
+          return matchesInLeague.map((m: any) => {
+            const rawId = m.sk || m._id || m.id || "";
+            const cleanId = rawId.includes('#') ? rawId.split('#')[1] : rawId;
+            const d = m.startTimestamp ? new Date(m.startTimestamp * 1000) : new Date();
+            const timeStr = d.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+
+            return {
+              ...m,
+              id: cleanId,
+              time: (typeof m.time === 'string' ? m.time : (m.time && typeof m.time === 'object' ? (m.time.display || m.time.current || timeStr) : timeStr)),
+              homeTeam: m.homeTeam || { name: m.homeTeamName || 'Đội Nhà' },
+              awayTeam: m.awayTeam || { name: m.awayTeamName || 'Đội Khách' },
+              tournamentName: (typeof m.tournamentName === 'string' ? m.tournamentName : (typeof league.tournamentName === 'string' ? league.tournamentName : 'Giải đấu'))
+            };
+          });
+        });
+        setMatches(formatted.filter((m: any) => m.status !== 'finished'));
       }
     } catch (e) {
       showToast("Lỗi tải danh sách trận!")
@@ -155,27 +297,33 @@ export function LiveControl({ API, showToast }: LiveControlProps) {
 
   useEffect(() => {
     fetchLiveMatches()
-
-    // 🚀 SOCKET: Lắng nghe cập nhật tỉ số real-time
     const { io } = require('socket.io-client');
-    const socket = io(API.replace('/api', '')); // Kết nối tới domain server
-
+    const socket = io(API.replace('/api', ''));
     socket.on('scoreUpdate', (data: any) => {
-      // Cập nhật danh sách matches
-      setMatches(prev => prev.map(m => m.id === data.matchId ? { ...m, ...data } : m));
-      // Nếu đang chọn trận này thì cập nhật selectedMatch
-      if (selectedMatch?.id === data.matchId) {
-        setSelectedMatch((prev: any) => ({ ...prev, ...data }));
+      const incomingId = String(data.matchId || data.id || "").includes('#') 
+        ? String(data.matchId || data.id).split('#')[1] 
+        : String(data.matchId || data.id);
+
+      setMatches(prev => prev.map(m => m.id === incomingId ? { ...m, ...data, id: incomingId } : m));
+      
+      if (selectedMatch?.id === incomingId) {
+        setSelectedMatch((prev: any) => ({ ...prev, ...data, id: incomingId }));
       }
     });
+    const interval = setInterval(() => {
+      fetchLiveMatches();
+    }, 60000);
 
-    return () => { socket.disconnect(); }
+    return () => { 
+      socket.disconnect(); 
+      clearInterval(interval);
+    };
   }, [selectedMatch?.id])
 
-  const handleStartStream = async () => {
+  const handlePrepareStream = async () => {
     if (!selectedMatch) return
     try {
-      showToast("Đang khởi tạo luồng Preview...");
+      showToast("Đang khởi tạo cấu hình kết nối...");
       const token = localStorage.getItem('token')
       const res = await fetch(`${API}/media/livekit-token?room=${selectedMatch.id}`, {
         headers: { 'Authorization': `Bearer ${token}` }
@@ -183,489 +331,396 @@ export function LiveControl({ API, showToast }: LiveControlProps) {
       const json = await res.json()
       if (json.success) {
         setLkToken(json.token)
-        if (json.ingress) {
-            setStreamData(json.ingress); 
-            showToast("Đã lấy Stream Key cho OBS! 🚀");
-        } else if (json.ingressError) {
-            console.error("Ingress Error from Server:", json.ingressError);
-            showToast(`Cảnh báo: Không thể tạo Ingress (${json.ingressError}). Hãy kiểm tra LiveKit Cloud.`);
-        }
+        if (json.ingress) setStreamData(json.ingress);
+        showToast("Đã có cấu hình! Hãy kết nối OBS để xem trước.");
       }
     } catch (e) {
-      console.error("Start Stream Error:", e);
-      showToast("Lỗi khi khởi tạo Preview!");
+      showToast("Lỗi khi khởi tạo!");
     }
   }
 
   const handleGoLive = async () => {
-    if (!selectedMatch) return;
+    if (!selectedMatch) return
     try {
-      const token = localStorage.getItem('token');
-      const now = new Date();
-      const vnTime = new Date(now.getTime() + (7 * 60 * 60 * 1000));
-      const today = vnTime.toISOString().split('T')[0];
-
-      // Lấy ngày chuẩn từ pk của trận đấu (ví dụ: DATE#2024-04-30 -> 2024-04-30)
-      const matchDate = selectedMatch.pk ? selectedMatch.pk.replace('DATE#', '') : today;
-
-      console.log("[Broadcaster] 🚀 Gửi lệnh phát live:", {
-        date: matchDate,
-        matchId: selectedMatch.id,
-        sk: selectedMatch.sk,
-        scores: { h: selectedMatch.score?.home, a: selectedMatch.score?.away }
-      });
-
-      showToast("Đang phát sóng trực tiếp...");
-      
-      const matchId = selectedMatch.id || (selectedMatch.sk ? selectedMatch.sk.replace('MATCH#', '') : null);
-
-      const res = await fetch(`${API}/media/update-score`, {
-        method: 'POST',
-        headers: { 
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json' 
-        },
-        body: JSON.stringify({
-          date: matchDate,
-          matchId: matchId,
-          homeScore: selectedMatch.score?.home ?? selectedMatch.homeScore ?? 0,
-          awayScore: selectedMatch.score?.away ?? selectedMatch.awayScore ?? 0,
-          currentMinute: "1'",
-          liveStatus: 'inprogress'
-        })
-      });
-
-      if (res.ok) {
-        setIsLive(true);
-        showToast("TRẬN ĐẤU ĐÃ LÊN SÓNG! 🔴");
-        fetchLiveMatches();
-      }
+      showToast("Đang kích hoạt trạng thái trực tiếp...");
+      await updateScore(
+        getScore(selectedMatch.score?.home ?? selectedMatch.homeScore),
+        getScore(selectedMatch.score?.away ?? selectedMatch.awayScore),
+        selectedMatch.currentMinute || '0'
+      );
+      showToast("🚀 ĐÃ LÊN SÓNG! Người xem hiện đã có thể thấy video.");
     } catch (e) {
-      showToast("Lỗi khi phát sóng!");
+      showToast("Lỗi khi phát trực tiếp!");
     }
   }
 
-  const handleEndStream = async () => {
-    if (!selectedMatch) return;
-    
-    const isConfirmed = window.confirm("Bạn có chắc chắn muốn kết thúc trận đấu và dừng phát sóng?");
-    if (!isConfirmed) return;
-
+  const updateScore = async (h: number, a: number, min: string, stats?: any) => {
+    if (!selectedMatch) return
     try {
-      showToast("Đang xử lý kết thúc luồng...");
-      const token = localStorage.getItem('token');
-      
-      // Lấy ngày hiện tại (VN) để tìm đúng Record trong DynamoDB
-      const now = new Date();
-      const vnTime = new Date(now.getTime() + (7 * 60 * 60 * 1000));
-      const today = vnTime.toISOString().split('T')[0];
-
-      // Gửi yêu cầu cập nhật trạng thái 'finished'
+      const token = localStorage.getItem('token')
       const res = await fetch(`${API}/media/update-score`, {
         method: 'POST',
-        headers: { 
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json' 
-        },
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          date: today,
+          date: selectedMatch.pk?.replace('DATE#', '') || new Date().toISOString().split('T')[0],
           matchId: selectedMatch.id,
-          homeScore: selectedMatch.score?.home ?? selectedMatch.homeScore ?? 0,
-          awayScore: selectedMatch.score?.away ?? selectedMatch.awayScore ?? 0,
-          currentMinute: "FT",
-          liveStatus: 'finished'
-        })
-      });
-      
-      if (res.ok) {
-        setLkToken("");
-        setStreamData(null);
-        showToast("Đã kết thúc Livestream thành công! ✅");
-        fetchLiveMatches();
-        setSelectedMatch(null);
-      } else {
-        const error = await res.json();
-        console.error("End stream error:", error);
-        
-        // Nếu lỗi do ngày không khớp hoặc record không tồn tại, vẫn cho phép kết thúc ở UI
-        if (confirm(`Lỗi từ Server: ${error.message || "Không thể cập nhật trạng thái"}. Bạn có muốn buộc kết thúc trên giao diện không?`)) {
-            setLkToken("");
-            setStreamData(null);
-            setSelectedMatch(null);
-            showToast("Đã buộc kết thúc trên giao diện! ⚠️");
-        }
-      }
-    } catch (e) {
-      console.error("End stream catch:", e);
-      showToast("Lỗi kết nối khi kết thúc luồng!");
-    }
-  }
-
-  const handleStartIVS = async () => {
-    if (!selectedMatch) return
-    try {
-      const token = localStorage.getItem('token')
-      const res = await fetch(`${API}/media/start-stream`, {
-        method: 'POST',
-        headers: { 
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json' 
-        },
-        body: JSON.stringify({ matchId: selectedMatch.id, matchName: `${selectedMatch.homeTeam.name} vs ${selectedMatch.awayTeam.name}` })
-      })
-      const json = await res.json()
-      if (json.success) {
-        setStreamData(json)
-        setSelectedMatch({ ...selectedMatch, playbackUrl: json.playbackUrl })
-        showToast("Đã khởi tạo luồng IVS thành công!")
-      }
-    } catch (e) {
-      showToast("Lỗi khi khởi tạo luồng!")
-    }
-  }
-
-  const updateScore = async (h: number, a: number, min: string) => {
-    if (!selectedMatch) return
-    try {
-      const token = localStorage.getItem('token')
-      const now = new Date();
-      const vnTime = new Date(now.getTime() + (7 * 60 * 60 * 1000));
-      const today = vnTime.toISOString().split('T')[0];
-
-      const matchDate = selectedMatch.pk ? selectedMatch.pk.replace('DATE#', '') : today;
-
-      const matchId = selectedMatch.id || (selectedMatch.sk ? selectedMatch.sk.replace('MATCH#', '') : null);
-
-      const res = await fetch(`${API}/media/update-score`, {
-        method: 'POST',
-        headers: { 
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json' 
-        },
-        body: JSON.stringify({
-          date: matchDate,
-          matchId: matchId,
           homeScore: h,
           awayScore: a,
           currentMinute: min,
-          liveStatus: 'inprogress'
+          liveStatus: 'inprogress',
+          statistics: stats || selectedMatch.statistics
         })
       })
       if (res.ok) {
-        showToast("Đã cập nhật tỉ số!")
-        setSelectedMatch({ ...selectedMatch, score: { home: h, away: a }, currentMinute: min })
-        
-        // Gửi Metadata vào luồng (nếu đang live)
-        if (selectedMatch.playbackUrl) {
-            fetch(`${API}/media/send-metadata`, {
-                method: 'POST',
-                headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    channelArn: streamData?.channelArn,
-                    metadata: { type: 'score', home: h, away: a, minute: min }
-                })
-            }).catch(() => {});
-        }
+        showToast("Đã cập nhật Real-time!");
+        setSelectedMatch({ ...selectedMatch, score: { home: h, away: a }, currentMinute: min, statistics: stats || selectedMatch.statistics })
       }
-    } catch (e) {
-      showToast("Lỗi khi cập nhật!")
-    }
+    } catch (e) { showToast("Lỗi cập nhật!"); }
   }
 
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 30 }}>
-      {!selectedMatch ? (
-        /* Match List View - Grid of Premium Cards */
-        <div className="md-card animate-fade-in" style={{ padding: 40 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 40 }}>
-            <div>
-              <h3 className="md-section-title" style={{ fontSize: 28, margin: 0 }}>TRUNG TÂM ĐIỀU PHỐI TRẬN ĐẤU</h3>
-              <p style={{ color: '#5a6a5e', fontSize: 14, marginTop: 5 }}>Hệ thống quản lý tỉ số và livestream thời gian thực</p>
-            </div>
-            <div style={{ width: 450 }}>
-                <input 
-                    type="text" 
-                    className="form-input" 
-                    placeholder="Tìm theo ID, đội bóng hoặc tên giải đấu..." 
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    style={{ fontSize: 15, padding: '14px 25px', borderRadius: 16, background: 'rgba(255,255,255,0.03)' }}
-                />
-            </div>
-          </div>
+  const Room = LiveKitRoom as any;
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))', gap: 25 }}>
-            {filteredMatches.map(m => (
-              <div 
-                key={m.id} 
-                className="md-match-card-premium"
-                onClick={() => setSelectedMatch(m)}
-              >
-                <div className="card-header">
-                   <span className="tournament-tag">{m.tournamentName || 'GIẢI ĐẤU TỰ DO'}</span>
-                   <span className={`status-tag ${m.status?.type || m.status}`}>
-                      {m.status?.type === 'inprogress' || m.status === 'inprogress' ? '● LIVE' : 'SẮP ĐÁ'}
-                   </span>
-                </div>
-                
-                <div className="card-body">
-                  <div className="team">
-                    <img src={getImageUrl(m.homeTeam?.logo, 'logo', m.homeTeam?.id)} alt="Home" />
-                    <span>{m.homeTeam?.name}</span>
+  const updateStat = (type: string, team: 'home' | 'away', delta: number) => {
+    const currentStats = selectedMatch.statistics || [
+      { type: 'Corner', home: 0, away: 0 },
+      { type: 'Foul', home: 0, away: 0 },
+      { type: 'Yellow Card', home: 0, away: 0 },
+      { type: 'Red Card', home: 0, away: 0 }
+    ];
+
+    const newStats = currentStats.map((s: any) => {
+      if (s.type === type) {
+        return { ...s, [team]: Math.max(0, (s[team] || 0) + delta) };
+      }
+      return s;
+    });
+
+    if (!newStats.find((s: any) => s.type === type)) {
+      newStats.push({ type, home: team === 'home' ? delta : 0, away: team === 'away' ? delta : 0 });
+    }
+
+    updateScore(
+      getScore(selectedMatch.score?.home ?? selectedMatch.homeScore),
+      getScore(selectedMatch.score?.away ?? selectedMatch.awayScore),
+      selectedMatch.currentMinute,
+      newStats
+    );
+  };
+
+  const handleEndLive = async () => {
+    if (!selectedMatch) return;
+    if (!window.confirm("Bạn có chắc chắn muốn kết thúc trận đấu này? Trạng thái sẽ chuyển thành FINISHED.")) return;
+    
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${API}/media/update-score`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          date: selectedMatch.pk?.replace('DATE#', '') || new Date().toISOString().split('T')[0],
+          matchId: selectedMatch.id,
+          homeScore: getScore(selectedMatch.score?.home ?? selectedMatch.homeScore),
+          awayScore: getScore(selectedMatch.score?.away ?? selectedMatch.awayScore),
+          currentMinute: selectedMatch.currentMinute,
+          liveStatus: 'finished'
+        })
+      });
+      if (res.ok) {
+        showToast("Đã kết thúc trận đấu!");
+        setSelectedMatch(null);
+        fetchLiveMatches();
+      }
+    } catch (e) {
+      showToast("Lỗi khi kết thúc!");
+    }
+  };
+
+  const getStatValue = (type: string, team: 'home' | 'away') => {
+    const stat = (selectedMatch.statistics || []).find((s: any) => s.type === type);
+    if (!stat) return 0;
+    const val = stat[team];
+    if (typeof val === 'number') return val;
+    if (typeof val === 'string') return val;
+    const result = val?.current ?? val?.display ?? val;
+    return (typeof result === 'object' && result !== null) ? 0 : (result || 0);
+  };
+
+  const getScore = (v: any) => {
+    if (typeof v === 'number') return v;
+    if (typeof v === 'string') return v;
+    if (v && typeof v === 'object') {
+      const res = v.current ?? v.display ?? 0;
+      return (typeof res === 'object' && res !== null) ? 0 : res;
+    }
+    return 0;
+  };
+
+  const filteredMatches = matches
+    .filter(m => {
+      const q = searchQuery.toLowerCase();
+      const homeName = typeof m.homeTeam?.name === 'string' ? m.homeTeam.name : '';
+      const awayName = typeof m.awayTeam?.name === 'string' ? m.awayTeam.name : '';
+      return homeName.toLowerCase().includes(q) || awayName.toLowerCase().includes(q);
+    })
+    .sort((a, b) => {
+      const now = Math.floor(Date.now() / 1000);
+      const isALive = (a.status === 'live' || a.status === 'inprogress' || a.status === 'in_progress');
+      const isBLive = (b.status === 'live' || b.status === 'inprogress' || b.status === 'in_progress');
+      
+      const aStartsIn = (a.startTimestamp || 0) - now;
+      const bStartsIn = (b.startTimestamp || 0) - now;
+      
+      const isANear = !isALive && aStartsIn > 0 && aStartsIn <= 3600;
+      const isBNear = !isBLive && bStartsIn > 0 && bStartsIn <= 3600;
+      
+      // 1. Ưu tiên các trận sắp đá trong < 1 tiếng
+      if (isANear && !isBNear) return -1;
+      if (!isANear && isBNear) return 1;
+      
+      // 2. Tiếp theo là các trận đang diễn ra
+      if (isALive && !isBLive) return -1;
+      if (!isALive && isBLive) return 1;
+      
+      // 3. Cuối cùng sắp xếp theo thời gian bắt đầu tăng dần
+      return (a.startTimestamp || 0) - (b.startTimestamp || 0);
+    });
+
+  return (
+    <div className="lc-root">
+      <style dangerouslySetInnerHTML={{ __html: CSS }} />
+      <div className="lc-container">
+        
+        {!selectedMatch ? (
+          <div className="lc-view-list animate-fade-in">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 48 }}>
+              <div>
+                <h2 style={{ fontSize: 42, margin: 0 }}>Giao Diện Điều Phối</h2>
+                <p className="text-secondary" style={{ marginTop: 8 }}>Quản lý luồng trực tiếp và dữ liệu trận đấu thời gian thực</p>
+              </div>
+              <div style={{ width: 400 }}>
+                <input 
+                  className="search-pill" 
+                  placeholder="Tìm trận đấu hoặc đội bóng..." 
+                  value={searchQuery}
+                  onChange={e => setSearchQuery(e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 24 }}>
+              {filteredMatches.map(m => (
+                <div key={m.id} className="m-card" onClick={() => handleSelectMatch(m)}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 20 }}>
+                    <span style={{ fontSize: 11, fontWeight: 700, color: '#b3b3b3' }}>{typeof m.tournamentName === 'string' ? m.tournamentName : 'GIẢI ĐẤU PHỦI'}</span>
+                    <div className="m-status-live">
+                       {(m.status === 'live' || m.status === 'inprogress' || m.status === 'in_progress') ? (
+                         <><div className="live-dot" /> LIVE</>
+                       ) : (
+                         <span style={{ color: '#b3b3b3' }}>SẮP ĐÁ</span>
+                       )}
+                    </div>
                   </div>
                   
-                  <div className="score-area">
-                    <div className="score">{(m.score?.home ?? m.homeScore) || 0} - {(m.score?.away ?? m.awayScore) || 0}</div>
-                    <div className="time">{m.currentMinute || "00'"}</div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 12 }}>
+                    <img src={getImageUrl(m.homeTeam?.logo, 'logo', m.homeTeam?.id)} style={{ width: 32, height: 32, borderRadius: '50%' }} />
+                    <span style={{ fontWeight: 700, fontSize: 16 }}>{typeof m.homeTeam?.name === 'string' ? m.homeTeam.name : 'Đội Nhà'}</span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 24 }}>
+                    <img src={getImageUrl(m.awayTeam?.logo, 'logo', m.awayTeam?.id)} style={{ width: 32, height: 32, borderRadius: '50%' }} />
+                    <span style={{ fontWeight: 700, fontSize: 16 }}>{typeof m.awayTeam?.name === 'string' ? m.awayTeam.name : 'Đội Khách'}</span>
                   </div>
 
-                  <div className="team">
-                    <img src={getImageUrl(m.awayTeam?.logo, 'logo', m.awayTeam?.id)} alt="Away" />
-                    <span>{m.awayTeam?.name}</span>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 16, borderTop: '1px solid #282828' }}>
+                    <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
+                      <span style={{ fontSize: 24, fontWeight: 900 }}>
+                        {getScore(m.score?.home ?? m.homeScore)} - {getScore(m.score?.away ?? m.awayScore)}
+                      </span>
+                      {(m.status === 'live' || m.status === 'inprogress' || m.status === 'in_progress') && (
+                        <span style={{ fontSize: 12, fontWeight: 700, color: '#1ed760' }}>
+                          {typeof m.currentMinute === 'number' || (typeof m.currentMinute === 'string' && !isNaN(parseInt(m.currentMinute))) 
+                            ? `${m.currentMinute}'` 
+                            : 'Live'}
+                        </span>
+                      )}
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 2 }}>
+                       <span style={{ fontSize: 12, fontWeight: 700, color: '#fff' }}>{typeof m.time === 'string' ? m.time : '00:00'}</span>
+                      <span style={{ fontSize: 10, fontWeight: 700, color: '#535353' }}>ID: #{String(m.id)}</span>
+                    </div>
                   </div>
                 </div>
-
-                <div className="card-footer">
-                  <span>ID: #{m.id}</span>
-                  <button className="select-btn">ĐIỀU KHIỂN</button>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {filteredMatches.length === 0 && !loading && (
-            <div style={{ textAlign: 'center', padding: '120px 0', opacity: 0.3 }}>
-                <div style={{ fontSize: 60, marginBottom: 20 }}>🏟️</div>
-                <div style={{ fontWeight: 900, fontSize: 20 }}>KHÔNG TÌM THẤY TRẬN ĐẤU</div>
-                <p style={{ marginTop: 10 }}>Vui lòng thử lại với từ khóa khác</p>
-            </div>
-          )}
-
-          <button className="md-btn md-btn-outline" style={{ width: '100%', marginTop: 40, padding: 15 }} onClick={fetchLiveMatches}>
-            LÀM MỚI DANH SÁCH TRẬN ĐẤU
-          </button>
-        </div>
-      ) : (
-        /* Focused Broadcast Mode */
-        <div className="md-card animate-fade-in" style={{ padding: 40, minHeight: '80vh' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 40 }}>
-            <div>
-              <button 
-                onClick={() => {
-                   if (lkToken && !confirm("Livestream đang diễn ra, bạn có chắc chắn muốn quay lại danh sách?")) return;
-                   setSelectedMatch(null);
-                }}
-                style={{ 
-                   background: 'rgba(255,255,255,0.05)', border: 'none', color: '#7a8c7e', 
-                   padding: '10px 20px', borderRadius: 12, cursor: 'pointer', marginBottom: 20,
-                   fontSize: 13, fontWeight: 800, display: 'flex', alignItems: 'center', gap: 10,
-                   transition: 'all 0.2s'
-                }}
-              >
-                ← QUAY LẠI DANH SÁCH
-              </button>
-              <h2 style={{ fontSize: 36, fontWeight: 900, letterSpacing: -1.5, color: '#fff' }}>BẢNG ĐIỀU KHIỂN SẢN XUẤT</h2>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                 <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#22c55e', boxShadow: '0 0 15px #22c55e' }} />
-                  <div style={{ color: '#22c55e', fontWeight: 900, fontSize: 18, textTransform: 'uppercase' }}>
-                     {selectedMatch.homeTeam?.name || '...'} <span style={{ color: '#fff', opacity: 0.3, margin: '0 10px' }}>VS</span> {selectedMatch.awayTeam?.name || '...'}
-                  </div>
-              </div>
-            </div>
-            
-            <div style={{ display: 'flex', gap: 15 }}>
-              <button className="md-btn md-btn-outline" onClick={handleStartStream} style={{ padding: '18px 30px', fontSize: 14 }}>
-                {lkToken ? "XEM LẠI STREAM KEY" : "BƯỚC 1: CHUẨN BỊ LUỒNG & LẤY KEY"}
-              </button>
-
-              {lkToken && (
-                <>
-                  {!isLive && (
-                    <button className="md-btn" style={{ background: 'linear-gradient(45deg, #ef4444, #b91c1c)', padding: '18px 40px', fontSize: 16, animation: 'pulse 1s infinite' }} onClick={handleGoLive}>
-                        BƯỚC 2: PHÁT TRỰC TIẾP (CHO KHÁN GIẢ)
-                    </button>
-                  )}
-                  <button className="md-btn" style={{ background: 'rgba(255,255,255,0.05)', color: '#5a6a5e', padding: '18px 40px', fontSize: 16 }} onClick={handleEndStream}>DỪNG / HỦY</button>
-                </>
-              )}
+              ))}
             </div>
           </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: 40 }}>
-            {/* Monitor Section */}
-            <div style={{ background: '#000', borderRadius: 32, overflow: 'hidden', boxShadow: '0 30px 60px rgba(0,0,0,0.6)', border: '1px solid rgba(255,255,255,0.05)', aspectRatio: '16/9' }}>
-                {lkToken && lkToken !== "mock_token_active" ? (
-                    <div style={{ position: 'relative', height: '100%', width: '100%' }}>
-                        <LiveKitRoom
-                            video={false}
-                            audio={false}
-                            connect={true}
-                            token={lkToken}
-                            serverUrl={LK_SERVER_URL}
-                            onDisconnected={() => setLkToken("")}
-                            style={{ height: '100%' }}
-                        >
-                            {/* Component con để có thể dùng hook của LiveKit */}
-                            <Monitor />
-                        </LiveKitRoom>
-                        {!isLive && (
-                            <div style={{ position: 'absolute', top: 20, left: 20, background: 'rgba(234,179,8,0.9)', color: '#000', padding: '8px 15px', borderRadius: 10, fontSize: 12, fontWeight: 900, zIndex: 100 }}>
-                                CHẾ ĐỘ PREVIEW: CHỈ MÌNH BẠN THẤY
-                            </div>
-                        )}
-                    </div>
-                ) : lkToken === "mock_token_active" ? (
-                    <div style={{ aspectRatio: '16/9', width: '100%' }}>
-                        <iframe 
-                            src={`https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(MOCK_PLAYBACK_URL)}&show_text=0&width=800`} 
-                            style={{ width: '100%', height: '100%', border: 'none' }} 
-                            allowFullScreen={true}
-                            allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"
-                        />
-                    </div>
-                ) : (
-                    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 25, background: 'radial-gradient(circle at center, #1a1a1a, #0a0a0a)' }}>
-                         <div className="pulse-icon">
-                            <svg width="45" height="45" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="1.5"><path d="M15.66 15c1.11 0 2.01-.9 2.01-2.01V6.01C17.67 4.9 16.77 4 15.66 4H4c-1.11 0-2.01.9-2.01 2.01v6.98C1.99 14.1 2.89 15 4 15h11.66zM17.67 8.5l4.34-3.5v14l-4.34-3.5v-7z"/></svg>
-                         </div>
-                         <div style={{ textAlign: 'center' }}>
-                            <div style={{ color: '#fff', fontWeight: 900, fontSize: 24, letterSpacing: -1 }}>HỆ THỐNG SẴN SÀNG</div>
-                            <div style={{ color: '#5a6a5e', fontSize: 16, marginTop: 8 }}>Nhấn Bước 1 để lấy thông tin cấu hình OBS</div>
-                         </div>
-                         {USE_MOCK_STREAM && (
-                            <button className="md-btn md-btn-outline" onClick={() => setLkToken("mock_token_active")}>CHẾ ĐỘ DEMO (FACEBOOK)</button>
-                         )}
-                    </div>
-                )}
-            </div>
-
-            {/* Controls Section */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 25 }}>
-                {/* Real-time Scoreboard */}
-                <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 32, padding: 40, textAlign: 'center' }}>
-                    <div style={{ fontSize: 13, fontWeight: 900, color: '#5a6a5e', marginBottom: 30, letterSpacing: 3 }}>LIVE SCOREBOARD</div>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 40 }}>
-                        <div>
-                            <div style={{ fontSize: 72, fontWeight: 900, color: '#fff', marginBottom: 20 }}>{selectedMatch.score?.home ?? selectedMatch.homeScore ?? 0}</div>
-                            <div style={{ display: 'flex', gap: 12 }}>
-                                <button className="score-btn" onClick={() => updateScore((selectedMatch.score?.home ?? selectedMatch.homeScore ?? 0) + 1, selectedMatch.score?.away ?? selectedMatch.awayScore ?? 0, selectedMatch.currentMinute)}>+</button>
-                                <button className="score-btn minus" onClick={() => updateScore(Math.max(0, (selectedMatch.score?.home ?? selectedMatch.homeScore ?? 0) - 1), selectedMatch.score?.away ?? selectedMatch.awayScore ?? 0, selectedMatch.currentMinute)}>-</button>
-                            </div>
-                        </div>
-                        <div style={{ fontSize: 40, fontWeight: 900, color: '#22c55e', opacity: 0.3 }}>:</div>
-                        <div>
-                            <div style={{ fontSize: 72, fontWeight: 900, color: '#fff', marginBottom: 20 }}>{selectedMatch.score?.away ?? selectedMatch.awayScore ?? 0}</div>
-                            <div style={{ display: 'flex', gap: 12 }}>
-                                <button className="score-btn" onClick={() => updateScore(selectedMatch.score?.home ?? selectedMatch.homeScore ?? 0, (selectedMatch.score?.away ?? selectedMatch.awayScore ?? 0) + 1, selectedMatch.currentMinute)}>+</button>
-                                <button className="score-btn minus" onClick={() => updateScore(selectedMatch.score?.home ?? selectedMatch.homeScore ?? 0, Math.max(0, (selectedMatch.score?.away ?? selectedMatch.awayScore ?? 0) - 1), selectedMatch.currentMinute)}>-</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Match Clock */}
-                <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 32, padding: 35 }}>
-                    <div style={{ fontSize: 13, fontWeight: 900, color: '#5a6a5e', marginBottom: 25, letterSpacing: 3 }}>MATCH CLOCK</div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 25 }}>
-                        <div style={{ fontSize: 48, fontWeight: 900, color: '#22c55e', minWidth: 100, fontVariantNumeric: 'tabular-nums' }}>{selectedMatch.currentMinute || "1'"}</div>
-                        <div style={{ flex: 1, display: 'flex', gap: 15 }}>
-                             <input 
-                                type="text" 
-                                className="form-input" 
-                                style={{ borderRadius: 16, textAlign: 'center', fontSize: 18, fontWeight: 800 }} 
-                                placeholder="Min" 
-                                value={selectedMatch.currentMinute || ''}
-                                onChange={(e) => setSelectedMatch({...selectedMatch, currentMinute: e.target.value})}
-                             />
-                             <button className="md-btn" style={{ padding: '0 30px' }} onClick={() => updateScore(selectedMatch.score?.home ?? selectedMatch.homeScore ?? 0, selectedMatch.score?.away ?? selectedMatch.awayScore ?? 0, selectedMatch.currentMinute)}>CẬP NHẬT</button>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Ingress Settings Modal */}
-                {streamData && (
-                    <div style={{
-                        position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-                        background: 'rgba(0,0,0,0.95)', zIndex: 9999, display: 'flex',
-                        alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(10px)',
-                        animation: 'fadeIn 0.3s ease-out'
-                    }}>
-                        <div className="md-card" style={{ width: 600, padding: 40, border: '2px solid #22c55e', position: 'relative' }}>
-                            <button 
-                                onClick={() => setStreamData(null)}
-                                style={{ position: 'absolute', top: 20, right: 20, background: 'none', border: 'none', color: '#5a6a5e', cursor: 'pointer', fontSize: 24 }}
-                            >✕</button>
-                            
-                            <div style={{ textAlign: 'center', marginBottom: 30 }}>
-                                <div style={{ width: 70, height: 70, background: 'rgba(34,197,94,0.1)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
-                                    <svg width="35" height="35" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2"><path d="M4 11a9 9 0 0 1 9 9M4 4a16 16 0 0 1 16 16"/><circle cx="5" cy="19" r="1"/></svg>
-                                </div>
-                                <h3 style={{ fontSize: 24, fontWeight: 900, margin: 0, color: '#fff' }}>CẤU HÌNH OBS PHÁT SÓNG</h3>
-                                <p style={{ color: '#5a6a5e', marginTop: 10 }}>Sao chép các thông số dưới đây vào phần cài đặt Stream của OBS</p>
-                            </div>
-
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-                                <div>
-                                    <div className="form-label">SERVER URL (RTMP)</div>
-                                    <div style={{ display: 'flex', gap: 10 }}>
-                                        <input readOnly value={streamData.url} className="form-input" style={{ background: 'rgba(0,0,0,0.3)', color: '#22c55e', fontWeight: 700 }} />
-                                        <button className="md-btn" onClick={() => { navigator.clipboard.writeText(streamData.url); showToast("Đã copy URL!"); }}>COPY</button>
-                                    </div>
-                                </div>
-                                <div>
-                                    <div className="form-label">STREAM KEY</div>
-                                    <div style={{ display: 'flex', gap: 10 }}>
-                                        <input readOnly value={streamData.streamKey} type="password" id="sk-input" className="form-input" style={{ background: 'rgba(0,0,0,0.3)', color: '#22c55e', fontWeight: 700 }} />
-                                        <button className="md-btn" onClick={() => { 
-                                            const el = document.getElementById('sk-input') as HTMLInputElement;
-                                            el.type = el.type === 'password' ? 'text' : 'password';
-                                        }}>XEM</button>
-                                        <button className="md-btn" onClick={() => { navigator.clipboard.writeText(streamData.streamKey); showToast("Đã copy Stream Key!"); }}>COPY</button>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div style={{ marginTop: 40, background: 'rgba(234,179,8,0.05)', padding: 20, borderRadius: 16, border: '1px solid rgba(234,179,8,0.2)' }}>
-                                <div style={{ color: '#eab308', fontWeight: 900, fontSize: 11, marginBottom: 5 }}>HƯỚNG DẪN TÁC NGHIỆP:</div>
-                                <p style={{ color: '#7a8c7e', fontSize: 12, margin: 0, lineHeight: 1.6 }}>
-                                    1. Dán URL và Key vào OBS.<br/>
-                                    2. Nhấn <b>Start Streaming</b> trong OBS.<br/>
-                                    3. Chờ khoảng 10 giây để video hiện lên màn hình Monitor phía sau.<br/>
-                                    4. Sau khi thấy video, nhấn nút <b>BƯỚC 2: PHÁT TRỰC TIẾP</b> để công khai luồng cho khán giả.
-                                </p>
-                            </div>
-
-                            <button 
-                                className="md-btn" 
-                                style={{ width: '100%', marginTop: 30, padding: 18, fontSize: 15, background: '#22c55e', color: '#000' }}
-                                onClick={() => setStreamData(null)}
-                            >
-                                TÔI ĐÃ HIỂU, ĐÓNG CỬA SỔ NÀY
-                            </button>
-                        </div>
-                    </div>
-                )}
-
-                {/* Broadcasting Tip */}
-                {lkToken && !isLive && (
-                    <div style={{ marginTop: 10, padding: 20, background: 'rgba(234,179,8,0.05)', border: '1px dashed rgba(234,179,8,0.3)', borderRadius: 20 }}>
-                        <div style={{ color: '#eab308', fontSize: 12, fontWeight: 900, marginBottom: 5 }}>💡 MẸO TÁC NGHIỆP:</div>
-                        <p style={{ color: '#7a8c7e', fontSize: 11, lineHeight: 1.5 }}>
-                            Sau khi ấn "Start Streaming" trên OBS, có thể mất khoảng <b>5-10 giây</b> để video đồng bộ lên Monitor. 
-                            Nếu quá lâu không thấy gì, hãy thử nhấn nút "Làm mới Monitor" bên dưới.
-                        </p>
+        ) : (
+          <div className="lc-view-focus animate-fade-in">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 40 }}>
+              <button className="pill-btn pill-btn-secondary" onClick={handleBack}>
+                ← QUAY LẠI
+              </button>
+              <div style={{ display: 'flex', gap: 12 }}>
+                 {selectedMatch.status === 'finished' ? (
+                   <button className="pill-btn" style={{ background: '#222', color: '#555', cursor: 'not-allowed', fontWeight: 800 }}>
+                     🏁 ĐÃ KẾT THÚC
+                   </button>
+                 ) : (
+                   <>
+                     {!lkToken ? (
                         <button 
-                            onClick={() => { const t = lkToken; setLkToken(""); setTimeout(() => setLkToken(t), 100); }}
-                            style={{ background: 'none', border: 'none', color: '#eab308', fontSize: 11, fontWeight: 800, cursor: 'pointer', marginTop: 10, padding: 0, textDecoration: 'underline' }}
+                          className="pill-btn pill-btn-primary" 
+                          style={{ fontWeight: 800, minWidth: 160 }}
+                          onClick={handlePrepareStream}
                         >
-                            LÀM MỚI MONITOR
+                          📡 CHUẨN BỊ LUỒNG
                         </button>
+                     ) : (
+                        <>
+                          <button 
+                            className={(selectedMatch.liveStatus === 'inprogress' || selectedMatch.liveStatus === 'live') ? 'pill-btn pill-btn-danger' : 'pill-btn pill-btn-primary'} 
+                            style={{ 
+                              fontWeight: 800, 
+                              minWidth: 160, 
+                              boxShadow: (selectedMatch.liveStatus === 'inprogress' || selectedMatch.liveStatus === 'live') ? '0 0 20px rgba(239,68,68,0.4)' : 'none',
+                              animation: (selectedMatch.liveStatus === 'inprogress' || selectedMatch.liveStatus === 'live') ? 'none' : 'blinker 1.5s infinite'
+                            }}
+                            onClick={handleGoLive}
+                          >
+                            {(selectedMatch.liveStatus === 'inprogress' || selectedMatch.liveStatus === 'live') ? '🔴 ĐANG TRỰC TIẾP' : '🚀 PHÁT TRỰC TIẾP'}
+                          </button>
+                          
+                          <button 
+                            className="pill-btn" 
+                            style={{ background: '#333', color: '#fff', fontWeight: 800 }}
+                            onClick={handleEndLive}
+                          >
+                            🏁 KẾT THÚC TRẬN
+                          </button>
+                        </>
+                     )}
+                   </>
+                 )}
+              </div>
+              <div style={{ textAlign: 'right' }}>
+                <h3 style={{ fontSize: 32, margin: 0 }}>BẢNG ĐIỀU KHIỂN SẢN XUẤT</h3>
+                <span style={{ color: '#1ed760', fontWeight: 700 }}>
+                  {typeof selectedMatch.homeTeam?.name === 'string' ? selectedMatch.homeTeam.name : 'Đội Nhà'} VS {typeof selectedMatch.awayTeam?.name === 'string' ? selectedMatch.awayTeam.name : 'Đội Khách'}
+                </span>
+              </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: 32 }}>
+              {/* Monitor Section */}
+              <div style={{ background: '#000', borderRadius: 24, overflow: 'hidden', aspectRatio: '16/9', position: 'relative', boxShadow: '0 20px 40px rgba(0,0,0,0.8)' }}>
+                  {lkToken ? (
+                    <Room video={false} audio={false} connect={true} token={lkToken} serverUrl={LK_SERVER_URL} style={{ height: '100%' }}>
+                      <Monitor />
+                    </Room>
+                  ) : (
+                    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#090909' }}>
+                       <button className="pill-btn pill-btn-primary" onClick={handlePrepareStream}>
+                          KHỞI TẠO LUỒNG PHÁT
+                       </button>
+                       <p className="text-secondary" style={{ marginTop: 16 }}>Nhấn để lấy cấu hình kết nối ứng dụng phát sóng</p>
                     </div>
+                  )}
+              </div>
+
+              {/* Control Panel */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+                <div className="spotify-card" style={{ textAlign: 'center' }}>
+                  <span className="text-secondary" style={{ textTransform: 'uppercase', letterSpacing: 2, fontSize: 11 }}>Live Scoreboard</span>
+                  <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 32, margin: '24px 0' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
+                       <span className="score-display">{getScore(selectedMatch.score?.home ?? selectedMatch.homeScore)}</span>
+                       <div style={{ display: 'flex', gap: 8 }}>
+                          <button className="circle-btn" onClick={() => updateScore(getScore(selectedMatch.score?.home ?? selectedMatch.homeScore) + 1, getScore(selectedMatch.score?.away ?? selectedMatch.awayScore), selectedMatch.currentMinute)}>+</button>
+                          <button className="circle-btn" onClick={() => updateScore(Math.max(0, getScore(selectedMatch.score?.home ?? selectedMatch.homeScore) - 1), getScore(selectedMatch.score?.away ?? selectedMatch.awayScore), selectedMatch.currentMinute)}>-</button>
+                       </div>
+                    </div>
+                    <span style={{ fontSize: 40, fontWeight: 900, color: '#4d4d4d' }}>:</span>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
+                       <span className="score-display">{getScore(selectedMatch.score?.away ?? selectedMatch.awayScore)}</span>
+                       <div style={{ display: 'flex', gap: 8 }}>
+                          <button className="circle-btn" onClick={() => updateScore(getScore(selectedMatch.score?.home ?? selectedMatch.homeScore), getScore(selectedMatch.score?.away ?? selectedMatch.awayScore) + 1, selectedMatch.currentMinute)}>+</button>
+                          <button className="circle-btn" onClick={() => updateScore(getScore(selectedMatch.score?.home ?? selectedMatch.homeScore), Math.max(0, getScore(selectedMatch.score?.away ?? selectedMatch.awayScore) - 1), selectedMatch.currentMinute)}>-</button>
+                       </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="spotify-card">
+                   <span className="text-secondary" style={{ textTransform: 'uppercase', letterSpacing: 2, fontSize: 11 }}>Thời gian trận đấu</span>
+                   <div style={{ display: 'flex', gap: 16, marginTop: 16 }}>
+                      <input 
+                        className="search-pill" 
+                        style={{ flex: 1, textAlign: 'center', fontSize: 24, fontWeight: 900, background: '#121212' }}
+                        value={String(selectedMatch.currentMinute || '')}
+                        onChange={e => setSelectedMatch({...selectedMatch, currentMinute: e.target.value})}
+                      />
+                      <button className="pill-btn pill-btn-primary" onClick={() => updateScore(selectedMatch.score?.home ?? selectedMatch.homeScore ?? 0, selectedMatch.score?.away ?? selectedMatch.awayScore ?? 0, selectedMatch.currentMinute)}>
+                         CẬP NHẬT
+                      </button>
+                   </div>
+                </div>
+
+                <div className="spotify-card">
+                   <span className="text-secondary" style={{ textTransform: 'uppercase', letterSpacing: 2, fontSize: 11 }}>Chỉ số trận đấu (Statistics)</span>
+                   <div style={{ display: 'flex', flexDirection: 'column', gap: 16, marginTop: 24 }}>
+                      {[
+                        { label: 'PHẠT GÓC', type: 'Corner', icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1v12zm0 0v7"/></svg>, color: '#1ed760' },
+                        { label: 'THẺ VÀNG', type: 'Yellow Card', icon: <div style={{ width: 10, height: 14, background: '#fbbf24', borderRadius: 2 }} />, color: '#fbbf24' },
+                        { label: 'THẺ ĐỎ', type: 'Red Card', icon: <div style={{ width: 10, height: 14, background: '#ef4444', borderRadius: 2 }} />, color: '#ef4444' },
+                        { label: 'PHẠM LỖI', type: 'Foul', icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>, color: '#b3b3b3' }
+                      ].map(stat => (
+                        <div key={stat.type} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#242424', padding: '10px 16px', borderRadius: 12, borderLeft: `4px solid ${stat.color}` }}>
+                           <div style={{ display: 'flex', gap: 8 }}>
+                              <button className="circle-btn" style={{ width: 30, height: 30, fontSize: 12 }} onClick={() => updateStat(stat.type, 'home', 1)}>+</button>
+                              <button className="circle-btn" style={{ width: 30, height: 30, fontSize: 12 }} onClick={() => updateStat(stat.type, 'home', -1)}>-</button>
+                           </div>
+                           
+                           <div style={{ textAlign: 'center', flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: stat.color }}>
+                                 {stat.icon}
+                                 <span style={{ fontSize: 9, fontWeight: 900, letterSpacing: 1 }}>{stat.label}</span>
+                              </div>
+                              <div style={{ fontSize: 20, fontWeight: 900 }}>
+                                 {getStatValue(stat.type, 'home')} <span style={{ color: '#4d4d4d', margin: '0 8px' }}>—</span> {getStatValue(stat.type, 'away')}
+                              </div>
+                           </div>
+
+                           <div style={{ display: 'flex', gap: 8 }}>
+                              <button className="circle-btn" style={{ width: 30, height: 30, fontSize: 12 }} onClick={() => updateStat(stat.type, 'away', 1)}>+</button>
+                              <button className="circle-btn" style={{ width: 30, height: 30, fontSize: 12 }} onClick={() => updateStat(stat.type, 'away', -1)}>-</button>
+                           </div>
+                        </div>
+                      ))}
+                   </div>
+                </div>
+
+                {streamData && (
+                  <div className="spotify-card" style={{ border: '1px solid #1ed760' }}>
+                     <h4 style={{ margin: '0 0 16px' }}>CẤU HÌNH KẾT NỐI</h4>
+                     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                        <div>
+                          <label className="text-secondary" style={{ fontSize: 10 }}>SERVER URL</label>
+                           <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
+                              <input readOnly value={String(streamData.url || '')} className="search-pill" style={{ background: '#121212', fontSize: 12, flex: 1 }} />
+                              <button className="pill-btn" style={{ fontSize: 10, minWidth: 60 }} onClick={() => { navigator.clipboard.writeText(streamData.url); showToast("Đã chép URL!"); }}>COPY</button>
+                           </div>
+                        </div>
+                        <div>
+                          <label className="text-secondary" style={{ fontSize: 10 }}>STREAM KEY</label>
+                          <div style={{ display: 'flex', gap: 8, marginTop: 4 }}> <input readOnly value={String(streamData.streamKey || '')} type="text" style={{ background: '#121212', fontSize: 12, flex: 1, color: '#1ed760', fontWeight: 700 }} className="search-pill" /> <button className="pill-btn" style={{ fontSize: 10, minWidth: 60 }} onClick={() => { navigator.clipboard.writeText(streamData.streamKey); showToast("Đã chép Key!"); }}>COPY</button> </div>
+                        </div>
+                        <p style={{ fontSize: 12, color: '#1ed760', marginTop: 8 }}>💡 Dán thông tin này vào ứng dụng phát sóng của bạn để bắt đầu.</p>
+                     </div>
+                  </div>
                 )}
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   )
 }

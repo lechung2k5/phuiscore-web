@@ -381,7 +381,7 @@ const HeaderComponent: any = (): any => {
                             borderColor={COLORS.borderDark as any}
                             onPress={() => handleNavigation(subPath)}
                           >
-                            <Text color={"#ccc" as any} fontSize={13} fontWeight="600">{subLabel}</Text>
+                            <Text color={"#ccc" as any} fontSize={13} fontWeight="600">{typeof subLabel === 'string' ? subLabel : 'Menu'}</Text>
                             <ChevronRight size={14} color={COLORS.subText as any} />
                           </XStack>
                         )
@@ -408,7 +408,7 @@ const HeaderComponent: any = (): any => {
                     fontWeight="700" 
                     fontSize={13}
                   >
-                    {item.label}
+                    {typeof item.label === 'string' ? item.label : 'Menu'}
                   </Text>
                 </Button>
                 {item.isLive && (
@@ -519,8 +519,12 @@ const HeaderComponent: any = (): any => {
                             {!notif.isRead && <View width={6} height={6} borderRadius={3} backgroundColor={COLORS.logoGreen as any} />}
                           </View>
                           <YStack flex={1}>
-                            <Text color="#eee" fontSize={13} fontWeight={notif.isRead ? "500" : "700"}>{notif.title}</Text>
-                            <Text color="#aaa" fontSize={12} numberOfLines={2} marginTop={2}>{notif.message}</Text>
+                            <Text color="#eee" fontSize={13} fontWeight={notif.isRead ? "500" : "700"}>
+                              {typeof notif.title === 'string' ? notif.title : 'Thông báo'}
+                            </Text>
+                            <Text color="#aaa" fontSize={12} numberOfLines={2} marginTop={2}>
+                              {typeof notif.message === 'string' ? notif.message : ''}
+                            </Text>
                             <Text color="#666" fontSize={10} marginTop={4}>
                                {notif.createdAt && formatDistanceToNow(new Date(notif.createdAt), { addSuffix: true, locale: vi })}
                             </Text>
@@ -565,7 +569,9 @@ const HeaderComponent: any = (): any => {
                     <Avatar.Fallback backgroundColor={"#333" as any} />
                   </Avatar>
                   <YStack $ltMd={{ display: 'none' } as any}>
-                    <Text color={COLORS.white as any} fontSize={13} fontWeight="800" numberOfLines={1}>{user.fullName}</Text>
+                    <Text color={COLORS.white as any} fontSize={13} fontWeight="800" numberOfLines={1}>
+                      {typeof user.fullName === 'string' ? user.fullName : 'Người dùng'}
+                    </Text>
                     <XStack alignItems="center" gap="$1">
                        <Shield size={10} color={COLORS.logoGreen as any} />
                        <Text color={COLORS.logoGreen as any} fontSize={10} fontWeight="700">
@@ -742,7 +748,9 @@ const HeaderComponent: any = (): any => {
                     <Avatar.Image src={`https://ui-avatars.com/api/?name=${encodeURIComponent(user.fullName)}&background=28a745&color=fff` as any} />
                   </Avatar>
                   <YStack flex={1}>
-                    <Text color={COLORS.white as any} fontSize={18} fontWeight="900">{user.fullName}</Text>
+                    <Text color={COLORS.white as any} fontSize={18} fontWeight="900">
+                      {typeof user.fullName === 'string' ? user.fullName : 'Người dùng'}
+                    </Text>
                     <Text color={COLORS.logoGreen as any} fontSize={13} fontWeight="600">{user.role === 'MANAGER' ? 'Quản lý Đội bóng' : 'Thành viên'}</Text>
                   </YStack>
                   <ChevronRight size={20} color={COLORS.subText as any} />

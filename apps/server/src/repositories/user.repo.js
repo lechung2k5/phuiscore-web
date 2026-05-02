@@ -65,6 +65,18 @@ const UserRepo = {
             ReturnValues: "UPDATED_NEW"
         });
         return await docClient.send(command);
+    },
+
+    updateUserSession: async (username, sessionId) => {
+        const command = new UpdateCommand({
+            TableName: TABLE_NAME,
+            Key: { username },
+            UpdateExpression: "SET currentSessionId = :sid",
+            ExpressionAttributeValues: {
+                ":sid": sessionId
+            }
+        });
+        return await docClient.send(command);
     }
 };
 

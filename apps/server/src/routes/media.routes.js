@@ -65,9 +65,9 @@ const MatchRepo = require('../repositories/match.repo');
  */
 router.post('/update-score', verifyToken, isMedia, async (req, res) => {
     try {
-        const { date, matchId, homeScore, awayScore, currentMinute, liveStatus } = req.body;
+        const { date, matchId, homeScore, awayScore, currentMinute, liveStatus, statistics } = req.body;
         
-        console.log("[UpdateScore] 📥 Payload received:", { date, matchId, homeScore, awayScore, currentMinute, liveStatus });
+        console.log("[UpdateScore] 📥 Payload received:", { date, matchId, homeScore, awayScore, currentMinute, liveStatus, statistics });
 
         if (!date || !matchId) {
             console.error("[UpdateScore] ❌ Missing required fields:", { date, matchId });
@@ -75,7 +75,7 @@ router.post('/update-score', verifyToken, isMedia, async (req, res) => {
         }
 
         await MatchRepo.updateMatchScoreboard(date, matchId, { 
-            homeScore, awayScore, currentMinute, liveStatus 
+            homeScore, awayScore, currentMinute, liveStatus, statistics 
         });
 
         // 🚀 SOCKET: Phát tín hiệu real-time cho toàn bộ người xem

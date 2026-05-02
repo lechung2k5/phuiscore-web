@@ -72,6 +72,11 @@ const CSS = `
   .up-btn:hover { background: rgba(34,197,94,0.1); border-color: #22c55e; }
   
   .empty-state { padding: 40px; text-align: center; color: #5a6a5e; font-size: 14px; font-weight: 600; background: rgba(255,255,255,0.02); border-radius: 20px; border: 1px dashed rgba(255,255,255,0.1); }
+  
+  .ls-loading-wrap { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 400px; gap: 20px; }
+  .spinner-spotify { width: 40px; height: 40px; border: 3px solid rgba(34,197,94,0.1); border-top-color: #22c55e; border-radius: 50%; animation: spin 0.8s linear infinite; }
+  @keyframes spin { to { transform: rotate(360px); } }
+  @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 `
 
 const TABS = [
@@ -163,9 +168,10 @@ export default function LiveScreen() {
               name: m.awayTeam?.name || m.awayTeamName || 'Đội Khách',
               logo: getImageUrl(m.awayTeam?.logo || m.awayTeamLogo, 'logo', m.awayTeam?.id)
             },
-            scoreA: m.homeScore ?? m.score?.home ?? 0,
-            scoreB: m.awayScore ?? m.score?.away ?? 0,
-            rawTime: m.time
+            scoreA: (typeof m.homeScore === 'object' ? m.homeScore?.current : m.homeScore) ?? (typeof m.score?.home === 'object' ? m.score.home.current : m.score?.home) ?? 0,
+            scoreB: (typeof m.awayScore === 'object' ? m.awayScore?.current : m.awayScore) ?? (typeof m.score?.away === 'object' ? m.score.away.current : m.score?.away) ?? 0,
+            rawTime: m.time,
+            liveStatus: m.liveStatus
           }
         })
         
@@ -190,14 +196,14 @@ export default function LiveScreen() {
   const nowSec = Math.floor(Date.now() / 1000)
 
   const liveMatches = matches.filter(m => {
-    if (m.status === 'finished' || m.status === 'canceled' || m.status === 'postponed') return false
-    if (m.status === 'live' || m.status === 'inprogress' || m.status === 'in_progress') return true
-    if (m.startTimestamp) {
-      const elapsed = nowSec - m.startTimestamp
-      return elapsed >= 0 && elapsed <= MATCH_DURATION_SEC
-    }
-    return false
-  })
+    // Ưu tiên liveStatus từ bảng điều khiển media
+    if (m.liveStatus === 'inprogress' || m.liveStatus === 'live') return true;
+    
+    // Nếu không có liveStatus, dựa vào status của crawler (nhưng không tự phỏng đoán bằng giờ)
+    if (m.status === 'live' || m.status === 'inprogress' || m.status === 'in_progress') return true;
+    
+    return false;
+  }).sort((a, b) => (a.startTimestamp || 0) - (b.startTimestamp || 0));
   
   const upcomingMatches = matches.filter(m => {
     if (m.status === 'finished' || m.status === 'canceled' || m.status === 'postponed') return false
@@ -207,9 +213,9 @@ export default function LiveScreen() {
        return m.startTimestamp > nowSec && m.startTimestamp <= nowSec + 7200
     }
     return false
-  })
+  }).sort((a, b) => (a.startTimestamp || 0) - (b.startTimestamp || 0));
   
-  const finishedMatches = matches.filter(m => m.status === 'finished')
+  const finishedMatches = matches.filter(m => m.status === 'finished').sort((a, b) => (b.startTimestamp || 0) - (a.startTimestamp || 0))
 
   return (
     <div className="ls-root">
@@ -242,69 +248,78 @@ export default function LiveScreen() {
           </div>
         </div>
 
-        {/* --- LIVE SECTION --- */}
-        {(activeTab === 'all' || activeTab === 'live') && (
-          <div style={{ marginBottom: 60 }}>
-            <h2 className="ls-section-title">
-              <div className="ls-dot" style={{ animation: 'pulse-live 1.2s infinite' }} /> 
-              ĐANG TRỰC TIẾP
-            </h2>
-            <div className="ls-grid">
-              {liveMatches.length > 0 ? (
-                liveMatches.map(m => (
-                  <div key={m.id} style={{ display: 'flex' }}>
-                    <LiveMatchCard {...m} />
-                  </div>
-                ))
-              ) : (
-                <div className="empty-state" style={{ gridColumn: '1 / -1' }}>
-                  Không có trận đấu nào đang diễn ra ngay lúc này.
-                </div>
-              )}
-            </div>
+        {loading ? (
+          <div className="ls-loading-wrap">
+            <div className="spinner-spotify" />
+            <span style={{ color: '#5a6a5e', fontSize: 14, fontWeight: 700 }}>Đang tải trận đấu...</span>
           </div>
-        )}
+        ) : (
+          <>
+            {/* --- LIVE SECTION --- */}
+            {(activeTab === 'all' || activeTab === 'live') && (
+              <div style={{ marginBottom: 60 }}>
+                <h2 className="ls-section-title">
+                  <div className="ls-dot" style={{ animation: 'pulse-live 1.2s infinite' }} /> 
+                  ĐANG TRỰC TIẾP
+                </h2>
+                <div className="ls-grid">
+                  {liveMatches.length > 0 ? (
+                    liveMatches.map(m => (
+                      <div key={m.id} style={{ display: 'flex' }}>
+                        <LiveMatchCard {...m} />
+                      </div>
+                    ))
+                  ) : (
+                    <div className="empty-state" style={{ gridColumn: '1 / -1' }}>
+                      Không có trận đấu nào đang diễn ra ngay lúc này.
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
 
-        {/* --- UPCOMING SECTION --- */}
-        {(activeTab === 'all' || activeTab === 'upcoming') && (
-          <div style={{ marginBottom: 60 }}>
-            <h2 className="ls-section-title">
-              <div className="ls-dot green" /> 
-              SẮP DIỄN RA
-            </h2>
-            <div className="ls-grid">
-              {upcomingMatches.length > 0 ? (
-                upcomingMatches.map(m => <UpcomingMatchCard key={m.id} m={m} />)
-              ) : (
-                <div className="empty-state" style={{ gridColumn: '1 / -1' }}>
-                  Không có trận đấu nào sắp diễn ra trong ngày.
+            {/* --- UPCOMING SECTION --- */}
+            {(activeTab === 'all' || activeTab === 'upcoming') && (
+              <div style={{ marginBottom: 60 }}>
+                <h2 className="ls-section-title">
+                  <div className="ls-dot green" /> 
+                  SẮP DIỄN RA
+                </h2>
+                <div className="ls-grid">
+                  {upcomingMatches.length > 0 ? (
+                    upcomingMatches.map(m => <UpcomingMatchCard key={m.id} m={m} />)
+                  ) : (
+                    <div className="empty-state" style={{ gridColumn: '1 / -1' }}>
+                      Không có trận đấu nào sắp diễn ra trong ngày.
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
-          </div>
-        )}
+              </div>
+            )}
 
-        {/* --- FINISHED SECTION (Only if explicit tab selected) --- */}
-        {(activeTab === 'finished') && (
-          <div style={{ marginBottom: 60 }}>
-            <h2 className="ls-section-title">
-              <div className="ls-dot" style={{ background: '#5a6a5e' }} /> 
-              ĐÃ KẾT THÚC
-            </h2>
-            <div className="ls-grid">
-               {finishedMatches.length > 0 ? (
-                finishedMatches.map(m => (
-                  <div key={m.id} style={{ display: 'flex', opacity: 0.8 }}>
-                    <LiveMatchCard {...m} />
-                  </div>
-                ))
-              ) : (
-                <div className="empty-state" style={{ gridColumn: '1 / -1' }}>
-                  Hôm nay chưa có trận nào kết thúc.
+            {/* --- FINISHED SECTION --- */}
+            {(activeTab === 'finished') && (
+              <div style={{ marginBottom: 60 }}>
+                <h2 className="ls-section-title">
+                  <div className="ls-dot" style={{ background: '#5a6a5e' }} /> 
+                  ĐÃ KẾT THÚC
+                </h2>
+                <div className="ls-grid">
+                   {finishedMatches.length > 0 ? (
+                    finishedMatches.map(m => (
+                      <div key={m.id} style={{ display: 'flex', opacity: 0.8 }}>
+                        <LiveMatchCard {...m} />
+                      </div>
+                    ))
+                  ) : (
+                    <div className="empty-state" style={{ gridColumn: '1 / -1' }}>
+                      Hôm nay chưa có trận nào kết thúc.
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
-          </div>
+              </div>
+            )}
+          </>
         )}
 
       </div>

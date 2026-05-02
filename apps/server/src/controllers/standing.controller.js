@@ -61,49 +61,45 @@ const getStandings = async (req, res) => {
             }
 
             if (cache && Array.isArray(cache.standings) && !forceRefresh) {
-                // 🧠 Smart TTL: Nếu có trận đang đá (inprogress), chỉ cache 1 phút. Nếu không thì 5 phút.
+                // 🧠 Smart TTL: Live: 1p, Stable: 10p
                 const hasLiveMatches = cache.knockoutData?.some(round => 
                     round.matches?.some(m => m.status === 'inprogress')
                 ) || cache.standings?.[0]?.rows?.some(r => r.isLive);
 
-                const CACHE_TTL = hasLiveMatches ? (1 * 60 * 1000) : (5 * 60 * 1000);
+                const CACHE_TTL = hasLiveMatches ? (1 * 60 * 1000) : (10 * 60 * 1000);
                 const isStale = !cache.lastUpdated || (Date.now() - cache.lastUpdated > CACHE_TTL);
                 
-                // Kiểm tra Phong độ
-                const hasForm = cache.standings[0]?.rows?.some(r => r.form && r.form.length > 0);
-                
-                if (!isStale && (hasForm || cache.knockoutData)) {
-                    console.log(`[Standing] ✅ Giải ${tournamentId} (${hasLiveMatches ? 'LIVE' : 'Stable'}): Dữ liệu vẫn còn mới.`);
+                // Trả về ngay nếu còn mới
+                if (!isStale) {
+                    console.log(`[Standing] ✅ Giải ${tournamentId}: Cache HIT.`);
                     return cache;
                 }
-                
-                const reason = isStale ? "hết hạn" : "cần cập nhật";
-                console.log(`[Standing] ⚠️ Giải ${tournamentId} bị ${reason}. Đang yêu cầu cập nhật gấp...`);
+
+                // 🚀 STALE-WHILE-REVALIDATE: 
+                // Nếu cũ, trả về bản cũ NGAY LẬP TỨC và kích hoạt cào ngầm
+                console.log(`[Standing] 🔄 Giải ${tournamentId} đã cũ. Trả về cache và cập nhật ngầm...`);
+                if (global.io) {
+                    global.io.emit('requestStandings', { tournamentId, seasonId });
+                }
+                return cache;
             }
 
-            // 3. Nếu thiếu, cũ hoặc không có Phong độ -> Phát lệnh cào qua Socket
-            const initialLastUpdated = cache?.lastUpdated || 0;
-            console.log(`[Standing] 📊 Yêu cầu Crawler làm mới BXH giải ${tournamentId}...`);
+            // 3. Trường hợp chưa bao giờ có dữ liệu
+            console.log(`[Standing] 📊 Dữ liệu mới hoàn toàn cho giải ${tournamentId}. Kích hoạt cào...`);
             if (global.io) {
                 global.io.emit('requestStandings', { tournamentId, seasonId });
             }
 
-            // 4. VÒNG LẶP ĐỢI DỮ LIỆU MỚI (Đợi tối đa 20 giây)
+            // Đợi tối đa 2.5s cho lần đầu tiên (để đảm bảo < 3s)
             let attempts = 0;
-            while (attempts < 40) {
+            while (attempts < 5) {
                 await new Promise(r => setTimeout(r, 500));
-                
                 const updated = await StandingRepo.getLatestStandings(tournamentId);
-                
-                // ĐIỀU KIỆN: Chỉ cần thấy bản ghi mới hơn là trả về luôn
-                if (updated && updated.lastUpdated > initialLastUpdated) {
-                    console.log(`[Standing] ⚡ Đã nhận được bản cập nhật mới cho giải ${tournamentId}!`);
-                    return updated;
-                }
+                if (updated) return updated;
                 attempts++;
             }
 
-            return cache || { success: false, message: "Đang cào dữ liệu, vui lòng quay lại sau" };
+            return { success: false, message: "Đang cào dữ liệu, vui lòng quay lại sau" };
 
         } catch (error) {
             console.error('[Standing] ❌ Lỗi lấy BXH:', error.message);

@@ -54,13 +54,13 @@ async function createFastPage(browser) {
     const page = await browser.newPage();
     await page.setRequestInterception(true);
     page.on('request', (req) => {
-        const resourceType = req.resourceType();
-        if (['image', 'stylesheet', 'font', 'media'].includes(resourceType)) {
+        if (['image', 'stylesheet', 'font', 'media'].includes(req.resourceType())) {
             req.abort();
         } else {
             req.continue();
         }
     });
+
     return page;
 }
 
@@ -177,7 +177,13 @@ async function crawlAndSync(date) {
         await axios.post(`${SERVER_URL}/api/sync/matches`, { token: SYNC_TOKEN, matches });
         console.log(`[Local Crawler] ✅ Đã đồng bộ ${matches.length} trận ngày ${date}`);
     } catch (err) { console.error(`[Error Sync] ${err.message}`); }
-    finally { await page.close(); }
+    finally { 
+        if (page) {
+            try {
+                await page.close().catch(() => {});
+            } catch (e) {}
+        }
+    }
 }
 
 async function crawlLive() {
@@ -229,8 +235,15 @@ async function crawlLive() {
 
         await axios.post(`${SERVER_URL}/api/sync/matches`, { token: SYNC_TOKEN, matches });
         console.log(`[Local Crawler] ⚡ Đã cập nhật ${matches.length} trận LIVE.`);
-    } catch (err) { console.error(`[Error Live Sync] ${err.message}`); }
-    finally { await page.close(); }
+    } catch (error) {
+        console.error(`[Crawl Error] ❌ Lỗi khi cào ngày ${date}:`, error.message);
+    } finally {
+        if (page) {
+            try {
+                await page.close().catch(() => {});
+            } catch (e) {}
+        }
+    }
 }
 
 async function crawlAndSyncDetail(matchId, date) {
@@ -288,6 +301,11 @@ async function crawlAndSyncDetail(matchId, date) {
                 ...eventData.event,
                 id: matchId,
                 dateString: date,
+                tournamentId: eventData.event.tournament?.uniqueTournament?.id || eventData.event.tournament?.id,
+                tournamentName: eventData.event.tournament?.uniqueTournament?.name || eventData.event.tournament?.name,
+                tournamentLogo: (eventData.event.tournament?.uniqueTournament?.id || eventData.event.tournament?.id)
+                    ? `https://api.sofascore.app/api/v1/${eventData.event.tournament?.uniqueTournament?.id ? 'unique-tournament' : 'tournament'}/${eventData.event.tournament?.uniqueTournament?.id || eventData.event.tournament?.id}/image`
+                    : null,
                 statistics: stats?.statistics || [],
                 incidents: incs?.incidents || [],
                 lineups: lines || null,

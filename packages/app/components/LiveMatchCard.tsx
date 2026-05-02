@@ -48,9 +48,14 @@ export const LiveMatchCard = (props: any) => {
   }, [status, rawTime, currentPeriod])
 
   const nowSec = Math.floor(Date.now() / 1000)
-  const isLive = (status === 'live' || status === 'inprogress' || status === 'in_progress') || 
-                (status !== 'finished' && status !== 'canceled' && status !== 'postponed' && startTimestamp && (nowSec - startTimestamp >= 0) && (nowSec - startTimestamp <= 6600))
-  const isFinished = status === 'finished'
+  const cleanStatus = String(status || "").toLowerCase()
+  
+  const isLive = ['live', 'inprogress', 'in_progress'].includes(cleanStatus) || 
+                (!['finished', 'canceled', 'postponed', 'closed', 'ended'].includes(cleanStatus) && 
+                 startTimestamp && (nowSec - startTimestamp >= 0) && (nowSec - startTimestamp <= 7200))
+                 
+  const isFinished = ['finished', 'closed', 'ended'].includes(cleanStatus) || 
+                    (startTimestamp && (nowSec - startTimestamp > 7200))
 
   const isMobile = !media.gtMd
 
@@ -89,23 +94,27 @@ export const LiveMatchCard = (props: any) => {
 
       {/* TOP BAR: LIVE | LEAGUE | HOT */}
       <XStack justifyContent="space-between" alignItems="center">
-        {/* Live Badge */}
+        {/* Live/Finished Badge */}
         <XStack 
-          backgroundColor="rgba(0,0,0,0.5)" 
+          backgroundColor={isLive ? "rgba(239,68,68,0.15)" : "rgba(255,255,255,0.05)"} 
           paddingHorizontal="$2.5" 
           paddingVertical="$1" 
           borderRadius={20}
           alignItems="center"
           gap="$1.5"
           borderWidth={1}
-          borderColor="rgba(255,255,255,0.1)"
+          borderColor={isLive ? "rgba(239,68,68,0.3)" : "rgba(255,255,255,0.1)"}
         >
-          <View 
-            width={6} height={6} borderRadius={3} 
-            backgroundColor="#ef4444" 
-            style={{ animation: 'pulse-red 1.5s infinite' }}
-          />
-          <Text color="white" fontSize={10} fontWeight="900" letterSpacing={1}>LIVE</Text>
+          {isLive && (
+            <View 
+              width={6} height={6} borderRadius={3} 
+              backgroundColor="#ef4444" 
+              style={{ animation: 'pulse-red 1.5s infinite' }}
+            />
+          )}
+          <Text color={isLive ? "#ef4444" : "#888"} fontSize={10} fontWeight="900" letterSpacing={1}>
+            {isLive ? "LIVE" : isFinished ? "KẾT THÚC" : "CHỜ ĐÁ"}
+          </Text>
         </XStack>
 
         {/* League Info */}

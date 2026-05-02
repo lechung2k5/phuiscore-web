@@ -89,7 +89,7 @@ const CSS = `
   }
 
   /* Spotify-style Typography */
-  h2, h3 { font-weight: 800; letter-spacing: -0.04em; }
+  h2, h3 { font-weight: 800; letter-spacing: 0.5px; }
   .text-secondary { color: #b3b3b3; font-size: 14px; font-weight: 500; }
 
   /* Pill Geometry */
@@ -130,7 +130,7 @@ const CSS = `
     background-color: #242424;
     border: none;
     border-radius: 500px;
-    padding: 14px 48px;
+    padding: 10px 24px;
     color: white;
     width: 100%;
     font-size: 14px;
@@ -286,7 +286,19 @@ export function LiveControl({ API, showToast, matchId }: LiveControlProps) {
             };
           });
         });
-        setMatches(formatted.filter((m: any) => m.status !== 'finished'));
+        const nowTimestamp = Math.floor(Date.now() / 1000);
+        const filtered = formatted.filter((m: any) => {
+          const status = String(m.status || "").toLowerCase();
+          
+          // 1. Loại bỏ các trận đã kết thúc rõ ràng
+          if (['finished', 'closed', 'ended'].includes(status)) return false;
+          
+          // 2. Safety Check: Nếu bắt đầu quá 180 phút (3 tiếng) -> Ẩn khỏi bảng điều khiển Live
+          if (m.startTimestamp && (nowTimestamp - m.startTimestamp > 180 * 60)) return false;
+          
+          return true;
+        });
+        setMatches(filtered);
       }
     } catch (e) {
       showToast("Lỗi tải danh sách trận!")
@@ -492,12 +504,12 @@ export function LiveControl({ API, showToast, matchId }: LiveControlProps) {
         
         {!selectedMatch ? (
           <div className="lc-view-list animate-fade-in">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 48 }}>
+            <div style={{ display: 'flex', justifyContent: 'flex-start', alignItems: 'center', marginBottom: 48, gap: 40, flexWrap: 'wrap' }}>
               <div>
                 <h2 style={{ fontSize: 42, margin: 0 }}>Giao Diện Điều Phối</h2>
                 <p className="text-secondary" style={{ marginTop: 8 }}>Quản lý luồng trực tiếp và dữ liệu trận đấu thời gian thực</p>
               </div>
-              <div style={{ width: 400 }}>
+              <div style={{ width: 280 }}>
                 <input 
                   className="search-pill" 
                   placeholder="Tìm trận đấu hoặc đội bóng..." 

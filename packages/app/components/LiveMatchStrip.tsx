@@ -28,18 +28,35 @@ export const LiveMatchStrip = () => {
           const nowSec = Math.floor(Date.now() / 1000)
           const MATCH_DURATION_SEC = 110 * 60 // 110 phút (bao gồm hiệp phụ buffer)
 
-          // Lọc trận đang đá: status live/in_progress HOẶC thời gian đang trong khoảng thi đấu
+          // Lọc trận đang đá: Chỉ lấy các trận thực sự LIVE hoặc INPROGRESS và chưa quá giờ
           const activeMatches = allMatches.filter((m: any) => {
-            // Đã kết thúc hoặc bị huỷ → bỏ qua
-            if (m.status === 'finished' || m.status === 'canceled' || m.status === 'postponed') return false
-            // Status rõ ràng là live → lấy
-            if (m.status === 'live' || m.status === 'inprogress' || m.status === 'in_progress') return true
-            // Chưa bắt đầu nhưng thời gian đã qua startTimestamp và chưa quá 110 phút
+            const status = String(m.status || "").toLowerCase();
+            const now = Math.floor(Date.now() / 1000);
+            
+            // 1. Đã kết thúc hoặc bị huỷ → bỏ qua ngay
+            if (['finished', 'canceled', 'postponed', 'closed', 'ended'].includes(status)) return false;
+            
+            // 2. Kiểm tra thời gian trôi qua (Safety Check)
             if (m.startTimestamp) {
-              const elapsed = nowSec - m.startTimestamp
-              return elapsed >= 0 && elapsed <= MATCH_DURATION_SEC
+              const elapsed = now - m.startTimestamp;
+              
+              // Nếu trận đấu đã bắt đầu quá 180 phút (3 tiếng) -> Coi như đã xong, ẩn khỏi Live
+              if (elapsed > 180 * 60) return false;
+
+              // Nếu trận đấu chưa bắt đầu (còn hơn 15 phút nữa mới đá) -> Không hiện ở Live
+              if (elapsed < -15 * 60) return false;
             }
-            return false
+
+            // 3. Nếu vượt qua kiểm tra thời gian, kiểm tra status
+            if (['live', 'inprogress', 'in_progress'].includes(status)) return true;
+
+            // 4. Fallback: Nếu không có status nhưng đang trong khung giờ đá (0 - 130 phút)
+            if (m.startTimestamp) {
+              const elapsed = now - m.startTimestamp;
+              return elapsed >= 0 && elapsed <= (130 * 60);
+            }
+            
+            return false;
           })
           
           const formatted = activeMatches.map((m: any) => {

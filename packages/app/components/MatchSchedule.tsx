@@ -82,11 +82,22 @@ export default function MatchSchedulePage() {
     const top: any[] = [];
     const minor: any[] = [];
     const nowSec = Math.floor(Date.now() / 1000)
-    const MATCH_DURATION_SEC = 110 * 60
 
     leagues.forEach(league => {
+      // 1. Sắp xếp trận đấu bên trong giải: Live > Not Started > Finished
+      const sortedMatches = [...league.matches].sort((a: any, b: any) => {
+        const getStatusOrder = (m: any) => {
+          if (m.status === 'inprogress' || m.status === 'live' || m.status === 'in_progress') return 0;
+          if (m.status === 'notstarted' || m.status === 'not_started') return 1;
+          if (m.status === 'finished') return 2;
+          return 3;
+        };
+        return getStatusOrder(a) - getStatusOrder(b);
+      });
+
+      const processedLeague = { ...league, matches: sortedMatches };
+      
       const hasLiveMatch = league.matches.some((m: any) => {
-        // Chỉ coi là LIVE nếu status là inprogress/live hoặc được media xác nhận (liveStatus)
         if (m.liveStatus === 'inprogress' || m.liveStatus === 'live') return true;
         if (m.status === 'inprogress' || m.status === 'live' || m.status === 'in_progress') return true;
         return false;
@@ -94,9 +105,9 @@ export default function MatchSchedulePage() {
       const isPriority = PRIORITY_LEAGUE_IDS.includes(Number(league.id));
 
       if (hasLiveMatch || isPriority) {
-        top.push(league);
+        top.push(processedLeague);
       } else {
-        minor.push(league);
+        minor.push(processedLeague);
       }
     });
 
@@ -417,6 +428,7 @@ const MatchRowDesktop = ({ match, isLast }: any) => {
       borderColor="#1a1a1a"
       hoverStyle={{ backgroundColor: "#141414" }}
       width="100%"
+      opacity={isFinished ? 0.5 : 1}
     >
       <style>{blinkStyles}</style>
       
@@ -531,6 +543,7 @@ const MatchRowMobile = ({ match, isLast }: any) => {
       borderWidth={1}
       borderColor="#1e1e1e"
       width="100%"
+      opacity={isFinished ? 0.6 : 1}
     >
       <style>{blinkStyles}</style>
 

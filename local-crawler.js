@@ -195,10 +195,11 @@ async function crawlLive() {
         const data = await fetchSofaJson(url, page);
         if (!data || !data.events) return;
 
-        const date = new Date().toISOString().split('T')[0];
+        const d = new Date(new Date().getTime() + 7 * 60 * 60 * 1000);
+        const dateStr = d.toISOString().split('T')[0];
         const matches = data.events.map(m => ({
             id: m.id,
-            dateString: date,
+            dateString: dateStr,
             tournamentId: m.tournament?.uniqueTournament?.id || m.tournament?.id,
             tournamentName: m.tournament?.uniqueTournament?.name || m.tournament?.name,
             tournamentLogo: (m.tournament?.uniqueTournament?.id || m.tournament?.id)
@@ -236,7 +237,7 @@ async function crawlLive() {
         await axios.post(`${SERVER_URL}/api/sync/matches`, { token: SYNC_TOKEN, matches });
         console.log(`[Local Crawler] ⚡ Đã cập nhật ${matches.length} trận LIVE.`);
     } catch (error) {
-        console.error(`[Crawl Error] ❌ Lỗi khi cào ngày ${date}:`, error.message);
+        console.error(`[Crawl Error] ❌ Lỗi khi cào trận LIVE:`, error.message);
     } finally {
         if (page) {
             try {
@@ -448,10 +449,10 @@ async function crawlAndSyncStandings(tournamentId, seasonId) {
 async function backgroundRoutine() {
     console.log("[Local Crawler] 🚀 Bắt đầu chu kỳ cào bù dữ liệu (Dải 7 ngày)...");
     
-    const now = new Date();
+    const now = new Date(new Date().getTime() + 7 * 60 * 60 * 1000);
     // Cào từ 3 ngày trước đến 3 ngày sau
     for (let i = -3; i <= 3; i++) {
-        const d = new Date();
+        const d = new Date(now.getTime());
         d.setDate(now.getDate() + i);
         const dateStr = d.toISOString().split('T')[0];
         

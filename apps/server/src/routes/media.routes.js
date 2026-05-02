@@ -234,6 +234,7 @@ router.get('/livekit-token', verifyToken, isMedia, async (req, res) => {
         if (!room) return res.status(400).json({ message: "Thiếu tên phòng (Room)!" });
 
         const participantName = req.user.fullName || `Admin_${req.user.username}`;
+        console.log(`[LiveKit] 🎫 Yêu cầu Token cho Phòng: ${room}, User: ${participantName}`);
 
         if (!process.env.LIVEKIT_API_KEY || !process.env.LIVEKIT_API_SECRET || !process.env.LIVEKIT_URL) {
             throw new Error("Thiếu cấu hình LiveKit trên Server (API_KEY/SECRET/URL). Hãy kiểm tra Environment Variables trên Render!");
@@ -262,19 +263,44 @@ router.get('/livekit-token', verifyToken, isMedia, async (req, res) => {
             const { IngressClient, IngressInput } = require('livekit-server-sdk');
             const host = process.env.LIVEKIT_URL.replace('wss://', 'https://');
             
+            console.log("[LiveKit] 🛠️ Đang khởi tạo IngressClient với:", { 
+                host, 
+                apiKey: process.env.LIVEKIT_API_KEY ? "OK" : "MISSING",
+                apiSecret: process.env.LIVEKIT_API_SECRET ? "OK" : "MISSING" 
+            });
+
             const ingressClient = new IngressClient(
                 host, 
                 process.env.LIVEKIT_API_KEY, 
                 process.env.LIVEKIT_API_SECRET
             );
 
-            // Cố gắng tạo Ingress
-            const ingress = await ingressClient.createIngress(IngressInput.RTMP_VIDEO, {
-                name: `match-${room}`,
-                roomName: room,
-                participantIdentity: `obs_${room}`,
-                participantName: 'OBS Streamer'
-            });
+            // 🚀 SMART INGRESS MANAGEMENT
+            // 2.1 Kiểm tra xem đã có Ingress cho phòng này chưa
+            const ingresses = await ingressClient.listIngress({ roomName: room });
+            let ingress = ingresses.find(i => i.roomName === room);
+
+            if (!ingress) {
+                // 2.2 Nếu chưa có, kiểm tra tổng số Ingress hiện có
+                const allIngresses = await ingressClient.listIngress({});
+                
+                // Nếu đã đạt giới hạn (thường là 1-2 đối với Free Tier), xóa cái cũ nhất
+                if (allIngresses.length >= 1) {
+                    console.log(`[LiveKit] 🧹 Đang dọn dẹp Ingress cũ (${allIngresses[0].ingressId}) để lấy chỗ...`);
+                    await ingressClient.deleteIngress(allIngresses[0].ingressId);
+                }
+
+                // 2.3 Tạo Ingress mới
+                console.log(`[LiveKit] 🆕 Đang tạo Ingress mới cho phòng: ${room}`);
+                ingress = await ingressClient.createIngress(IngressInput.RTMP_VIDEO, {
+                    name: `match-${room}`,
+                    roomName: room,
+                    participantIdentity: `obs_${room}`,
+                    participantName: 'OBS Streamer'
+                });
+            } else {
+                console.log(`[LiveKit] ♻️ Tái sử dụng Ingress hiện có cho phòng: ${room}`);
+            }
 
             ingressData = {
                 url: ingress.url,
@@ -282,10 +308,9 @@ router.get('/livekit-token', verifyToken, isMedia, async (req, res) => {
             };
         } catch (err) {
             console.error("❌ LiveKit Ingress Error:", err.message);
-            // Nếu lỗi do Ingress chưa được bật hoặc sai cấu hình, báo lỗi về client luôn
             return res.status(500).json({ 
                 success: false, 
-                message: `Lỗi khởi tạo Ingress (OBS): ${err.message}. Hãy đảm bảo bạn đã kích hoạt Ingress trên LiveKit Cloud!` 
+                message: `Lỗi giới hạn LiveKit: ${err.message}. Hãy thử xóa các Ingress cũ trên LiveKit Dashboard!` 
             });
         }
 

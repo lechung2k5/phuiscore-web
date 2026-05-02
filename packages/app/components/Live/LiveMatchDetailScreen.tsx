@@ -68,28 +68,33 @@ function Monitor({ setLkToken }: { setLkToken: (t: string) => void }) {
         const TrackComponent = VideoTrack as any;
         return (
           <div style={{ height: '100%', width: '100%' }}>
-            <TrackComponent trackRef={obsTrack as any} style={{ height: '100%', width: '100%', objectFit: 'contain' }} />
+            <TrackComponent trackRef={obsTrack as any} style={{ height: '100%', width: '100%', objectFit: 'contain', maxWidth: '100vw' }} />
             
             {/* Custom Control Bar */}
-            <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'linear-gradient(transparent, rgba(0,0,0,0.8))', padding: '20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', opacity: 1, transition: 'opacity 0.3s' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 15 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'rgba(255,0,0,0.8)', padding: '4px 12px', borderRadius: 4 }}>
-                        <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#fff', animation: 'pulse 1.5s infinite' }} />
-                        <span style={{ color: '#fff', fontSize: 11, fontWeight: 900 }}>TRỰC TIẾP</span>
+            <div style={{ 
+                position: 'absolute', bottom: 0, left: 0, right: 0, 
+                background: 'linear-gradient(transparent, rgba(0,0,0,0.9))', 
+                padding: window.innerWidth < 768 ? '10px 12px' : '20px', 
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between', 
+                opacity: 1, transition: 'opacity 0.3s' 
+            }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: window.innerWidth < 768 ? 8 : 15 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(239,68,68,0.9)', padding: '3px 8px', borderRadius: 4 }}>
+                        <div style={{ width: 5, height: 5, borderRadius: '50%', background: '#fff', animation: 'pulse 1.5s infinite' }} />
+                        <span style={{ color: '#fff', fontSize: 10, fontWeight: 900 }}>LIVE</span>
                     </div>
                 </div>
                 
-                <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: window.innerWidth < 768 ? 10 : 20 }}>
                     {/* Bộ điều khiển Âm lượng */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'rgba(255,255,255,0.1)', padding: '5px 12px', borderRadius: 20 }}>
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2"><path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,0.15)', padding: '4px 10px', borderRadius: 20 }}>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2"><path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
                         <input 
                             type="range" min="0" max="1" step="0.1" 
                             value={volume} 
                             onChange={(e) => setVolume(parseFloat(e.target.value))}
-                            style={{ width: 80, accentColor: '#22c55e', cursor: 'pointer' }}
+                            style={{ width: window.innerWidth < 768 ? 50 : 80, accentColor: '#22c55e', cursor: 'pointer' }}
                         />
-                        <span style={{ color: '#fff', fontSize: 10, fontWeight: 800, minWidth: 30 }}>{Math.round(volume * 100)}%</span>
                     </div>
                     
                     {/* Nút Toàn màn hình */}
@@ -101,9 +106,9 @@ function Monitor({ setLkToken }: { setLkToken: (t: string) => void }) {
                                 else document.exitFullscreen();
                             }
                         }}
-                        style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer' }}
+                        style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer', padding: 4 }}
                     >
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M8 3H5a2 2 0 0 0-2 2v3M21 8V5a2 2 0 0 0-2-2h-3M3 16v3a2 2 0 0 0 2 2h3M16 21h3a2 2 0 0 0 2-2v-3"/></svg>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M8 3H5a2 2 0 0 0-2 2v3M21 8V5a2 2 0 0 0-2-2h-3M3 16v3a2 2 0 0 0 2 2h3M16 21h3a2 2 0 0 0 2-2v-3"/></svg>
                     </button>
                 </div>
             </div>
@@ -148,10 +153,13 @@ const CSS = `
      .lmd-stream-wrap { grid-template-columns: 1fr; min-height: auto; height: auto; gap: 12px; margin-bottom: 24px; } 
    }
   
-  .lmd-video-area { background: #000; border-radius: 16px; overflow: hidden; position: relative; border: 1px solid rgba(255,255,255,0.05); display: flex; flex-direction: column; }
-  @media (max-width: 768px) { .lmd-video-area { border-radius: 12px; } }
+  .lmd-video-area { background: #000; border-radius: 16px; overflow: hidden; position: relative; border: 1px solid rgba(255,255,255,0.05); display: flex; flex-direction: column; width: 100%; }
+  @media (max-width: 768px) { 
+    .lmd-video-area { border-radius: 0; border: none; margin: 0 -10px; width: calc(100% + 20px); } 
+  }
   
-  .lmd-video-player { flex: 1; background: #000; display: flex; align-items: center; justify-content: center; position: relative; aspect-ratio: 16/9; }
+  .lmd-video-player { width: 100%; background: #000; display: flex; align-items: center; justify-content: center; position: relative; aspect-ratio: 16/9; overflow: hidden; }
+  @media (max-width: 768px) { .lmd-video-player { min-height: 210px; } }
   .lmd-video-placeholder { color: #5a6a5e; font-size: 14px; display: flex; flex-direction: column; align-items: center; gap: 16px; }
   .lmd-video-play-btn { width: 64px; height: 64px; border-radius: 50%; background: #22c55e; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #000; box-shadow: 0 0 30px rgba(34,197,94,0.4); }
   @media (max-width: 768px) { .lmd-video-play-btn { width: 48px; height: 48px; } }

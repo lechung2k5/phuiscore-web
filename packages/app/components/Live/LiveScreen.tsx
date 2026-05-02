@@ -198,43 +198,47 @@ export default function LiveScreen() {
   const liveMatches = matches.filter(m => {
     const status = String(m.status || "").toLowerCase();
     const liveStatus = String(m.liveStatus || "").toLowerCase();
-    const now = Math.floor(Date.now() / 1000);
 
     // 1. Nếu đã kết thúc rõ ràng -> Loại khỏi Live
     if (['finished', 'closed', 'ended'].includes(status)) return false;
 
     // 2. Safety Check: Nếu bắt đầu quá 180 phút (3 tiếng) -> Coi như đã xong
-    if (m.startTimestamp && (now - m.startTimestamp > 180 * 60)) return false;
+    if (m.startTimestamp && (nowSec - m.startTimestamp > 180 * 60)) return false;
 
     // 3. Ưu tiên liveStatus từ bảng điều khiển media hoặc status từ crawler
     if (liveStatus === 'inprogress' || liveStatus === 'live') return true;
     if (['live', 'inprogress', 'in_progress'].includes(status)) return true;
     
+    // 4. Trận sắp đá trong vòng 30 phút tới -> Đưa lên mục LIVE
+    if (m.startTimestamp && (m.startTimestamp - nowSec <= 30 * 60) && (m.startTimestamp > nowSec)) return true;
+
     return false;
-  }).sort((a, b) => (a.startTimestamp || 0) - (b.startTimestamp || 0));
+  }).sort((a, b) => {
+    const diffA = Math.abs(nowSec - (a.startTimestamp || 0));
+    const diffB = Math.abs(nowSec - (b.startTimestamp || 0));
+    return diffA - diffB;
+  });
   
   const upcomingMatches = matches.filter(m => {
     const status = String(m.status || "").toLowerCase();
-    const now = Math.floor(Date.now() / 1000);
 
     if (['finished', 'canceled', 'postponed', 'closed', 'ended'].includes(status)) return false;
     if (['live', 'inprogress', 'in_progress'].includes(status)) return false;
 
     if (m.startTimestamp) {
-       const elapsed = now - m.startTimestamp;
+       const elapsed = nowSec - m.startTimestamp;
        // Nếu đã quá 180 phút thì không còn là "Sắp diễn ra" (đã sang Finished)
        if (elapsed > 180 * 60) return false;
-       // Hiện các trận chưa đá hoặc sắp đá (trong vòng 2 tiếng tới)
-       return m.startTimestamp > now && m.startTimestamp <= now + 7200;
+       // Hiện các trận chưa đá hoặc sắp đá (từ 30 phút nữa đến 2 tiếng nữa)
+       return m.startTimestamp > nowSec + 1800 && m.startTimestamp <= nowSec + 7200;
     }
     return false;
   }).sort((a, b) => (a.startTimestamp || 0) - (b.startTimestamp || 0));
   
   const finishedMatches = matches.filter(m => {
     const status = String(m.status || "").toLowerCase();
-    const now = Math.floor(Date.now() / 1000);
     // Coi là kết thúc nếu status là finished HOẶC đã bắt đầu quá 3 tiếng
-    return ['finished', 'closed', 'ended'].includes(status) || (m.startTimestamp && (now - m.startTimestamp > 180 * 60));
+    return ['finished', 'closed', 'ended'].includes(status) || (m.startTimestamp && (nowSec - m.startTimestamp > 180 * 60));
   }).sort((a, b) => (b.startTimestamp || 0) - (a.startTimestamp || 0));
 
   return (

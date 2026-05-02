@@ -1,6 +1,15 @@
 import { Barlow, Barlow_Condensed } from 'next/font/google'
 import { Provider } from 'app/provider'
 import { ClientLayout } from './layout-client'
+import { Metadata } from 'next'
+
+export const metadata: Metadata = {
+  title: 'Phủi Score | Nền tảng tỉ số bóng đá phủi hàng đầu Việt Nam',
+  description: 'Cập nhật trực tiếp kết quả, bảng xếp hạng và tin tức các giải bóng đá phủi HPL, SPL và nhiều giải đấu phong trào khác.',
+  icons: {
+    icon: '/favicon.ico', // Đảm bảo bạn có file này trong thư mục public
+  }
+}
 
 const barlow = Barlow({
   subsets: ['latin', 'vietnamese'],

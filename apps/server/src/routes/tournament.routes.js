@@ -1,9 +1,39 @@
 const express = require('express');
 const router = express.Router();
+const axios = require('axios');
 const { verifyToken, isAdmin, verifyTokenOptional } = require('../middlewares/auth.middleware');
 const { cacheResponse, invalidateCache } = require('../middlewares/cacheMiddleware');
 
 const tc = require('../controllers/tournament.controller');
+
+// API Tìm kiếm giải đấu trực tiếp từ Sofascore
+router.get('/search-sofa', async (req, res) => {
+    const { q } = req.query;
+    if (!q) return res.json([]);
+
+    try {
+        const headers = { 
+            'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+            'accept': '*/*',
+            'referer': 'https://www.sofascore.com/',
+            'origin': 'https://www.sofascore.com'
+        };
+        const response = await axios.get(`https://www.sofascore.com/api/v1/search/unique-tournaments?q=${encodeURIComponent(q)}&filter=football`, { headers });
+        
+        const results = (response.data?.results || []).map(item => ({
+            id: item.id,
+            name: item.name,
+            region: item.category?.name,
+            logo: `https://api.sofascore.app/api/v1/unique-tournament/${item.id}/image`,
+            isExternal: true
+        }));
+
+        res.json(results);
+    } catch (err) {
+        console.error('[Search Sofa Error]', err.message);
+        res.status(500).json({ error: err.message });
+    }
+});
 
 // ── PUBLIC (có cache) ──────────────────────────────────────────
 // ⚡ Cache 30s: Danh sách giải đấu ít thay đổi, giảm DynamoDB Scan

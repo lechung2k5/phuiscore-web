@@ -1,40 +1,11 @@
-"use client"
+import { HomeClient } from './HomeClient'
+import { Metadata } from 'next'
 
-import { HeroSection } from 'app/components/HeroSection'
-import { LiveMatchStrip } from 'app/components/LiveMatchStrip'
-import { FeaturedLeagues } from 'app/components/FeaturedLeagues'
-import { NewsSection } from 'app/components/Home/NewsSection'
-import { YStack } from 'tamagui'
-
-const COLORS = {
-  bgDark: '#0a0f0d' as any,
+export const metadata: Metadata = {
+  title: 'Phủi Score | Nền tảng tỉ số bóng đá phủi hàng đầu Việt Nam',
+  description: 'Cập nhật trực tiếp kết quả, bảng xếp hạng và tin tức các giải bóng đá phủi HPL, SPL và nhiều giải đấu phong trào khác.',
 }
 
 export default function UserPage() {
-    return (
-        <YStack flex={1} backgroundColor={COLORS.bgDark}>
-
-            {/* 1. HERO SECTION (Banner + Thống kê) */}
-            <HeroSection />
-
-            {/* 2. NỘI DUNG CHÍNH */}
-            <YStack 
-                maxWidth={1200}
-                width="100%"
-                marginHorizontal="auto"
-                px="$3"
-            >
-                {/* 2.1 KHU VỰC TRẬN ĐẤU LIVE */}
-                <LiveMatchStrip />
-
-                {/* 2.2 TIN TỨC TIÊU ĐIỂM */}
-                <NewsSection />
-
-                {/* 2.3 GIẢI ĐẤU NỔI BẬT */}
-                <FeaturedLeagues />
-
-            </YStack>
-
-        </YStack>
-    )
+    return <HomeClient />
 }

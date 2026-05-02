@@ -250,46 +250,6 @@ cron.schedule('*/10 * * * *', () => {
 });
 
 
-// API Tìm kiếm giải đấu trực tiếp từ Sofascore (Search & Discover)
-app.get('/api/tournaments/search-sofa', async (req, res) => {
-    const { q } = req.query;
-    if (!q) return res.json([]);
-
-    try {
-        const headers = { 
-            'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
-            'accept': '*/*',
-            'accept-language': 'vi-VN,vi;q=0.9,en-US;q=0.8,en;q=0.7',
-            'referer': 'https://www.sofascore.com/',
-            'origin': 'https://www.sofascore.com',
-            'sec-ch-ua': '"Google Chrome";v="131", "Chromium";v="131", "Not_A Brand";v="24"',
-            'sec-ch-ua-mobile': '?0',
-            'sec-ch-ua-platform': '"Windows"',
-            'sec-fetch-dest': 'empty',
-            'sec-fetch-mode': 'cors',
-            'sec-fetch-site': 'same-origin',
-            'cache-control': 'no-cache',
-            'pragma': 'no-cache',
-            'priority': 'u=1, i'
-        };
-        // Gọi API search của Sofascore thông qua domain chính
-        const response = await axios.get(`https://www.sofascore.com/api/v1/search/unique-tournaments?q=${encodeURIComponent(q)}&filter=football`, { headers });
-        
-        const results = (response.data?.results || []).map(item => ({
-            id: item.id,
-            name: item.name,
-            region: item.category?.name,
-            logo: `https://api.sofascore.app/api/v1/unique-tournament/${item.id}/image`,
-            isExternal: true
-        }));
-
-        res.json(results);
-    } catch (err) {
-        console.error('[Search Sofa Error]', err.message);
-        res.status(500).json({ error: err.message });
-    }
-});
-
 // ========================================
 // 🛡️ GLOBAL ERROR HANDLER (MỚI)
 // ========================================

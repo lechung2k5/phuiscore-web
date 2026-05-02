@@ -29,9 +29,9 @@ export const LiveMatchStrip = () => {
           const MATCH_DURATION_SEC = 110 * 60 // 110 phút (bao gồm hiệp phụ buffer)
 
           // Lọc trận đang đá: Chỉ lấy các trận thực sự LIVE hoặc INPROGRESS và chưa quá giờ
+          const now = Math.floor(Date.now() / 1000);
           const activeMatches = allMatches.filter((m: any) => {
             const status = String(m.status || "").toLowerCase();
-            const now = Math.floor(Date.now() / 1000);
             
             // 1. Đã kết thúc hoặc bị huỷ → bỏ qua ngay
             if (['finished', 'canceled', 'postponed', 'closed', 'ended'].includes(status)) return false;
@@ -47,17 +47,21 @@ export const LiveMatchStrip = () => {
               if (elapsed < -15 * 60) return false;
             }
 
-            // 3. Nếu vượt qua kiểm tra thời gian, kiểm tra status
-            if (['live', 'inprogress', 'in_progress'].includes(status)) return true;
+            // 3. Ưu tiên LIVE từ bảng điều khiển media hoặc status crawler
+            if (['inprogress', 'live', 'in_progress'].includes(status)) return true;
 
-            // 4. Fallback: Nếu không có status nhưng đang trong khung giờ đá (0 - 130 phút)
-            if (m.startTimestamp) {
-              const elapsed = now - m.startTimestamp;
-              return elapsed >= 0 && elapsed <= (130 * 60);
-            }
+            // 4. Các trận sắp đá trong vòng 30 phút tới -> Đưa lên mục LIVE để user chuẩn bị
+            if (m.startTimestamp && (m.startTimestamp - now <= 30 * 60) && (m.startTimestamp > now)) return true;
+            
+            // 5. Nếu không có status nhưng đã bắt đầu chưa quá 3 tiếng -> Coi là LIVE
+            if (m.startTimestamp && (now - m.startTimestamp > 0) && (now - m.startTimestamp < 180 * 60)) return true;
             
             return false;
-          })
+          }).sort((a: any, b: any) => {
+            const diffA = Math.abs(now - (a.startTimestamp || 0));
+            const diffB = Math.abs(now - (b.startTimestamp || 0));
+            return diffA - diffB;
+          });
           
           const formatted = activeMatches.map((m: any) => {
             // Extract ID from sk (MATCH#12345) or use id/_id

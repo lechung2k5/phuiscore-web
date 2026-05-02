@@ -52,10 +52,10 @@ export const LiveMatchCard = (props: any) => {
   
   const isLive = ['live', 'inprogress', 'in_progress'].includes(cleanStatus) || 
                 (!['finished', 'canceled', 'postponed', 'closed', 'ended'].includes(cleanStatus) && 
-                 startTimestamp && (nowSec - startTimestamp >= 0) && (nowSec - startTimestamp <= 7200))
+                 startTimestamp && (nowSec - startTimestamp >= -1800) && (nowSec - startTimestamp <= 180 * 60))
                  
   const isFinished = ['finished', 'closed', 'ended'].includes(cleanStatus) || 
-                    (startTimestamp && (nowSec - startTimestamp > 7200))
+                    (startTimestamp && (nowSec - startTimestamp > 180 * 60))
 
   const isMobile = !media.gtMd
 
@@ -113,7 +113,7 @@ export const LiveMatchCard = (props: any) => {
             />
           )}
           <Text color={isLive ? "#ef4444" : "#888"} fontSize={10} fontWeight="900" letterSpacing={1}>
-            {isLive ? "LIVE" : isFinished ? "KẾT THÚC" : "CHỜ ĐÁ"}
+            {isLive ? ( (startTimestamp && nowSec < startTimestamp) ? "SẮP ĐÁ" : "LIVE" ) : isFinished ? "KẾT THÚC" : "CHỜ ĐÁ"}
           </Text>
         </XStack>
 

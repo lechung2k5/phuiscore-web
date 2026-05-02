@@ -125,21 +125,25 @@ const MatchRepo = {
      * 2. Lấy tất cả trận đấu của một ngày cụ thể (Dùng cho API chính)
      */
     getMatchesByDate: async (date) => {
-        const command = new QueryCommand({
-            TableName: TABLE_NAME,
-            KeyConditionExpression: "pk = :pk",
-            ExpressionAttributeValues: {
-                ":pk": `DATE#${date}`
-            }
-        });
-        const response = await docClient.send(command);
-        const items = response.Items || [];
-        
-        // Trả về id sạch từ sk (MATCH#123 -> 123)
-        return items.map(item => ({
-            ...item,
-            id: item.id || (item.sk ? item.sk.replace('MATCH#', '') : null)
-        }));
+        try {
+            const command = new QueryCommand({
+                TableName: TABLE_NAME,
+                KeyConditionExpression: "pk = :pk",
+                ExpressionAttributeValues: {
+                    ":pk": `DATE#${date}`
+                }
+            });
+            const response = await docClient.send(command);
+            const items = response.Items || [];
+            
+            return items.map(item => ({
+                ...item,
+                id: item.id || (item.sk ? item.sk.replace('MATCH#', '') : null)
+            }));
+        } catch (error) {
+            console.error(`[MatchRepo] ❌ Lỗi khi lấy dữ liệu từ DynamoDB (Ngày: ${date}):`, error.message);
+            throw error; // Ném lại lỗi để controller xử lý trả về 500
+        }
     },
 
     /**

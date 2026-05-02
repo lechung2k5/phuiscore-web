@@ -4,10 +4,12 @@ const { DynamoDBDocumentClient } = require("@aws-sdk/lib-dynamodb");
 const isLocal = process.env.NODE_ENV !== 'production';
 
 const client = new DynamoDBClient({
-    // Lưu ý: region chuẩn của Singapore thường là ap-southeast-1 nhé Chung
-    region: "ap-southeast-1", 
-    endpoint: isLocal ? "http://localhost:8000" : undefined,
-    credentials: isLocal ? { accessKeyId: "local", secretAccessKey: "local" } : undefined
+    region: process.env.AWS_REGION || "ap-southeast-1", 
+    endpoint: isLocal ? (process.env.DYNAMODB_ENDPOINT || "http://localhost:8000") : undefined,
+    credentials: {
+        accessKeyId: process.env.AWS_ACCESS_KEY_ID || (isLocal ? "local" : ""),
+        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || (isLocal ? "local" : "")
+    }
 });
 
 const docClient = DynamoDBDocumentClient.from(client, {

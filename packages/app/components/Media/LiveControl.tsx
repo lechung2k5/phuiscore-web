@@ -345,6 +345,8 @@ export function LiveControl({ API, showToast, matchId }: LiveControlProps) {
         setLkToken(json.token)
         if (json.ingress) setStreamData(json.ingress);
         showToast("Đã có cấu hình! Hãy kết nối OBS để xem trước.");
+      } else {
+        showToast(json.message || "Lỗi khi khởi tạo luồng!");
       }
     } catch (e) {
       showToast("Lỗi khi khởi tạo!");

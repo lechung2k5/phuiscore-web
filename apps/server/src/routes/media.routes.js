@@ -281,8 +281,12 @@ router.get('/livekit-token', verifyToken, isMedia, async (req, res) => {
                 streamKey: ingress.streamKey
             };
         } catch (err) {
-            console.error("Ingress Error:", err.message);
-            ingressErrorMsg = err.message;
+            console.error("❌ LiveKit Ingress Error:", err.message);
+            // Nếu lỗi do Ingress chưa được bật hoặc sai cấu hình, báo lỗi về client luôn
+            return res.status(500).json({ 
+                success: false, 
+                message: `Lỗi khởi tạo Ingress (OBS): ${err.message}. Hãy đảm bảo bạn đã kích hoạt Ingress trên LiveKit Cloud!` 
+            });
         }
 
         res.json({ 

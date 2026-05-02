@@ -235,6 +235,10 @@ router.get('/livekit-token', verifyToken, isMedia, async (req, res) => {
 
         const participantName = req.user.fullName || `Admin_${req.user.username}`;
 
+        if (!process.env.LIVEKIT_API_KEY || !process.env.LIVEKIT_API_SECRET || !process.env.LIVEKIT_URL) {
+            throw new Error("Thiếu cấu hình LiveKit trên Server (API_KEY/SECRET/URL). Hãy kiểm tra Environment Variables trên Render!");
+        }
+
         // 1. Tạo Token cho người dùng (để vào xem/điều khiển)
         const at = new AccessToken(
             process.env.LIVEKIT_API_KEY, 

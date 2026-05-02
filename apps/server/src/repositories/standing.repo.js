@@ -2,7 +2,7 @@ const { PutCommand, GetCommand } = require("@aws-sdk/lib-dynamodb");
 const { CreateTableCommand, DescribeTableCommand } = require("@aws-sdk/client-dynamodb");
 const { docClient, client } = require('../config/db.config'); 
 
-const TABLE_NAME = "PhuiScore_Standings";
+const TABLE_NAME = process.env.DYNAMODB_TABLE_NAME ? `${process.env.DYNAMODB_TABLE_NAME}_Standings` : "PhuiScore_Standings";
 
 async function ensureTable() {
   try {
@@ -63,7 +63,7 @@ const StandingRepo = {
      */
     getStandings: async (tournamentId, seasonId) => {
         const params = {
-            TableName: "PhuiScore_Standings",
+            TableName: TABLE_NAME,
             Key: {
                 tournamentId: Number(tournamentId) || 0,
                 seasonId: Number(seasonId) || 0
@@ -84,7 +84,7 @@ const StandingRepo = {
     getLatestStandings: async (tournamentId) => {
         const { QueryCommand } = require("@aws-sdk/lib-dynamodb");
         const params = {
-            TableName: "PhuiScore_Standings",
+            TableName: TABLE_NAME,
             KeyConditionExpression: "tournamentId = :tid",
             ExpressionAttributeValues: {
                 ":tid": Number(tournamentId) || 0

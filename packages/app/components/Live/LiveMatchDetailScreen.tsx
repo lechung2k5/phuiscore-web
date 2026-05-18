@@ -1,5 +1,5 @@
 "use client"
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { Link } from 'solito/link'
 import { generateMatchSlug } from '../../utils/slug'
@@ -14,6 +14,8 @@ import {
 } from '@livekit/components-react';
 import { Track } from 'livekit-client';
 import '@livekit/components-styles';
+
+declare var require: any;
 
 // Component con để lấy tracks cho khán giả
 function Monitor({ setLkToken }: { setLkToken: (t: string) => void }) {
@@ -195,7 +197,7 @@ const CSS = `
    .lmd-server-btn { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: #7a8c7e; padding: 5px 12px; border-radius: 6px; font-size: 11px; font-weight: 800; cursor: pointer; }
   .lmd-server-btn.active { background: #22c55e; color: #000; border-color: #22c55e; }
 
-  .lmd-chat-area { background: #1a1e1d; border-radius: 16px; border: 1px solid rgba(255,255,255,0.05); display: flex; flex-direction: column; overflow: hidden; height: 100%; }
+  .lmd-chat-area { background: #1a1e1d; border-radius: 16px; border: 1px solid rgba(255,255,255,0.05); display: flex; flex-direction: column; overflow: hidden; height: 560px; box-shadow: rgba(0,0,0,0.5) 0px 8px 24px; }
   @media (max-width: 1024px) { .lmd-chat-area { height: 400px; } }
   @media (max-width: 768px) { .lmd-chat-area { border-radius: 12px; } }
   
@@ -204,10 +206,18 @@ const CSS = `
   .lmd-chat-dot { width: 6px; height: 6px; border-radius: 50%; background: #22c55e; }
   
   .lmd-chat-messages { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 16px; scrollbar-width: thin; scrollbar-color: #22c55e transparent; }
-  .lmd-msg { display: flex; flex-direction: column; gap: 4px; }
-  .lmd-msg-user { font-size: 12px; font-weight: 900; color: #22c55e; }
-  .lmd-msg-text { font-size: 13px; color: #ddd; background: rgba(255,255,255,0.03); padding: 8px 12px; border-radius: 0 12px 12px 12px; max-width: 90%; }
-  
+  .chat-msg-wrapper { display: flex; gap: 10px; margin-bottom: 16px; text-align: left; }
+  .chat-avatar { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; background: #252a29; border: 1px solid rgba(255,255,255,0.1); flex-shrink: 0; }
+  .chat-content { flex: 1; display: flex; flex-direction: column; gap: 4px; }
+  .chat-header { display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; }
+  .chat-username { font-size: 13px; font-weight: 800; color: #fff; }
+  .chat-badge { font-size: 9px; font-weight: 900; padding: 2px 6px; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .chat-badge.admin { background: rgba(239, 68, 68, 0.2); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.4); }
+  .chat-badge.media { background: rgba(59, 130, 246, 0.2); color: #3b82f6; border: 1px solid rgba(59, 130, 246, 0.4); }
+  .chat-time { font-size: 10px; color: #5a6a5e; margin-left: auto; }
+  .chat-text { font-size: 13px; color: #ddd; line-height: 1.4; word-break: break-word; text-align: left; }
+  .chat-text.highlight { color: #fff; font-weight: 500; }
+
   .lmd-chat-input-wrap { padding: 16px; border-top: 1px solid rgba(255,255,255,0.05); display: flex; gap: 10px; }
   .lmd-chat-input { flex: 1; background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; padding: 10px 16px; color: #fff; font-size: 13px; }
   .lmd-chat-input:focus { outline: none; border-color: #22c55e; }
@@ -420,6 +430,74 @@ const StreamSection: any = React.memo(({ matchId, API }: { matchId: string, API:
     const [lkToken, setLkToken] = useState("");
     const LK_SERVER_URL = "wss://phuiscore-lhf9kjp2.livekit.cloud";
 
+    const [messages, setMessages] = useState<any[]>([]);
+    const [messageInput, setMessageInput] = useState("");
+    const [currentUser, setCurrentUser] = useState<any>(null);
+    const chatEndRef = useRef<HTMLDivElement>(null);
+    const socketRef = useRef<any>(null);
+
+    // Fetch User Info
+    useEffect(() => {
+        const userStr = localStorage.getItem('user');
+        if (userStr) {
+            try { setCurrentUser(JSON.parse(userStr)); } catch(e) {}
+        }
+    }, []);
+
+    // Scroll to bottom
+    useEffect(() => {
+        if (chatEndRef.current && chatEndRef.current.parentElement) {
+            const parent = chatEndRef.current.parentElement;
+            parent.scrollTo({ top: parent.scrollHeight, behavior: 'smooth' });
+        }
+    }, [messages]);
+
+    // Setup Socket for Chat & Fetch History
+    useEffect(() => {
+        const { socket } = require('../../utils/socket');
+        socketRef.current = socket;
+        
+        const cleanMatchId = String(matchId).includes('#') ? String(matchId).split('#')[1] : matchId;
+        const joinRoom = () => { socket.emit('join_live_room', cleanMatchId); };
+        socket.on('connect', joinRoom);
+        if (socket.connected) joinRoom();
+
+        const handleNewMessage = (msg: any) => {
+            setMessages(prev => [...prev, msg]);
+        };
+        socket.on('new_chat_message', handleNewMessage);
+        socket.on('chat_error', (err: any) => alert(err.message));
+
+        const fetchChatHistory = async () => {
+            try {
+                const res = await fetch(`${API}/media/live-chats/${cleanMatchId}`);
+                const json = await res.json();
+                if (json.success && json.data) setMessages(json.data);
+            } catch(e) {}
+        };
+        fetchChatHistory();
+
+        return () => {
+            socket.off('connect', joinRoom);
+            socket.off('new_chat_message', handleNewMessage);
+            socket.off('chat_error');
+        };
+    }, [matchId, API]);
+
+    const handleSendMessage = () => {
+        if (!messageInput.trim()) return;
+        if (!currentUser) return alert('Bạn cần đăng nhập để bình luận!');
+        
+        const token = localStorage.getItem('token') || localStorage.getItem('accessToken');
+        const cleanMatchId = String(matchId).includes('#') ? String(matchId).split('#')[1] : matchId;
+        socketRef.current.emit('send_chat_message', {
+            matchId: cleanMatchId,
+            token,
+            message: messageInput.trim()
+        });
+        setMessageInput("");
+    };
+
     useEffect(() => {
         const fetchPublicToken = async () => {
             console.log("[Viewer] 🔑 Đang lấy Token cho phòng:", matchId);
@@ -463,7 +541,7 @@ const StreamSection: any = React.memo(({ matchId, API }: { matchId: string, API:
                 </div>
                 <div className="lmd-video-controls">
                     <span style={{ fontSize: 11, fontWeight: 900, color: '#5a6a5e' }}>SERVER:</span>
-                    <button className="lmd-server-btn active">LIVEKIT PRO (TRỰC TIẾP)</button>
+                    <button className="lmd-server-btn active">PHỦI SCORE LIVE (TRỰC TIẾP)</button>
                     <button className="lmd-server-btn">SAO LƯU 1</button>
                 </div>
             </div>
@@ -472,16 +550,61 @@ const StreamSection: any = React.memo(({ matchId, API }: { matchId: string, API:
                 <div className="lmd-chat-header">
                     <div className="lmd-chat-dot" />
                     <h3>Trò chuyện trực tiếp</h3>
+                    <span style={{ marginLeft: 'auto', fontSize: 10, color: '#5a6a5e' }}>
+                       {currentUser ? `Đang đăng nhập: ${currentUser.fullName || currentUser.username}` : 'Chưa đăng nhập'}
+                    </span>
                 </div>
                 <div className="lmd-chat-messages">
-                    <div className="lmd-msg">
-                        <span className="lmd-msg-user">Hệ thống</span>
-                        <span className="lmd-msg-text">Luồng video LiveKit đã sẵn sàng!</span>
+                    <div className="chat-msg-wrapper" style={{ opacity: 0.7 }}>
+                        <div className="chat-avatar" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#22c55e' }}>
+                           <svg width="16" height="16" viewBox="0 0 24 24" fill="#000"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                        </div>
+                        <div className="chat-content">
+                            <div className="chat-header">
+                                <span className="chat-username" style={{ color: '#22c55e' }}>Hệ thống</span>
+                                <span className="chat-time">Vừa xong</span>
+                            </div>
+                            <span className="chat-text">Luồng video Phủi Score Live đã sẵn sàng! Chào mừng bạn đến với kênh chat trực tiếp.</span>
+                        </div>
                     </div>
+                    
+                    {messages.map((msg, idx) => {
+                        const isSpecial = ['admin', 'super_admin'].includes(msg.role);
+                        const isMedia = msg.role === 'media';
+                        return (
+                            <div key={msg.id || idx} className="chat-msg-wrapper">
+                                <img src={msg.avatar || 'https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y'} className="chat-avatar" />
+                                <div className="chat-content">
+                                    <div className="chat-header">
+                                        <span className="chat-username" style={{ color: isSpecial ? '#ef4444' : isMedia ? '#3b82f6' : '#fff' }}>
+                                            {msg.username}
+                                        </span>
+                                        {isSpecial && <span className="chat-badge admin">Quản trị viên</span>}
+                                        {isMedia && <span className="chat-badge media">Truyền thông</span>}
+                                        <span className="chat-time">{new Date(msg.timestamp).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}</span>
+                                    </div>
+                                    <span className={`chat-text ${isSpecial || isMedia ? 'highlight' : ''}`}>{msg.message}</span>
+                                </div>
+                            </div>
+                        )
+                    })}
+                    <div ref={chatEndRef} />
                 </div>
                 <div className="lmd-chat-input-wrap">
-                    <input type="text" className="lmd-chat-input" placeholder="Nhập tin nhắn..." />
-                    <button className="lmd-chat-send">
+                    <input 
+                        type="text" 
+                        className="lmd-chat-input" 
+                        placeholder={!currentUser ? "Đăng nhập để bình luận..." : !lkToken ? "Đang chờ luồng Video..." : "Nhập tin nhắn..."} 
+                        value={messageInput}
+                        onChange={(e) => setMessageInput(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
+                        disabled={!currentUser || !lkToken}
+                    />
+                    <button 
+                        className="lmd-chat-send" 
+                        onClick={handleSendMessage}
+                        disabled={!currentUser || !lkToken || !messageInput.trim()}
+                    >
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
                     </button>
                 </div>
@@ -511,34 +634,7 @@ export default function LiveMatchDetailScreen({ matchId, overrideDate, initialDa
   
   const API = API_BASE
 
-  // 🔌 THIẾT LẬP SOCKET.IO
-  useEffect(() => {
-    const { socket } = require('../../utils/socket')
-    
-    socket.connect()
-    console.log('[Socket] 📡 Đang kết nối...')
 
-    socket.on('connect', () => {
-        console.log('[Socket] ✅ Đã kết nối thành công!')
-    })
-
-    socket.on('scoreUpdate', (updatedData: any) => {
-        // Chỉ cập nhật nếu trùng matchId đang xem
-        if (String(updatedData.matchId) === String(matchId)) {
-            console.log('[Socket] ⚽ Cập nhật tỉ số/trạng thái mới:', updatedData)
-            setMatch((prev: any) => ({
-                ...prev,
-                ...updatedData,
-                status: updatedData.liveStatus || updatedData.status || prev.status
-            }))
-        }
-    })
-
-    return () => {
-        socket.off('matchUpdate')
-        socket.disconnect()
-    }
-  }, [matchId])
 
   const fetchStandings = async () => {
     // Aggressive ID search
@@ -579,6 +675,8 @@ export default function LiveMatchDetailScreen({ matchId, overrideDate, initialDa
       setLoadingStandings(false)
     }
   }
+
+
 
   // 🏆 TỰ ĐỘNG TẢI BXH KHI CHUYỂN TAB
   useEffect(() => {
@@ -634,17 +732,31 @@ export default function LiveMatchDetailScreen({ matchId, overrideDate, initialDa
     } catch (e) {}
   }
 
+  // 🔌 THIẾT LẬP SOCKET.IO ĐỒNG BỘ
   useEffect(() => {
-    // 🔌 Lắng nghe Socket để cập nhật Real-time
     const { socket } = require('../../utils/socket')
-    const handleUpdate = (data: any) => {
+    socket.connect()
+
+    const handleScoreUpdate = (updatedData: any) => {
+        if (String(updatedData.matchId) === String(matchId)) {
+            console.log('[Socket] ⚽ Cập nhật tỉ số/trạng thái mới:', updatedData)
+            setMatch((prev: any) => ({
+                ...prev,
+                ...updatedData,
+                status: updatedData.liveStatus || updatedData.status || prev.status
+            }))
+        }
+    }
+
+    const handleMatchUpdate = (data: any) => {
         if (String(data.matchId) === String(matchId)) {
             console.log('[Socket] 🚀 Nhận tín hiệu đã cào xong! Đang làm mới dữ liệu...');
             fetchDetail();
         }
     }
-    
-    socket.on('matchUpdated', handleUpdate);
+
+    socket.on('scoreUpdate', handleScoreUpdate)
+    socket.on('matchUpdated', handleMatchUpdate)
 
     // Chỉ fetch nếu chưa có dữ liệu chi tiết từ Server-side
     if (!initialData || !initialData.statistics) {
@@ -652,11 +764,14 @@ export default function LiveMatchDetailScreen({ matchId, overrideDate, initialDa
     }
 
     const interval = setInterval(fetchDetail, 60000)
+
     return () => {
-        clearInterval(interval);
-        socket.off('matchUpdated', handleUpdate);
+        socket.off('scoreUpdate', handleScoreUpdate)
+        socket.off('matchUpdated', handleMatchUpdate)
+        socket.disconnect()
+        clearInterval(interval)
     }
-  }, [matchId, matchDate, API, initialData])
+  }, [matchId, matchDate, API])
 
   // Mặc định cho phép render khung layout trước, thông số load sau
   const stats = match?.statistics?.[0]?.groups?.flatMap((g: any) => g.statisticsItems) || []

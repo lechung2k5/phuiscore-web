@@ -265,10 +265,10 @@ export default function StandingsScreen() {
       }
     }
 
-    socket.on('standingsUpdated', handleUpdate);
+    socket.on('standingsUpdate', handleUpdate);
 
     return () => {
-      socket.off('standingsUpdated', handleUpdate);
+      socket.off('standingsUpdate', handleUpdate);
     };
   }, [currentId, mounted, fetchStandings])
 

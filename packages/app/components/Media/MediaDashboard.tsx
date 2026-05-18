@@ -10,7 +10,7 @@ const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'
 
 export default function MediaDashboard({ params }: { params?: { slug?: string[] } }) {
   const router = useRouter()
-  const [activeTab, setActiveTab] = useState('news')
+  const [activeTab, setActiveTab] = useState('live')
   const [toast, setToast] = useState({ show: false, message: '' })
 
   // Xử lý Routing từ URL slug
@@ -161,15 +161,15 @@ export default function MediaDashboard({ params }: { params?: { slug?: string[] 
         </header>
 
         <nav className="md-tabs">
-          {['news', 'manage', 'live', 'assets'].map(tab => (
+          {['live', 'news', 'manage', 'assets'].map(tab => (
             <button 
               key={tab}
               className={`md-tab ${activeTab === tab ? 'active' : ''}`} 
               onClick={() => router.push(`/media/${tab}`)}
             >
+              {tab === 'live' && 'TRUNG TÂM LIVESTREAM'}
               {tab === 'news' && 'BÀI VIẾT & TIN TỨC'}
               {tab === 'manage' && 'QUẢN LÝ BÀI VIẾT'}
-              {tab === 'live' && 'TRUNG TÂM LIVESTREAM'}
               {tab === 'assets' && 'THƯ VIỆN ẢNH'}
             </button>
           ))}

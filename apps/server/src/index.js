@@ -4,6 +4,7 @@ const cors = require('cors');
 const compression = require('compression');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
+const cookieParser = require('cookie-parser');
 const cron = require('node-cron');
 const moment = require('moment');
 const fs = require('fs');
@@ -39,14 +40,65 @@ const io = new Server(server, {
     }
 });
 
+// Tích hợp Redis Adapter cho Socket.io
+try {
+    const { createAdapter } = require('@socket.io/redis-adapter');
+    const redisConn = require('./config/redis.config');
+    const subClient = redisConn.duplicate();
+    io.adapter(createAdapter(redisConn, subClient));
+    console.log('[Socket] ⚡ Đã gắn Redis Adapter thành công');
+} catch (e) {
+    console.log('[Socket] ⚠️ Lỗi gắn Redis Adapter (Khởi chạy bằng bộ nhớ trong):', e.message);
+}
+
 // Gán io vào global để các service khác có thể truy cập
 global.io = io;
 
 io.on('connection', (socket) => {
-    console.log(`[Socket] 🔌 Người dùng mới kết nối: ${socket.id}`);
+    // console.log(`[Socket] 🔌 Người dùng kết nối: ${socket.id}`);
     
+    // Tham gia phòng Live
+    socket.on('join_live_room', (matchId) => {
+        const roomName = `live_${matchId}`;
+        socket.join(roomName);
+        // console.log(`[Socket] 👤 ${socket.id} joined room: ${roomName}`);
+    });
+
+    // Gửi tin nhắn
+    socket.on('send_chat_message', async (data) => {
+        try {
+            const { matchId, token, message } = data;
+            if (!matchId || !token || !message) return;
+
+            // Xác thực Token
+            const jwt = require('jsonwebtoken');
+            const decoded = jwt.verify(token, process.env.JWT_SECRET || 'PHUI_SCORE_SECRET');
+            
+            // Lưu vào DynamoDB
+            const LiveChatRepo = require('./repositories/liveChat.repo');
+            const savedMessage = await LiveChatRepo.saveMessage({
+                matchId,
+                userId: decoded.id || decoded.username,
+                username: decoded.fullName || decoded.username,
+                avatar: decoded.avatar || null,
+                role: decoded.role || 'user',
+                message
+            });
+
+            // Phát sự kiện tới tất cả người dùng trong phòng
+            io.to(`live_${matchId}`).emit('new_chat_message', savedMessage);
+        } catch (error) {
+            console.error('[Socket] Lỗi xử lý tin nhắn chat:', error);
+            if (error.name === 'JsonWebTokenError' || error.name === 'TokenExpiredError') {
+                socket.emit('chat_error', { message: 'Xác thực thất bại, vui lòng đăng nhập lại!' });
+            } else {
+                socket.emit('chat_error', { message: 'Lỗi hệ thống khi gửi tin nhắn, vui lòng thử lại!' });
+            }
+        }
+    });
+
     socket.on('disconnect', () => {
-        console.log(`[Socket] 🔌 Người dùng ngắt kết nối: ${socket.id}`);
+        // console.log(`[Socket] 🔌 Người dùng ngắt kết nối: ${socket.id}`);
     });
 });
 
@@ -71,14 +123,26 @@ app.use(helmet({
     contentSecurityPolicy: false, // Tắt CSP vì frontend ở domain khác
 }));
 
-// 3. Rate Limiting — Chống DDoS/spam
-//    Toàn cục: 200 request / 1 phút / mỗi IP
+// 3. CORS: Phải đặt TRƯỚC rate limiter để response 429 vẫn có CORS header
+app.use(cors({
+    origin: process.env.CORS_ORIGIN || 'http://localhost:3000',
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    credentials: true
+}));
+
+// 4. Rate Limiting — Chống DDoS/spam
+//    Toàn cục: 500 request / 1 phút / mỗi IP (đủ rộng cho dev)
 const globalLimiter = rateLimit({
     windowMs: 60 * 1000,
-    max: 200,
+    max: process.env.NODE_ENV === 'production' ? 200 : 500,
     standardHeaders: true,
     legacyHeaders: false,
-    message: { success: false, message: 'Quá nhiều yêu cầu! Vui lòng đợi 1 phút rồi thử lại.' }
+    message: { success: false, message: 'Quá nhiều yêu cầu! Vui lòng đợi 1 phút rồi thử lại.' },
+    skip: (req) => {
+        // Bỏ qua giới hạn cho localhost (dùng cho Crawler tự động hoặc lúc Dev)
+        const ip = req.ip || req.connection.remoteAddress;
+        return ip === '127.0.0.1' || ip === '::1' || ip === '::ffff:127.0.0.1';
+    }
 });
 app.use(globalLimiter);
 
@@ -89,20 +153,12 @@ const authLimiter = rateLimit({
     message: { success: false, message: 'Quá nhiều lần đăng nhập thất bại. Vui lòng đợi 15 phút.' }
 });
 
-// ========================================
-// ⚙️ CẤU HÌNH MIDDLEWARE CHUNG
-// ========================================
-
-// CORS: Cho phép Frontend truy cập
-app.use(cors({
-    origin: process.env.CORS_ORIGIN || 'http://localhost:3000',
-    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    credentials: true
-}));
-
 // Body parser — Tăng giới hạn để nhận dữ liệu cào lớn (JSON + Lineups + Stats)
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+
+// Cookie parser — Cần thiết để đọc HttpOnly refreshToken cookie
+app.use(cookieParser());
 
 // Serve static uploads
 app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
@@ -184,6 +240,10 @@ app.use('/api/media', mediaRoutes);
 // Sync routes (Crawler)
 app.use('/api/sync', syncRoutes);
 
+// Admin routes
+const adminRoutes = require('./routes/admin.routes');
+app.use('/api/admin', adminRoutes);
+
 
 // ========================================
 // 📁 UPLOAD FILE (Base64)
@@ -210,8 +270,11 @@ app.post('/api/upload/tournament-file', async (req, res) => {
 
 
 // ========================================
-// 🤖 HỆ THỐNG TỰ ĐỘNG (CRON JOBS)
+// 🤖 HỆ THỐNG TỰ ĐỘNG (CRON JOBS & WORKERS)
 // ========================================
+
+// Khởi chạy Crawler Worker (Xử lý Queue)
+require('./workers/crawler.worker');
 
 setupCron();
 

@@ -40,10 +40,10 @@ export const Footer = () => {
             width={160} 
             height={50} 
             alt="Phui Score Logo"
-            resizeMode="contain" 
+            style={{ objectFit: 'contain' } as any}
           />
           <Text color={COLORS.textGray} fontSize={14} lineHeight={22}>
-            Hệ thống quản lý và truyền thông bóng đá phủi hàng đầu Việt Nam. Mang lại trải nghiệm chuyên nghiệp cho mọi trận đấu.
+            Hệ thống quản lý và truyền thông bóng đá phủi, hỗ trợ đội bóng, giải đấu, lịch thi đấu và nội dung trận đấu.
           </Text>
         </YStack>
 

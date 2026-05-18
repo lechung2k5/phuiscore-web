@@ -13,7 +13,7 @@ const COLORS = {
   border: 'rgba(255, 255, 255, 0.07)',
 }
 
-export const LiveMatchCard = (props: any) => {
+export const LiveMatchCard = React.memo((props: any) => {
   const { league, currentPeriod, teamA, teamB, scoreA, scoreB, status, time, startTimestamp } = props
   const media = useMedia()
   
@@ -50,14 +50,18 @@ export const LiveMatchCard = (props: any) => {
   const nowSec = Math.floor(Date.now() / 1000)
   const cleanStatus = String(status || "").toLowerCase()
   
-  const isLive = ['live', 'inprogress', 'in_progress'].includes(cleanStatus) || 
-                (!['finished', 'canceled', 'postponed', 'closed', 'ended'].includes(cleanStatus) && 
-                 startTimestamp && (nowSec - startTimestamp >= -1800) && (nowSec - startTimestamp <= 180 * 60))
+  const explicitlyLive = ['live', 'inprogress', 'in_progress'].includes(cleanStatus)
+  const isFallbackLive = ['notstarted', 'not_started'].includes(cleanStatus) && startTimestamp && (nowSec - startTimestamp >= -30 * 60) && (nowSec - startTimestamp <= 130 * 60)
+  
+  const isLive = explicitlyLive || isFallbackLive
                  
   const isFinished = ['finished', 'closed', 'ended'].includes(cleanStatus) || 
                     (startTimestamp && (nowSec - startTimestamp > 180 * 60))
 
   const isMobile = !media.gtMd
+
+  const minLeft = startTimestamp ? Math.floor((startTimestamp - nowSec) / 60) : 0;
+  const fallbackLabel = minLeft > 0 ? 'SẮP ĐÁ' : 'ĐANG ĐÁ';
 
   const formattedDate = startTimestamp ? new Date(startTimestamp * 1000).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' }) : ""
   const formattedTime = startTimestamp ? new Date(startTimestamp * 1000).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : ""
@@ -113,7 +117,7 @@ export const LiveMatchCard = (props: any) => {
             />
           )}
           <Text color={isLive ? "#ef4444" : "#888"} fontSize={10} fontWeight="900" letterSpacing={1}>
-            {isLive ? ( (startTimestamp && nowSec < startTimestamp) ? "SẮP ĐÁ" : "LIVE" ) : isFinished ? "KẾT THÚC" : "CHỜ ĐÁ"}
+            {explicitlyLive ? "LIVE" : isFallbackLive ? fallbackLabel : isFinished ? "KẾT THÚC" : "CHỜ ĐÁ"}
           </Text>
         </XStack>
 
@@ -160,7 +164,7 @@ export const LiveMatchCard = (props: any) => {
             {formattedTime}
           </Text>
           <Text color="#f97316" fontSize={11} fontWeight="900" style={{ textShadow: '0 0 10px rgba(249,115,22,0.3)', marginTop: -4 }}>
-            {isLive ? (displayMinute || 'ĐANG ĐÁ') : isFinished ? 'KẾT THÚC' : 'CHƯA ĐÁ'}
+            {explicitlyLive ? (displayMinute || 'ĐANG ĐÁ') : isFallbackLive ? fallbackLabel : isFinished ? 'KẾT THÚC' : 'CHƯA ĐÁ'}
           </Text>
           <Text
             color="white"
@@ -242,4 +246,4 @@ export const LiveMatchCard = (props: any) => {
       </XStack>
     </Card>
   )
-}
+})

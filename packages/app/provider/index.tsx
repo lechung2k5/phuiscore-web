@@ -12,16 +12,32 @@ import {
 import { Theme } from 'tamagui'
 import { ToastViewport } from './ToastViewport'
 
-// 1. SILENCE WARNING: Bịt miệng cái warning "ref is not a prop" ngay tại đây
-if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
+// Tamagui 2.0.0-rc.0 ToastViewport triggers a React dev-only warning inside
+// @tamagui/web Slot by reading children.props.ref. This keeps the console usable
+// until Tamagui is upgraded; production behavior is unchanged.
+if (
+  typeof window !== 'undefined' &&
+  process.env.NODE_ENV === 'development' &&
+  !(window as any).__phuiscoreFilteredTamaguiRefWarning
+) {
+  ;(window as any).__phuiscoreFilteredTamaguiRefWarning = true
+
+  const isKnownTamaguiRefWarning = (args: unknown[]) =>
+    args.some((arg) => String(arg).includes('`ref` is not a prop'))
+
   const originalWarn = console.warn
   console.warn = (...args) => {
-    if (args[0]?.includes?.('ref` is not a prop')) return
+    if (isKnownTamaguiRefWarning(args)) return
     originalWarn(...args)
+  }
+
+  const originalError = console.error
+  console.error = (...args) => {
+    if (isKnownTamaguiRefWarning(args)) return
+    originalError(...args)
   }
 }
 
-// 2. TYPES: Định nghĩa Type sạch sẽ
 type ProviderProps = Omit<TamaguiProviderProps, 'config' | 'defaultTheme'> & {
   defaultTheme?: 'light' | 'dark'
 }

@@ -27,13 +27,25 @@ export const FeaturedLeagues = () => {
       try {
         const res = await axios.get(`${API}/tournaments/list`)
         if (res.data.success) {
-          // Trích xuất list giải đấu
-          const fetchedLeagues = res.data.data.map((t: any) => ({
+          // Danh sách ảnh dự phòng chất lượng cao
+          const tourPlaceholders = [
+            "https://i.pinimg.com/736x/cb/28/ef/cb28ef1a46afd815e5874abab2323209.jpg",
+            "https://i.pinimg.com/736x/56/9e/37/569e37ad9fbe097fa5d41eded93975ee.jpg",
+            "https://i.pinimg.com/1200x/52/16/5f/52165f15fac900aa94603c543c44236e.jpg",
+            "https://i.pinimg.com/736x/d8/c4/dd/d8c4dded83b711772e12a368b72714e5.jpg",
+            "https://i.pinimg.com/736x/90/ca/d4/90cad41b39f71331c9c77c7c8ce4a7e5.jpg",
+            "https://i.pinimg.com/1200x/fa/d9/59/fad9596d8bd239c767b324b0dc975379.jpg",
+            "https://i.pinimg.com/736x/f8/fc/14/f8fc1442994678a69076ed45de0f6539.jpg",
+            "https://i.pinimg.com/736x/63/51/e4/6351e41a65ca93971cead6b4b8408f3f.jpg",
+            "https://i.pinimg.com/1200x/ab/67/93/ab6793f014fac7487b6d6f4d27aa79e2.jpg"
+          ];
+
+          const fetchedLeagues = res.data.data.map((t: any, idx: number) => ({
             id: t._id || t.id,
             name: t.name || 'Giải bóng đá Mặc định',
             category: t.format || 'Hệ thống Phủi',
             location: t.location || 'Toàn quốc',
-            image: t.logo || t.banner || 'https://images.unsplash.com/photo-1522778119026-d647f0596c20?q=80&w=800',
+            image: t.logo || t.banner || tourPlaceholders[idx % tourPlaceholders.length],
             desc: t.description || 'Giải đấu chuyên nghiệp và uy tín.',
             participants: (t.teams || []).slice(0, 3).map((team: any) => team.logo || 'https://api.dicebear.com/7.x/identicon/svg?seed=team'),
             totalTeams: t.settings?.maxTeams || t.teams?.length || 8,
@@ -60,6 +72,10 @@ export const FeaturedLeagues = () => {
 
   if (leagues.length === 0) return null
 
+  // 🚀 Chỉ lấy tối đa 6 giải đấu để hiển thị trang chủ
+  const displayedLeagues = leagues.slice(0, 6);
+  const hasMore = leagues.length > 6;
+
   return (
     <YStack
       width="100%"
@@ -78,7 +94,7 @@ export const FeaturedLeagues = () => {
             GIẢI ĐẤU NỔI BẬT
           </Text>
         </XStack>
-        <XStack alignItems="center" gap="$1" cursor="pointer" hoverStyle={{ opacity: 0.7 } as any} onPress={() => router.push('/giai-dau/tim-kiem')}>
+        <XStack alignItems="center" gap="$1" cursor="pointer" hoverStyle={{ opacity: 0.7 } as any} onPress={() => router.push('/giai-dau')}>
           <Text color="#666" fontWeight="700" fontSize={13}>Tất cả</Text>
           <ChevronRight size={15} color="#666" />
         </XStack>
@@ -87,23 +103,44 @@ export const FeaturedLeagues = () => {
       {/* Cards — vertical on mobile, grid on desktop */}
       {isMobile ? (
         <YStack gap="$3">
-          {leagues.map((league) => (
+          {displayedLeagues.map((league) => (
             <LeagueCard key={league.id} league={league} isMobile router={router} />
           ))}
         </YStack>
       ) : (
         <XStack flexWrap={"wrap" as any} gap="$5" alignItems="stretch">
-          {leagues.map((league) => (
+          {displayedLeagues.map((league) => (
             <View
               key={league.id}
-              flexGrow={1}
-              width="31%"
+              width="31.5%"
               $ltLg={{ width: "48%" } as any}
               minWidth={280}
             >
               <LeagueCard league={league} isMobile={false} router={router} />
             </View>
           ))}
+        </XStack>
+      )}
+
+      {/* 🔘 Nút XEM THÊM */}
+      {hasMore && (
+        <XStack justifyContent="center" marginTop="$4">
+          <View 
+            onPress={() => router.push('/giai-dau')}
+            cursor="pointer"
+            paddingHorizontal="$8"
+            paddingVertical="$3"
+            borderRadius="$10"
+            borderWidth={1}
+            borderColor="rgba(255,255,255,0.1)"
+            backgroundColor="rgba(255,255,255,0.03)"
+            hoverStyle={{ backgroundColor: 'rgba(255,255,255,0.08)', borderColor: COLORS.primary } as any}
+            pressStyle={{ scale: 0.95 } as any}
+          >
+            <Text color="white" fontWeight="800" fontSize={14} letterSpacing={1}>
+              XEM TẤT CẢ ({leagues.length})
+            </Text>
+          </View>
         </XStack>
       )}
     </YStack>
@@ -130,12 +167,15 @@ const LeagueCard = ({ league, isMobile, router }: any) => {
       borderColor={COLORS.border as any}
       style={{ backdropFilter: 'blur(12px)' }}
     >
-      {/* Image */}
       <View width="100%" height={isMobile ? 150 : 195} position="relative">
         <Image
           src={league.image}
           width="100%" height="100%"
           style={{ objectFit: 'cover' } as any}
+          onError={(e: any) => {
+             // Nếu ảnh chết, đổi sang ảnh dự phòng chất lượng cao
+             e.target.src = "https://i.pinimg.com/1200x/52/16/5f/52165f15fac900aa94603c543c44236e.jpg";
+          }}
         />
         {/* Gradient bottom fade */}
         <View

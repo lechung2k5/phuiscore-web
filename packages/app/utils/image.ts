@@ -6,11 +6,12 @@ const S3_BASE_URL = `https://${S3_BUCKET}.s3.${S3_REGION}.amazonaws.com`;
  * Chuyển đổi đường dẫn ảnh thành URL hoàn chỉnh
  * Ưu tiên lấy từ SofaScore API nếu có ID, nếu không lấy từ S3/Local
  */
-export const getImageUrl = (path: string | null | undefined, type: 'logo' | 'banner' | 'avatar' = 'logo', id?: string | number) => {
+export const getImageUrl = (path: string | null | undefined, type: 'logo' | 'banner' | 'avatar' | 'tournament' = 'logo', id?: string | number) => {
     // Nếu có ID và là dạng số (SofaScore ID), ưu tiên lấy từ SofaScore API
     if (id && !isNaN(Number(id))) {
         if (type === 'logo') return `https://api.sofascore.app/api/v1/team/${id}/image`;
         if (type === 'avatar') return `https://api.sofascore.app/api/v1/player/${id}/image`;
+        if (type === 'tournament') return `https://api.sofascore.app/api/v1/unique-tournament/${id}/image`;
     }
 
     if (!path) {

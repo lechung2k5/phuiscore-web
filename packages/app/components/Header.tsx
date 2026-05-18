@@ -565,7 +565,10 @@ const HeaderComponent: any = (): any => {
                   hoverStyle={{ backgroundColor: '#111' } as any}
                 >
                   <Avatar circular size="$2.5" borderWidth={1.5} borderColor={COLORS.logoGreen as any}>
-                    <Avatar.Image src={`https://ui-avatars.com/api/?name=${encodeURIComponent(user.fullName)}&background=28a745&color=fff` as any} />
+                    <Avatar.Image 
+                      src={`https://ui-avatars.com/api/?name=${encodeURIComponent(user.fullName)}&background=28a745&color=fff` as any} 
+                      fullscreen={undefined as any}
+                    />
                     <Avatar.Fallback backgroundColor={"#333" as any} />
                   </Avatar>
                   <YStack $ltMd={{ display: 'none' } as any}>
@@ -745,7 +748,10 @@ const HeaderComponent: any = (): any => {
                   onPress={() => handleNavigation('/user')}
                 >
                   <Avatar circular size="$5" borderWidth={2} borderColor={COLORS.logoGreen as any}>
-                    <Avatar.Image src={`https://ui-avatars.com/api/?name=${encodeURIComponent(user.fullName)}&background=28a745&color=fff` as any} />
+                    <Avatar.Image 
+                      src={`https://ui-avatars.com/api/?name=${encodeURIComponent(user.fullName)}&background=28a745&color=fff` as any} 
+                      fullscreen={undefined as any}
+                    />
                   </Avatar>
                   <YStack flex={1}>
                     <Text color={COLORS.white as any} fontSize={18} fontWeight="900">

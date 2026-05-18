@@ -296,7 +296,7 @@ export default function SearchTournamentScreen() {
       >
         {loading ? (
           <YStack flex={1} justifyContent="center" alignItems="center" paddingTop={80} gap="$3">
-            <Spinner size="large" color={C.primary} />
+            <Spinner size="large" color={C.primary as any} />
             <Text color="#555" fontSize={14}>Đang tìm kiếm giải đấu...</Text>
           </YStack>
         ) : filtered.length === 0 ? (

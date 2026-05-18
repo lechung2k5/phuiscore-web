@@ -12,8 +12,9 @@ const ivsClient = new IvsClient({
         secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY
     }
 });
-const { verifyToken, isMedia } = require('../middlewares/auth.middleware');
+const { verifyToken, isCoordinator } = require('../middlewares/auth.middleware');
 const NewsRepo = require('../repositories/news.repo');
+const AuditLogRepo = require('../repositories/auditLog.repo');
 const slugify = require('slugify');
 
 // Configure multer to store files in memory
@@ -27,7 +28,7 @@ const upload = multer({
 /**
  * 🚀 API: Upload Image to S3 with Prefixing
  */
-router.post('/upload', verifyToken, isMedia, upload.single('image'), async (req, res) => {
+router.post('/upload', verifyToken, isCoordinator, upload.single('image'), async (req, res) => {
     try {
         if (!req.file) {
             return res.status(400).json({ message: "Đại ca chưa chọn ảnh để upload!" });
@@ -59,33 +60,54 @@ router.post('/upload', verifyToken, isMedia, upload.single('image'), async (req,
 });
 
 const MatchRepo = require('../repositories/match.repo');
+const TournamentService = require('../services/tournament.service');
 
 /**
  * ⚽ API: Update Scoreboard (For Commentators)
  */
-router.post('/update-score', verifyToken, isMedia, async (req, res) => {
+router.post('/update-score', verifyToken, isCoordinator, async (req, res) => {
     try {
-        const { date, matchId, homeScore, awayScore, currentMinute, liveStatus, statistics } = req.body;
+        const { date, matchId, homeScore, awayScore, currentMinute, liveStatus, statistics, incidents, isDraft } = req.body;
         
-        console.log("[UpdateScore] 📥 Payload received:", { date, matchId, homeScore, awayScore, currentMinute, liveStatus, statistics });
+        console.log("[UpdateScore] 📥 Payload received:", { date, matchId, homeScore, awayScore, currentMinute, liveStatus, statistics, incidents, isDraft });
 
         if (!date || !matchId) {
             console.error("[UpdateScore] ❌ Missing required fields:", { date, matchId });
             return res.status(400).json({ message: "Thiếu thông tin trận đấu (Date hoặc MatchID)!" });
         }
 
-        await MatchRepo.updateMatchScoreboard(date, matchId, { 
-            homeScore, awayScore, currentMinute, liveStatus, statistics 
+        const resUpdate = await MatchRepo.updateMatchScoreboard(date, matchId, { 
+            homeScore, awayScore, currentMinute, liveStatus, statistics, incidents, isDraft
         });
+
+        // 🚀 Tự động tính lại Bảng xếp hạng nếu trận đấu thuộc giải đấu và không phải bản nháp
+        const match = resUpdate.Attributes || resUpdate.Item;
+        if (match && match.tournamentId && !isDraft) {
+            // Không đợi (non-blocking) để trả về response nhanh cho BLV
+            TournamentService.refreshStandings(match.tournamentId).catch(err => {
+                console.error(`[Standings Auto] ❌ Lỗi refresh cho giải ${match.tournamentId}:`, err.message);
+            });
+        }
 
         // 🚀 SOCKET: Phát tín hiệu real-time cho toàn bộ người xem
         if (global.io) {
             global.io.emit('scoreUpdate', { 
-                matchId, homeScore, awayScore, currentMinute, liveStatus 
+                matchId, homeScore, awayScore, currentMinute, liveStatus, statistics, incidents, isDraft
             });
+            global.io.emit('statsUpdate'); // Thông báo cho Dashboard cập nhật số liệu tổng quát
         }
 
-        res.json({ success: true, message: "Cập nhật tỉ số thành công!" });
+        // 🚀 AUDIT LOG: Ghi lại hoạt động
+        await AuditLogRepo.log({
+            userId: req.user.username,
+            action: 'UPDATE_SCORE',
+            entityType: 'MATCH',
+            entityId: matchId,
+            newValue: `${homeScore} - ${awayScore}`,
+            note: `Cập nhật tỉ số trận đấu. Trạng thái: ${liveStatus || 'N/A'}`
+        });
+
+        res.json({ success: true, message: "Cập nhật tỉ số và BXH thành công!" });
     } catch (error) {
         console.error("Score Update Error:", error);
         res.status(500).json({ message: "Lỗi khi cập nhật tỉ số!" });
@@ -95,7 +117,7 @@ router.post('/update-score', verifyToken, isMedia, async (req, res) => {
 /**
  * 📰 API: Create News Article
  */
-router.post('/create-news', verifyToken, isMedia, async (req, res) => {
+router.post('/create-news', verifyToken, isCoordinator, async (req, res) => {
     try {
         const { id: existingId, title, content, thumbnail, category, excerpt, author } = req.body;
         if (!title || !content) {
@@ -129,6 +151,21 @@ router.post('/create-news', verifyToken, isMedia, async (req, res) => {
 
         await NewsRepo.upsert(newsItem);
 
+        // 🚀 SOCKET
+        if (global.io) {
+            global.io.emit('statsUpdate');
+        }
+
+        // 🚀 AUDIT LOG
+        await AuditLogRepo.log({
+            userId: req.user.username,
+            action: existingId ? 'UPDATE_NEWS' : 'CREATE_NEWS',
+            entityType: 'NEWS',
+            entityId: id,
+            newValue: title,
+            note: existingId ? `Cập nhật bài viết: ${title}` : `Đăng bài viết mới: ${title}`
+        });
+
         res.json({ success: true, message: existingId ? "Cập nhật thành công!" : "Đã đăng bài viết thành công!", slug });
     } catch (error) {
         console.error("Create News Error:", error);
@@ -139,7 +176,7 @@ router.post('/create-news', verifyToken, isMedia, async (req, res) => {
 /**
  * 📰 API: Get My News Articles
  */
-router.get('/my-news', verifyToken, isMedia, async (req, res) => {
+router.get('/my-news', verifyToken, isCoordinator, async (req, res) => {
     try {
         const allNews = await NewsRepo.getList({ limit: 100 });
         // Lọc chính xác theo username của người đang đăng nhập
@@ -155,7 +192,7 @@ router.get('/my-news', verifyToken, isMedia, async (req, res) => {
 /**
  * 📰 API: Delete News
  */
-router.delete('/news/:id', verifyToken, isMedia, async (req, res) => {
+router.delete('/news/:id', verifyToken, isCoordinator, async (req, res) => {
     try {
         const { id } = req.params;
         const { DeleteCommand } = require("@aws-sdk/lib-dynamodb");
@@ -165,6 +202,20 @@ router.delete('/news/:id', verifyToken, isMedia, async (req, res) => {
             TableName: "PhuiScore_ExternalNews",
             Key: { id }
         }));
+
+        // 🚀 SOCKET
+        if (global.io) {
+            global.io.emit('statsUpdate');
+        }
+
+        // 🚀 AUDIT LOG
+        await AuditLogRepo.log({
+            userId: req.user.username,
+            action: 'DELETE_NEWS',
+            entityType: 'NEWS',
+            entityId: id,
+            note: `Xóa bài viết ID: ${id}`
+        });
 
         res.json({ success: true, message: "Đã xóa bài viết!" });
     } catch (error) {
@@ -176,7 +227,7 @@ router.delete('/news/:id', verifyToken, isMedia, async (req, res) => {
 /**
  * 📡 API: Start Livestream (Amazon IVS)
  */
-router.post('/start-stream', verifyToken, isMedia, async (req, res) => {
+router.post('/start-stream', verifyToken, isCoordinator, async (req, res) => {
     try {
         const { matchId, matchName } = req.body;
         
@@ -211,7 +262,7 @@ router.post('/start-stream', verifyToken, isMedia, async (req, res) => {
 /**
  * 📝 API: Send Timed Metadata (IVS)
  */
-router.post('/send-metadata', verifyToken, isMedia, async (req, res) => {
+router.post('/send-metadata', verifyToken, isCoordinator, async (req, res) => {
     try {
         const { channelArn, metadata } = req.body;
         const cmd = new PutMetadataCommand({
@@ -228,7 +279,7 @@ router.post('/send-metadata', verifyToken, isMedia, async (req, res) => {
 /**
  * 🎫 API: Get LiveKit Token & Create Ingress (for OBS)
  */
-router.get('/livekit-token', verifyToken, isMedia, async (req, res) => {
+router.get('/livekit-token', verifyToken, isCoordinator, async (req, res) => {
     try {
         const { room } = req.query;
         if (!room) return res.status(400).json({ message: "Thiếu tên phòng (Room)!" });
@@ -359,6 +410,18 @@ router.get('/public-token', async (req, res) => {
     } catch (error) {
         console.error("Public Token Error:", error);
         res.status(500).json({ success: false, message: error.message });
+    }
+});
+
+// 3. API Lấy lịch sử Chat
+router.get('/live-chats/:matchId', async (req, res) => {
+    try {
+        const { matchId } = req.params;
+        const LiveChatRepo = require('../repositories/liveChat.repo');
+        const messages = await LiveChatRepo.getRecentMessages(matchId, 50);
+        res.json({ success: true, data: messages });
+    } catch (error) {
+        res.status(500).json({ success: false, message: "Lỗi lấy lịch sử chat!" });
     }
 });
 

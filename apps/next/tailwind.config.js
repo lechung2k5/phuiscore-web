@@ -1,0 +1,70 @@
+/** @type {import('tailwindcss').Config} */
+module.exports = {
+  content: [
+    "./app/**/*.{js,ts,jsx,tsx,mdx}",
+    "./pages/**/*.{js,ts,jsx,tsx,mdx}",
+    "./components/**/*.{js,ts,jsx,tsx,mdx}",
+    "../../packages/app/**/*.{js,ts,jsx,tsx,mdx}",
+  ],
+  theme: {
+    extend: {
+      colors: {
+        surface: '#121414',
+        'surface-dim': '#121414',
+        'surface-bright': '#383939',
+        'surface-container-lowest': '#0d0e0f',
+        'surface-container-low': '#1a1c1c',
+        'surface-container': '#1e2020',
+        'surface-container-high': '#292a2a',
+        'surface-container-highest': '#343535',
+        'on-surface': '#e3e2e2',
+        'on-surface-variant': '#bbcbbb',
+        'inverse-surface': '#e3e2e2',
+        'inverse-on-surface': '#2f3131',
+        outline: '#869486',
+        'outline-variant': '#3d4a3e',
+        'surface-tint': '#4ae183',
+        primary: '#54e98a',
+        'on-primary': '#003919',
+        'primary-container': '#2ecc71',
+        'on-primary-container': '#005027',
+        'inverse-primary': '#006d37',
+        secondary: '#c8c6c5',
+        'on-secondary': '#313030',
+        'secondary-container': '#474746',
+        'on-secondary-container': '#b7b5b4',
+        tertiary: '#69e792',
+        'on-tertiary': '#00391a',
+        'tertiary-container': '#4bca78',
+        'on-tertiary-container': '#005127',
+        error: '#ffb4ab',
+        'on-error': '#690005',
+        'error-container': '#93000a',
+        'on-error-container': '#ffdad6',
+      },
+      fontFamily: {
+        lexend: ['Lexend', 'sans-serif'],
+        inter: ['Inter', 'sans-serif'],
+      },
+      borderRadius: {
+        sm: '0.25rem',
+        DEFAULT: '0.5rem',
+        md: '0.75rem',
+        lg: '1rem',
+        xl: '1.5rem',
+      },
+      spacing: {
+        unit: '4px',
+        xs: '4px',
+        sm: '8px',
+        md: '16px',
+        lg: '24px',
+        xl: '40px',
+      }
+    },
+  },
+  plugins: [],
+  corePlugins: {
+    preflight: true,
+  }
+}

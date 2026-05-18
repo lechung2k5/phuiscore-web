@@ -260,14 +260,16 @@ const MatchRepo = {
 
     /**
      * ⚡ CẬP NHẬT NHANH TỈ SỐ & PHÚT (Cho BLV)
+     * Đã nâng cấp: Hỗ trợ incidents (diễn biến) và isDraft (chế độ nháp)
      */
-    updateMatchScoreboard: async (date, matchId, { homeScore, awayScore, currentMinute, liveStatus, statistics }) => {
+    updateMatchScoreboard: async (date, matchId, { homeScore, awayScore, currentMinute, liveStatus, statistics, incidents, isDraft }) => {
         let updateExp = `
             SET score.home = :h, 
                 score.away = :a, 
                 currentMinute = :m,
                 liveStatus = :ls,
                 isManualControl = :true,
+                isDraft = :draft,
                 updatedAt = :u
         `;
         const exprAttrValues = {
@@ -276,12 +278,18 @@ const MatchRepo = {
             ":m": currentMinute,
             ":ls": liveStatus || 'streaming',
             ":true": true,
+            ":draft": isDraft || false,
             ":u": new Date().toISOString()
         };
 
         if (statistics) {
             updateExp += `, statistics = :stats`;
             exprAttrValues[":stats"] = statistics;
+        }
+        
+        if (incidents) {
+            updateExp += `, incidents = :inc`;
+            exprAttrValues[":inc"] = incidents;
         }
 
         const command = new UpdateCommand({
@@ -293,15 +301,18 @@ const MatchRepo = {
         });
         const res = await docClient.send(command);
         
-        // 📢 Phát tín hiệu Socket.io ngay lập tức
+        // 📢 Phát tín hiệu Socket.io
+        // Nếu là bản nháp, có thể gửi kèm flag draft để FE Admin biết, FE User bỏ qua
         if (global.io) {
-            global.io.emit('scoreUpdate', { // Đổi thành scoreUpdate cho đồng bộ với FE
-                matchId,
-                homeScore,
-                awayScore,
-                currentMinute,
-                liveStatus,
-                statistics
+            global.io.emit('scoreUpdate', { 
+                matchId, 
+                homeScore, 
+                awayScore, 
+                currentMinute, 
+                liveStatus, 
+                statistics,
+                incidents,
+                isDraft: isDraft || false
             });
         }
         return res;
@@ -328,7 +339,8 @@ const MatchRepo = {
             Key: { pk: `DATE#${date}`, sk: `MATCH#${matchId}` }
         });
         return await docClient.send(command);
-    }
+    },
+    TABLE_NAME: TABLE_NAME
 };
 
 module.exports = MatchRepo;

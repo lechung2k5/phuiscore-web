@@ -42,7 +42,7 @@ router.post('/matches', validateSyncToken, async (req, res) => {
                 
                 // 🔥 PHÁT TÍN HIỆU REAL-TIME ĐẾN WEB
                 if (global.io) {
-                    global.io.emit('matchUpdated', { matchId: m.id, date: m.dateString });
+                    global.io.emit('matchUpdate', { matchId: m.id, date: m.dateString });
                 }
             }
         });
@@ -154,7 +154,7 @@ router.post('/standings', validateSyncToken, async (req, res) => {
         // 4. Xóa cache và Phát tín hiệu Real-time
         invalidateCache(`/api/standings/${tournamentId}`);
         if (global.io) {
-            global.io.emit('standingsUpdated', { tournamentId });
+            global.io.emit('standingsUpdate', { tournamentId });
             console.log(`[Socket] 📢 Đã phát tín hiệu cập nhật BXH cho giải ${tournamentId}`);
         }
 

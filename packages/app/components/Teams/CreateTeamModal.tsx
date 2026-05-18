@@ -87,7 +87,7 @@ export const CreateTeamModal = ({ open, setOpen, onSuccess }: { open: boolean, s
                 ) : (
                   <Shield size={40} color="#555" />
                 )}
-                {loading && <View position="absolute" top={0} left={0} right={0} bottom={0} backgroundColor="rgba(0,0,0,0.5)" alignItems="center" justifyContent="center"><Spinner color={C.primary} /></View>}
+                {loading && <View position="absolute" top={0} left={0} right={0} bottom={0} backgroundColor="rgba(0,0,0,0.5)" alignItems="center" justifyContent="center"><Spinner color={C.primary as any} /></View>}
               </View>
               <Button size="$3" backgroundColor="rgba(255,255,255,0.1)" hoverStyle={{ backgroundColor: 'rgba(255,255,255,0.2)' } as any} icon={<Upload size={16} color="white" />} onPress={() => document.getElementById('team_logo_upload')?.click()}>
                 <Text color="white" fontWeight="600">Tải Logo / Huy hiệu</Text>

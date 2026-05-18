@@ -3,6 +3,7 @@ const puppeteer = require('puppeteer-extra');
 const StealthPlugin = require('puppeteer-extra-plugin-stealth');
 const axios = require('axios');
 const io = require('socket.io-client');
+const { gotScraping } = require('got-scraping');
 
 puppeteer.use(StealthPlugin());
 
@@ -64,6 +65,11 @@ async function createFastPage(browser) {
     return page;
 }
 
+/**
+ * HELPER: Delay ngẫu nhiên
+ */
+const delay = (ms) => new Promise(r => setTimeout(r, ms));
+
 socket.on('connect', () => {
     console.log('[Socket] 🔌 Đã kết nối. Sẵn sàng cào dữ liệu tốc độ cao!');
 });
@@ -106,27 +112,66 @@ const calculateMinute = (match) => {
 };
 
 /**
- * HELPER: Lấy JSON từ SofaScore bằng Page có sẵn
+ * HELPER: Lấy JSON từ SofaScore với cơ chế Retry + got-scraping + Puppeteer Fallback
  */
-async function fetchSofaJson(url, page) {
-    try {
-        console.log(`[Puppeteer] 🔍 Đang truy cập: ${url}`);
-        await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36');
-        await page.setExtraHTTPHeaders({
-            'x-sofascore-client': 'web',
-            'Accept-Language': 'vi-VN,vi;q=0.9,en-US;q=0.8,en;q=0.7'
-        });
-        // Rút ngắn thời gian chờ xuống domcontentloaded thay vì networkidle2
-        const response = await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 });
-        if (!response) throw new Error("Không nhận được phản hồi");
-        
-        // Đợi một chút để JSON kịp render nếu cần (thường JSON API là tức thì)
-        const content = await page.evaluate(() => document.body.innerText);
-        return JSON.parse(content);
-    } catch (err) {
-        console.error(`[Puppeteer Error] ❌ Lỗi ${url}: ${err.message}`);
-        return null;
+async function fetchSofaJson(url, page = null, retries = 3) {
+    let lastError = null;
+    for (let i = 0; i < retries; i++) {
+        try {
+            // 1. Thử dùng got-scraping (Nhanh & Ẩn danh tốt cho API)
+            console.log(`[Fetch] 🔍 Đang gọi API (Lần ${i+1}): ${url}`);
+            const response = await gotScraping.get(url, {
+                headers: {
+                    'referer': 'https://www.sofascore.com/',
+                    'x-sofascore-client': 'web',
+                    'Accept-Language': 'vi-VN,vi;q=0.9,en-US;q=0.8,en;q=0.7',
+                    'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36'
+                },
+                timeout: { request: 20000 },
+                retry: { limit: 0 }
+            });
+
+            if (response.statusCode === 200) {
+                return JSON.parse(response.body);
+            }
+        } catch (err) {
+            console.warn(`[Fetch Warning] ⚠️ got-scraping lỗi: ${err.message}.`);
+            
+            // 2. Fallback sang Puppeteer nếu bị Reset hoặc Timeout
+            try {
+                let tempPage = page;
+                let shouldCloseTemp = false;
+                if (!tempPage) {
+                    const browser = await getBrowser();
+                    tempPage = await createFastPage(browser);
+                    shouldCloseTemp = true;
+                }
+
+                await tempPage.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36');
+                await tempPage.setExtraHTTPHeaders({
+                    'x-sofascore-client': 'web',
+                    'Accept-Language': 'vi-VN,vi;q=0.9,en-US;q=0.8,en;q=0.7',
+                    'Referer': 'https://www.sofascore.com/'
+                });
+
+                await delay(Math.random() * 2000 + 1000);
+                const resp = await tempPage.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 });
+                
+                if (resp && resp.status() === 200) {
+                    const content = await tempPage.evaluate(() => document.body.innerText);
+                    if (shouldCloseTemp) await tempPage.close().catch(() => {});
+                    return JSON.parse(content);
+                }
+                if (shouldCloseTemp) await tempPage.close().catch(() => {});
+            } catch (pErr) {
+                console.error(`[Puppeteer Error] ❌ Fallback thất bại: ${pErr.message}`);
+            }
+
+            // Nghỉ trước khi thử lại
+            await delay(3000 * (i + 1));
+        }
     }
+    return null;
 }
 
 async function crawlAndSync(date) {
@@ -256,7 +301,9 @@ async function crawlAndSyncDetail(matchId, date) {
         
         // Truy cập page gốc trước để lấy context
         await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36');
-        await page.goto(baseUrl, { waitUntil: 'domcontentloaded', timeout: 30000 });
+        // Không navigate trực tiếp vào API URL nếu có thể, navigate vào match page để "hòa mình"
+        const matchUrl = `https://www.sofascore.com/event/${matchId}`;
+        await page.goto(matchUrl, { waitUntil: 'domcontentloaded', timeout: 45000 });
 
         // ⚡ TURBO MODE: Chạy fetch trực tiếp trong browser context
         const allData = await page.evaluate(async (matchId) => {
@@ -472,5 +519,28 @@ async function liveSyncRoutine() {
     setTimeout(liveSyncRoutine, 60 * 1000); // 60 giây một lần
 }
 
-backgroundRoutine();
-liveSyncRoutine();
+/**
+ * HELPER: Warm up session by visiting homepage
+ */
+async function warmUpSession() {
+    console.log('[Puppeteer] 🔥 Warming up session...');
+    const browser = await getBrowser();
+    const page = await createFastPage(browser);
+    try {
+        await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36');
+        await page.goto('https://www.sofascore.com/', { waitUntil: 'domcontentloaded', timeout: 60000 });
+        console.log('[Puppeteer] ✅ Session warmed up.');
+    } catch (err) {
+        console.warn('[Puppeteer Warning] ⚠️ Warm up failed:', err.message);
+    } finally {
+        await page.close().catch(() => {});
+    }
+}
+
+async function start() {
+    await warmUpSession();
+    backgroundRoutine();
+    liveSyncRoutine();
+}
+
+start();

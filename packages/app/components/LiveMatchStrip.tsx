@@ -9,6 +9,9 @@ import { getImageUrl } from '../utils/image'
 import { API_BASE } from '../utils/api-config'
 
 const API = API_BASE
+const LiveMatchCardAny = LiveMatchCard as any
+
+const PRIORITY_LEAGUE_IDS = [17, 8, 23, 35, 34, 7, 676, 381, 384];
 
 export const LiveMatchStrip = () => {
   const media = useMedia()
@@ -47,17 +50,21 @@ export const LiveMatchStrip = () => {
               if (elapsed < -15 * 60) return false;
             }
 
-            // 3. Ưu tiên LIVE từ bảng điều khiển media hoặc status crawler
-            if (['inprogress', 'live', 'in_progress'].includes(status)) return true;
+            // 3. Chỉ lấy các trận THỰC SỰ đang diễn ra (LIVE)
+            if (['inprogress', 'live', 'in_progress', 'streaming'].includes(status)) return true;
 
-            // 4. Các trận sắp đá trong vòng 30 phút tới -> Đưa lên mục LIVE để user chuẩn bị
-            if (m.startTimestamp && (m.startTimestamp - now <= 30 * 60) && (m.startTimestamp > now)) return true;
-            
-            // 5. Nếu không có status nhưng đã bắt đầu chưa quá 3 tiếng -> Coi là LIVE
-            if (m.startTimestamp && (now - m.startTimestamp > 0) && (now - m.startTimestamp < 180 * 60)) return true;
+            // 4. Các trận vừa mới bắt đầu nhưng chưa cập nhật status (trong vòng 5 phút đầu)
+            if (m.startTimestamp && (now - m.startTimestamp > 0) && (now - m.startTimestamp < 5 * 60)) return true;
             
             return false;
           }).sort((a: any, b: any) => {
+            // Sắp xếp ưu tiên: Giải đấu HOT lên trước
+            const isAPriority = PRIORITY_LEAGUE_IDS.includes(a.uniqueTournamentId || a.tournament?.uniqueTournament?.id);
+            const isBPriority = PRIORITY_LEAGUE_IDS.includes(b.uniqueTournamentId || b.tournament?.uniqueTournament?.id);
+            
+            if (isAPriority && !isBPriority) return -1;
+            if (!isAPriority && isBPriority) return 1;
+
             const diffA = Math.abs(now - (a.startTimestamp || 0));
             const diffB = Math.abs(now - (b.startTimestamp || 0));
             return diffA - diffB;
@@ -98,9 +105,41 @@ export const LiveMatchStrip = () => {
     }
 
     fetchLiveMatches()
-    // Có thể bổ sung interval để fetch lại mỗi phút nếu cần
-    const interval = setInterval(fetchLiveMatches, 60000)
-    return () => clearInterval(interval)
+    
+    // 🔌 SOCKET.IO REALTIME
+    const { socket } = require('../utils/socket')
+    socket.connect()
+
+    const handleScoreUpdate = (data: any) => {
+      setLiveMatches(prev => prev.map(m => {
+        if (m.id === data.matchId) {
+          return {
+            ...m,
+            scoreA: data.homeScore ?? m.scoreA,
+            scoreB: data.awayScore ?? m.scoreB,
+            time: data.time ?? m.time,
+            status: data.status ?? m.status,
+            currentPeriod: data.currentPeriod ?? m.currentPeriod
+          }
+        }
+        return m;
+      }))
+    }
+
+    const handleMatchUpdate = () => {
+      fetchLiveMatches() // Fetch lại list nếu có thay đổi lớn từ crawler
+    }
+
+    socket.on('scoreUpdate', handleScoreUpdate)
+    socket.on('matchUpdate', handleMatchUpdate)
+
+    const interval = setInterval(fetchLiveMatches, 120000) // Tăng lên 2 phút (chỉ để dự phòng)
+    
+    return () => {
+      socket.off('scoreUpdate', handleScoreUpdate)
+      socket.off('matchUpdate', handleMatchUpdate)
+      clearInterval(interval)
+    }
   }, [])
 
   const [showAll, setShowAll] = useState(false)
@@ -166,7 +205,7 @@ export const LiveMatchStrip = () => {
       {isMobile ? (
         <YStack gap="$3">
           {displayedMatches.map((match) => (
-            <LiveMatchCard key={match.id} {...match} />
+            <LiveMatchCardAny key={match.id} {...match} />
           ))}
         </YStack>
       ) : (
@@ -179,7 +218,7 @@ export const LiveMatchStrip = () => {
               $ltLg={{ width: "48%" } as any}
               minWidth={280}
             >
-              <LiveMatchCard {...match} />
+              <LiveMatchCardAny {...match} />
             </View>
           ))}
         </XStack>

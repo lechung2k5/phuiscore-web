@@ -77,7 +77,8 @@ const Footer = dynamic(
 
 export function ClientLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
-  const showHeader = !NO_HEADER_PATHS.includes(pathname)
+  const isAdminPath = pathname.startsWith('/admin')
+  const showHeader = !NO_HEADER_PATHS.includes(pathname) && !isAdminPath
   const [layoutReady, setLayoutReady] = useState(false)
 
   useEffect(() => {

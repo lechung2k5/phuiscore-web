@@ -113,7 +113,7 @@ const TeamRepo = {
     const updateExps = [];
 
     for (const [key, val] of Object.entries(updates)) {
-      if (key === 'id' || key === 'createdAt' || key === 'managerId') continue;
+      if (key === 'id' || key === 'createdAt' || key === 'managerId' || key === 'updatedAt') continue;
       expAttrNames[`#${key}`] = key;
       expAttrValues[`:${key}`] = val;
       updateExps.push(`#${key} = :${key}`);

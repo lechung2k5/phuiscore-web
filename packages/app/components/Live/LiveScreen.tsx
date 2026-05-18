@@ -75,8 +75,62 @@ const CSS = `
   
   .ls-loading-wrap { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 400px; gap: 20px; }
   .spinner-spotify { width: 40px; height: 40px; border: 3px solid rgba(34,197,94,0.1); border-top-color: #22c55e; border-radius: 50%; animation: spin 0.8s linear infinite; }
-  @keyframes spin { to { transform: rotate(360px); } }
   @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+  .ls-group-header { 
+    display: flex; justify-content: space-between; align-items: center; 
+    background: rgba(34,197,94,0.1); border: 1px solid rgba(34,197,94,0.15); 
+    padding: 12px 20px; border-radius: 12px; margin-bottom: 16px; cursor: pointer;
+    transition: all 0.2s;
+  }
+  .ls-group-header:hover { background: rgba(34,197,94,0.2); }
+  .ls-group-title { display: flex; align-items: center; gap: 12px; }
+  .ls-group-name { font-size: 14px; font-weight: 800; color: #22c55e; text-transform: uppercase; letter-spacing: 0.5px; }
+  .ls-group-badge { background: #22c55e; color: black; font-size: 10px; font-weight: 900; padding: 2px 8px; border-radius: 100px; }
+    .ls-group-arrow { width: 12px; height: 12px; transition: transform 0.3s; }
+  .ls-group-arrow.open { transform: rotate(180deg); }
+
+  /* Search Box */
+  .ls-search-box {
+    position: relative;
+    display: flex;
+    align-items: center;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 12px;
+    padding: 0 16px;
+    width: 350px;
+    transition: all 0.2s;
+  }
+  .ls-search-box:focus-within {
+    background: rgba(34,197,94,0.05);
+    border-color: #22c55e;
+    box-shadow: 0 0 15px rgba(34,197,94,0.1);
+  }
+  .ls-search-icon {
+    color: #5a6a5e;
+    margin-right: 12px;
+  }
+  .ls-search-box:focus-within .ls-search-icon {
+    color: #22c55e;
+  }
+  .ls-search-input {
+    background: transparent;
+    border: none;
+    color: white;
+    font-size: 14px;
+    font-weight: 600;
+    padding: 12px 0;
+    width: 100%;
+    outline: none;
+  }
+  .ls-search-input::placeholder {
+    color: #5a6a5e;
+  }
+  
+  @media(max-width: 768px) {
+    .ls-search-box { width: 100%; }
+  }
 `
 
 const TABS = [
@@ -90,7 +144,7 @@ function getStartOfDayTimestamp(date: Date) {
   return Math.floor(new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime() / 1000)
 }
 
-function UpcomingMatchCard({ m }: { m: any }) {
+const UpcomingMatchCard = React.memo(({ m }: { m: any }) => {
   const d = new Date(m.startTimestamp * 1000)
   const isToday = d.toDateString() === new Date().toDateString()
   const isTomorrow = d.toDateString() === new Date(Date.now() + 86400000).toDateString()
@@ -126,15 +180,21 @@ function UpcomingMatchCard({ m }: { m: any }) {
       </div>
     </div>
   )
-}
+})
+const UpcomingMatchCardAny = UpcomingMatchCard as any
+const LiveMatchCardAny = LiveMatchCard as any
 
 // 🚀 GLOBAL CACHE TO PERSIST DATA BETWEEN NAVIGATION
 let matchesCache: any[] | null = null;
+
+const PRIORITY_LEAGUE_IDS = [17, 8, 23, 35, 34, 7, 676, 381, 384]; // 🏆 Giải hàng đầu
 
 export default function LiveScreen() {
   const [matches, setMatches] = useState<any[]>(matchesCache || [])
   const [loading, setLoading] = useState(!matchesCache)
   const [activeTab, setActiveTab] = useState('all')
+  const [expandedLeagues, setExpandedLeagues] = useState<Record<string, boolean>>({});
+  const [leagueShowAll, setLeagueShowAll] = useState<Record<string, boolean>>({});
 
   const fetchMatches = async () => {
     try {
@@ -143,15 +203,10 @@ export default function LiveScreen() {
       const res = await fetch(`${API}/matches/${todayStr}`)
       const json = await res.json()
       if (json.success) {
-        // Flatten grouped matches from the backend
         const allMatches = json.data.flatMap((group: any) => group.matches || [])
-        
-        // Format to the schema expected by cards
         const formatted = allMatches.map((m: any) => {
-          // Extract ID from sk (MATCH#12345) or use id/_id
           const rawId = m.sk || m._id || m.id || "";
           const cleanId = rawId.includes('#') ? rawId.split('#')[1] : rawId;
-
           return {
             id: cleanId,
             league: m.tournamentName || "Giải đấu Khác",
@@ -171,12 +226,22 @@ export default function LiveScreen() {
             scoreA: (typeof m.homeScore === 'object' ? m.homeScore?.current : m.homeScore) ?? (typeof m.score?.home === 'object' ? m.score.home.current : m.score?.home) ?? 0,
             scoreB: (typeof m.awayScore === 'object' ? m.awayScore?.current : m.awayScore) ?? (typeof m.score?.away === 'object' ? m.score.away.current : m.score?.away) ?? 0,
             rawTime: m.time,
-            liveStatus: m.liveStatus
+            liveStatus: m.liveStatus,
+            uniqueTournamentId: m.uniqueTournamentId || m.tournament?.uniqueTournament?.id || m.tournament?.id
           }
         })
-        
-        setMatches(formatted)
-        matchesCache = formatted
+
+        // 🔥 DEDUPLICATE BY ID
+        const uniqueMatchesMap = new Map();
+        formatted.forEach(m => {
+          if (m.id && !uniqueMatchesMap.has(m.id)) {
+            uniqueMatchesMap.set(m.id, m);
+          }
+        });
+        const finalMatches = Array.from(uniqueMatchesMap.values());
+
+        setMatches(finalMatches)
+        matchesCache = finalMatches
       }
     } catch (e) {
       console.error(e)
@@ -187,165 +252,197 @@ export default function LiveScreen() {
 
   useEffect(() => {
     fetchMatches()
-    const interval = setInterval(fetchMatches, 30000)
-    return () => clearInterval(interval)
+    const { socket } = require('../../utils/socket')
+    socket.connect()
+    const handleScoreUpdate = (data: any) => {
+      setMatches(prev => prev.map(m => {
+        if (m.id === data.matchId) {
+          return {
+            ...m,
+            scoreA: data.homeScore ?? m.scoreA,
+            scoreB: data.awayScore ?? m.scoreB,
+            time: data.time ?? m.time,
+            status: data.status ?? m.status
+          }
+        }
+        return m;
+      }))
+    }
+    const handleMatchUpdate = () => fetchMatches()
+    socket.on('scoreUpdate', handleScoreUpdate)
+    socket.on('matchUpdate', handleMatchUpdate)
+    const interval = setInterval(fetchMatches, 120000)
+    return () => {
+      socket.off('scoreUpdate', handleScoreUpdate)
+      socket.off('matchUpdate', handleMatchUpdate)
+      clearInterval(interval)
+    }
   }, [])
 
-  // Derived Match Groups
-  const MATCH_DURATION_SEC = 110 * 60 // 110 mins
-  const nowSec = Math.floor(Date.now() / 1000)
+  const [nowSec, setNowSec] = useState(Math.floor(Date.now() / 1000));
+  const [visibleLiveCount, setVisibleLiveCount] = useState(30);
+  const [searchQuery, setSearchQuery] = useState('');
 
-  const liveMatches = matches.filter(m => {
-    const status = String(m.status || "").toLowerCase();
-    const liveStatus = String(m.liveStatus || "").toLowerCase();
+  const normalizeString = (str: string) => 
+    str.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/đ/g, "d");
 
-    // 1. Nếu đã kết thúc rõ ràng -> Loại khỏi Live
-    if (['finished', 'closed', 'ended'].includes(status)) return false;
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setNowSec(Math.floor(Date.now() / 1000));
+    }, 30000); // Cập nhật mỗi 30 giây là đủ cho logic lọc
+    return () => clearInterval(timer);
+  }, []);
 
-    // 2. Safety Check: Nếu bắt đầu quá 180 phút (3 tiếng) -> Coi như đã xong
-    if (m.startTimestamp && (nowSec - m.startTimestamp > 180 * 60)) return false;
+  const liveMatches = React.useMemo(() => {
+    return matches.filter(m => {
+      const status = String(m.status || "").toLowerCase();
+      const liveStatus = String(m.liveStatus || "").toLowerCase();
+      
+      // 1. Đã kết thúc hoặc bị huỷ → bỏ qua ngay
+      if (['finished', 'closed', 'ended', 'canceled', 'postponed'].includes(status)) return false;
+      
+      // 2. Kiểm tra thời gian trôi qua (Safety Check)
+      if (m.startTimestamp) {
+        const elapsed = nowSec - m.startTimestamp;
+        
+        // Nếu trận đấu đã bắt đầu quá 180 phút (3 tiếng) -> Coi như đã xong, ẩn khỏi Live
+        if (elapsed > 180 * 60) return false;
 
-    // 3. Ưu tiên liveStatus từ bảng điều khiển media hoặc status từ crawler
-    if (liveStatus === 'inprogress' || liveStatus === 'live') return true;
-    if (['live', 'inprogress', 'in_progress'].includes(status)) return true;
-    
-    // 4. Trận sắp đá trong vòng 30 phút tới -> Đưa lên mục LIVE
-    if (m.startTimestamp && (m.startTimestamp - nowSec <= 30 * 60) && (m.startTimestamp > nowSec)) return true;
+        // Nếu trận đấu chưa bắt đầu (còn hơn 15 phút nữa mới đá) -> Không hiện ở Live
+        if (elapsed < -15 * 60) return false;
+      }
 
-    return false;
-  }).sort((a, b) => {
-    const diffA = Math.abs(nowSec - (a.startTimestamp || 0));
-    const diffB = Math.abs(nowSec - (b.startTimestamp || 0));
-    return diffA - diffB;
-  });
+      // 3. Chỉ lấy các trận THỰC SỰ đang diễn ra (LIVE)
+      const isActuallyLive = ['inprogress', 'live', 'in_progress', 'streaming'].includes(status) || 
+                             ['inprogress', 'live'].includes(liveStatus);
+      
+      const isRecentlyStarted = m.startTimestamp && (nowSec - m.startTimestamp > 0) && (nowSec - m.startTimestamp < 5 * 60);
+
+      const passesLive = isActuallyLive || isRecentlyStarted;
+      if (!passesLive) return false;
+
+      // 5. Lọc theo từ khóa tìm kiếm
+      if (searchQuery.trim()) {
+        const q = normalizeString(searchQuery);
+        const matchName = normalizeString(`${m.teamA?.name} ${m.teamB?.name} ${m.league}`);
+        return matchName.includes(q);
+      }
+      
+      return true;
+    });
+  }, [matches, nowSec, searchQuery]);
+
+  const sortedLiveMatches = React.useMemo(() => {
+    return [...liveMatches].sort((a, b) => {
+      const diffA = Math.abs(nowSec - (a.startTimestamp || 0));
+      const diffB = Math.abs(nowSec - (b.startTimestamp || 0));
+      return diffA - diffB;
+    });
+  }, [liveMatches, nowSec]);
+
+  const upcomingMatches = React.useMemo(() => {
+    return matches.filter(m => {
+      const status = String(m.status || "").toLowerCase();
+      if (['finished', 'canceled', 'postponed', 'closed', 'ended', 'live', 'inprogress', 'in_progress'].includes(status)) return false;
+      return m.startTimestamp && m.startTimestamp > nowSec;
+    }).sort((a, b) => (a.startTimestamp || 0) - (b.startTimestamp || 0));
+  }, [matches, nowSec]);
   
-  const upcomingMatches = matches.filter(m => {
-    const status = String(m.status || "").toLowerCase();
+  const finishedMatches = React.useMemo(() => {
+    return matches.filter(m => {
+      const status = String(m.status || "").toLowerCase();
+      return ['finished', 'closed', 'ended'].includes(status) || (m.startTimestamp && (nowSec - m.startTimestamp > 180 * 60));
+    }).sort((a, b) => (b.startTimestamp || 0) - (a.startTimestamp || 0));
+  }, [matches, nowSec]);
 
-    if (['finished', 'canceled', 'postponed', 'closed', 'ended'].includes(status)) return false;
-    if (['live', 'inprogress', 'in_progress'].includes(status)) return false;
-
-    if (m.startTimestamp) {
-       const elapsed = nowSec - m.startTimestamp;
-       // Nếu đã quá 180 phút thì không còn là "Sắp diễn ra" (đã sang Finished)
-       if (elapsed > 180 * 60) return false;
-       // Hiện các trận chưa đá hoặc sắp đá (từ 30 phút nữa đến 2 tiếng nữa)
-       return m.startTimestamp > nowSec + 1800 && m.startTimestamp <= nowSec + 7200;
-    }
-    return false;
-  }).sort((a, b) => (a.startTimestamp || 0) - (b.startTimestamp || 0));
-  
-  const finishedMatches = matches.filter(m => {
-    const status = String(m.status || "").toLowerCase();
-    // Coi là kết thúc nếu status là finished HOẶC đã bắt đầu quá 3 tiếng
-    return ['finished', 'closed', 'ended'].includes(status) || (m.startTimestamp && (nowSec - m.startTimestamp > 180 * 60));
-  }).sort((a, b) => (b.startTimestamp || 0) - (a.startTimestamp || 0));
+  const displayedLiveMatches = sortedLiveMatches.slice(0, visibleLiveCount);
+  const hasMoreLive = sortedLiveMatches.length > visibleLiveCount;
 
   return (
     <div className="ls-root">
-      <style dangerouslySetInnerHTML={{ __html: CSS }} />
+      <style dangerouslySetInnerHTML={{ __html: CSS + `
+        .ls-show-more-main {
+          display: flex; justify-content: center; margin-top: 40px; margin-bottom: 60px;
+        }
+        .ls-btn-more {
+          background: rgba(34,197,94,0.1); border: 1px solid #22c55e; color: #22c55e;
+          padding: 14px 40px; border-radius: 100px; font-size: 14px; font-weight: 900;
+          cursor: pointer; transition: all 0.2s; text-transform: uppercase; letter-spacing: 1px;
+        }
+        .ls-btn-more:hover { background: #22c55e; color: black; transform: scale(1.05); }
+      ` }} />
       <div className="ls-container">
-        
         <h1 className="ls-title">TRỰC TIẾP</h1>
         <p className="ls-subtitle">Theo dõi các trận cầu nảy lửa từ các giải đấu phủi hàng đầu Việt Nam</p>
 
         <div className="ls-top-bar">
           <div className="ls-tabs">
             {TABS.map(t => (
-              <button 
-                key={t.key} 
-                className={`ls-tab ${activeTab === t.key ? 'active' : ''}`}
-                onClick={() => setActiveTab(t.key)}
-              >
-                {t.label}
-              </button>
+              <button key={t.key} className={`ls-tab ${activeTab === t.key ? 'active' : ''}`} onClick={() => setActiveTab(t.key)}>{t.label}</button>
             ))}
           </div>
-
-          <div className="ls-filter-wrap">
-            <span className="ls-filter-label">Chọn Giải Đấu</span>
-            <select className="ls-select">
-              <option>Tất cả giải đấu (Hôm nay)</option>
-              <option>HPL-S10: Giải Ngoại hạng Phủi</option>
-              {/* Optional: map unique leagues from today's matches */}
-            </select>
+          
+          <div className="ls-search-box">
+            <svg className="ls-search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+            <input 
+              type="text" 
+              className="ls-search-input" 
+              placeholder="Tìm kiếm giải đấu, đội bóng..." 
+              value={searchQuery}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                setVisibleLiveCount(30); // Reset phân trang khi tìm kiếm
+              }}
+            />
           </div>
         </div>
 
         {loading ? (
-          <div className="ls-loading-wrap">
-            <div className="spinner-spotify" />
-            <span style={{ color: '#5a6a5e', fontSize: 14, fontWeight: 700 }}>Đang tải trận đấu...</span>
-          </div>
+          <div className="ls-loading-wrap"><div className="spinner-spotify" /><span style={{ color: '#5a6a5e', fontSize: 14, fontWeight: 700 }}>Đang tải trận đấu...</span></div>
         ) : (
           <>
-            {/* --- LIVE SECTION --- */}
             {(activeTab === 'all' || activeTab === 'live') && (
               <div style={{ marginBottom: 60 }}>
                 <h2 className="ls-section-title">
                   <div className="ls-dot" style={{ animation: 'pulse-live 1.2s infinite' }} /> 
-                  ĐANG TRỰC TIẾP
+                  ĐANG TRỰC TIẾP ({liveMatches.length})
                 </h2>
                 <div className="ls-grid">
-                  {liveMatches.length > 0 ? (
-                    liveMatches.map(m => (
-                      <div key={m.id} style={{ display: 'flex' }}>
-                        <LiveMatchCard {...m} />
-                      </div>
-                    ))
+                  {displayedLiveMatches.length > 0 ? (
+                    displayedLiveMatches.map((m: any) => <LiveMatchCardAny key={m.id} {...m} />)
                   ) : (
-                    <div className="empty-state" style={{ gridColumn: '1 / -1' }}>
-                      Không có trận đấu nào đang diễn ra ngay lúc này.
-                    </div>
+                    <div className="empty-state" style={{ gridColumn: '1 / -1' }}>Không có trận đấu nào đang diễn ra ngay lúc này.</div>
                   )}
                 </div>
+                {hasMoreLive && (
+                  <div className="ls-show-more-main">
+                    <button className="ls-btn-more" onClick={() => setVisibleLiveCount(prev => prev + 30)}>
+                      XEM THÊM {sortedLiveMatches.length - visibleLiveCount} TRẬN ĐANG DIỄN RA
+                    </button>
+                  </div>
+                )}
               </div>
             )}
 
-            {/* --- UPCOMING SECTION --- */}
             {(activeTab === 'all' || activeTab === 'upcoming') && (
               <div style={{ marginBottom: 60 }}>
-                <h2 className="ls-section-title">
-                  <div className="ls-dot green" /> 
-                  SẮP DIỄN RA
-                </h2>
+                <h2 className="ls-section-title"><div className="ls-dot green" /> SẮP DIỄN RA</h2>
                 <div className="ls-grid">
-                  {upcomingMatches.length > 0 ? (
-                    upcomingMatches.map(m => <UpcomingMatchCard key={m.id} m={m} />)
-                  ) : (
-                    <div className="empty-state" style={{ gridColumn: '1 / -1' }}>
-                      Không có trận đấu nào sắp diễn ra trong ngày.
-                    </div>
-                  )}
+                  {upcomingMatches.length > 0 ? upcomingMatches.map(m => <UpcomingMatchCardAny key={m.id} m={m} />) : <div className="empty-state" style={{ gridColumn: '1 / -1' }}>Không có trận đấu nào sắp diễn ra trong ngày.</div>}
                 </div>
               </div>
             )}
 
-            {/* --- FINISHED SECTION --- */}
             {(activeTab === 'finished') && (
               <div style={{ marginBottom: 60 }}>
-                <h2 className="ls-section-title">
-                  <div className="ls-dot" style={{ background: '#5a6a5e' }} /> 
-                  ĐÃ KẾT THÚC
-                </h2>
+                <h2 className="ls-section-title"><div className="ls-dot" style={{ background: '#5a6a5e' }} /> ĐÃ KẾT THÚC</h2>
                 <div className="ls-grid">
-                   {finishedMatches.length > 0 ? (
-                    finishedMatches.map(m => (
-                      <div key={m.id} style={{ display: 'flex', opacity: 0.8 }}>
-                        <LiveMatchCard {...m} />
-                      </div>
-                    ))
-                  ) : (
-                    <div className="empty-state" style={{ gridColumn: '1 / -1' }}>
-                      Hôm nay chưa có trận nào kết thúc.
-                    </div>
-                  )}
+                   {finishedMatches.length > 0 ? finishedMatches.map(m => <div key={m.id} style={{ display: 'flex', opacity: 0.8 }}><LiveMatchCardAny {...m} /></div>) : <div className="empty-state" style={{ gridColumn: '1 / -1' }}>Hôm nay chưa có trận nào kết thúc.</div>}
                 </div>
               </div>
             )}
           </>
         )}
-
       </div>
     </div>
   )

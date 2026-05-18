@@ -11,6 +11,8 @@ import { Track } from 'livekit-client';
 import '@livekit/components-styles';
 import { getImageUrl } from '../../utils/image'
 
+declare var require: any;
+
 // Component phụ để hiển thị Video Grid mà không bị lỗi TS
 function Monitor() {
   const [volume, setVolume] = useState(1);
@@ -211,6 +213,33 @@ const CSS = `
     animation: spin 0.8s linear infinite;
   }
   @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Chat UI */
+  .lc-chat-area { background: #181818; border-radius: 12px; display: flex; flex-direction: column; overflow: hidden; height: 400px; box-shadow: rgba(0,0,0,0.5) 0px 8px 24px; border: 1px solid rgba(255,255,255,0.05); }
+  .lc-chat-header { padding: 16px 20px; border-bottom: 1px solid rgba(255,255,255,0.05); display: flex; align-items: center; gap: 10px; }
+  .lc-chat-header h3 { margin: 0; font-size: 14px; font-weight: 900; text-transform: uppercase; color: #fff; letter-spacing: 0.5px; }
+  .lc-chat-dot { width: 6px; height: 6px; border-radius: 50%; background: #22c55e; }
+  
+  .lc-chat-messages { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 16px; scrollbar-width: thin; scrollbar-color: #22c55e transparent; }
+  .chat-msg-wrapper { display: flex; gap: 10px; margin-bottom: 16px; }
+  .chat-avatar { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; background: #252a29; border: 1px solid rgba(255,255,255,0.1); }
+  .chat-content { flex: 1; display: flex; flex-direction: column; gap: 4px; }
+  .chat-header { display: flex; align-items: baseline; gap: 6px; }
+  .chat-username { font-size: 13px; font-weight: 800; color: #fff; }
+  .chat-badge { font-size: 9px; font-weight: 900; padding: 2px 6px; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .chat-badge.admin { background: rgba(239, 68, 68, 0.2); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.4); }
+  .chat-badge.media { background: rgba(59, 130, 246, 0.2); color: #3b82f6; border: 1px solid rgba(59, 130, 246, 0.4); }
+  .chat-time { font-size: 10px; color: #5a6a5e; margin-left: auto; }
+  .chat-text { font-size: 13px; color: #ddd; line-height: 1.4; word-break: break-word; }
+  .chat-text.highlight { color: #fff; font-weight: 500; }
+  
+  .lc-chat-input-wrap { padding: 16px; border-top: 1px solid rgba(255,255,255,0.05); display: flex; gap: 10px; }
+  .lc-chat-input { flex: 1; background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; padding: 10px 16px; color: #fff; font-size: 13px; transition: border-color 0.2s; }
+  .lc-chat-input:focus { outline: none; border-color: #22c55e; }
+  .lc-chat-input:disabled { opacity: 0.5; cursor: not-allowed; }
+  .lc-chat-send { background: #22c55e; color: #000; border: none; width: 40px; height: 40px; border-radius: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.2s; }
+  .lc-chat-send:disabled { background: #5a6a5e; cursor: not-allowed; }
+  .lc-chat-send:hover:not(:disabled) { background: #2df070; }
 `;
 
 const USE_MOCK_STREAM = process.env.NEXT_PUBLIC_USE_MOCK_STREAM === 'true' || true;
@@ -231,6 +260,74 @@ export function LiveControl({ API, showToast, matchId }: LiveControlProps) {
   const [searchQuery, setSearchQuery] = useState('')
   const videoRef = useRef<HTMLVideoElement>(null)
   const playerRef = useRef<any>(null)
+
+  // Chat states
+  const [messages, setMessages] = useState<any[]>([]);
+  const [messageInput, setMessageInput] = useState("");
+  const [currentUser, setCurrentUser] = useState<any>(null);
+  const chatEndRef = useRef<HTMLDivElement>(null);
+  const socketRef = useRef<any>(null);
+
+  // Fetch User Info
+  useEffect(() => {
+      const userStr = localStorage.getItem('user');
+      if (userStr) {
+          try { setCurrentUser(JSON.parse(userStr)); } catch(e) {}
+      }
+  }, []);
+
+  // Scroll to bottom
+  useEffect(() => {
+      if (chatEndRef.current && chatEndRef.current.parentElement) {
+          const parent = chatEndRef.current.parentElement;
+          parent.scrollTo({ top: parent.scrollHeight, behavior: 'smooth' });
+      }
+  }, [messages]);
+
+  // Setup Socket for Chat
+  useEffect(() => {
+      if (!selectedMatch?.id) return;
+      const { socket } = require('../../utils/socket');
+      socketRef.current = socket;
+      
+      socket.connect();
+      socket.emit('join_live_room', selectedMatch.id);
+
+      const handleNewMessage = (msg: any) => {
+          setMessages(prev => [...prev, msg]);
+      };
+      socket.on('new_chat_message', handleNewMessage);
+      socket.on('chat_error', (err: any) => showToast(err.message));
+
+      const fetchChatHistory = async () => {
+          try {
+              const res = await fetch(`${API}/media/live-chats/${selectedMatch.id}`);
+              const json = await res.json();
+              if (json.success && json.data) setMessages(json.data);
+          } catch(e) {}
+      };
+      fetchChatHistory();
+
+      return () => {
+          socket.off('new_chat_message', handleNewMessage);
+          socket.off('chat_error');
+          socket.disconnect();
+          setMessages([]);
+      };
+  }, [selectedMatch?.id, API]);
+
+  const handleSendMessage = () => {
+      if (!messageInput.trim() || !selectedMatch?.id) return;
+      if (!currentUser) return showToast('Bạn cần đăng nhập để bình luận!');
+      
+      const token = localStorage.getItem('token') || localStorage.getItem('accessToken');
+      socketRef.current.emit('send_chat_message', {
+          matchId: selectedMatch.id,
+          token,
+          message: messageInput.trim()
+      });
+      setMessageInput("");
+  };
 
   // Tự động chọn trận đấu nếu có matchId từ Props (URL)
   useEffect(() => {
@@ -259,8 +356,8 @@ export function LiveControl({ API, showToast, matchId }: LiveControlProps) {
   }
 
   // Fetch matches
-  const fetchLiveMatches = async () => {
-    setLoading(true)
+  const fetchLiveMatches = async (isSilent: boolean = false) => {
+    if (!isSilent) setLoading(true)
     try {
       const now = new Date();
       const vnTime = new Date(now.getTime() + (7 * 60 * 60 * 1000));
@@ -307,10 +404,16 @@ export function LiveControl({ API, showToast, matchId }: LiveControlProps) {
     }
   }
 
+  const selectedIdRef = useRef<string | null>(null);
+  useEffect(() => {
+    selectedIdRef.current = selectedMatch?.id || null;
+  }, [selectedMatch?.id]);
+
   useEffect(() => {
     fetchLiveMatches()
     const { io } = require('socket.io-client');
     const socket = io(API.replace('/api', ''));
+    
     socket.on('scoreUpdate', (data: any) => {
       const incomingId = String(data.matchId || data.id || "").includes('#') 
         ? String(data.matchId || data.id).split('#')[1] 
@@ -318,19 +421,36 @@ export function LiveControl({ API, showToast, matchId }: LiveControlProps) {
 
       setMatches(prev => prev.map(m => m.id === incomingId ? { ...m, ...data, id: incomingId } : m));
       
-      if (selectedMatch?.id === incomingId) {
+      // Sử dụng Ref để kiểm tra trận đang chọn mà không bị closure stale
+      if (selectedIdRef.current === incomingId) {
         setSelectedMatch((prev: any) => ({ ...prev, ...data, id: incomingId }));
       }
     });
+
     const interval = setInterval(() => {
-      fetchLiveMatches();
+      // Chỉ fetch ngầm, không set loading(true) để tránh nháy màn hình
+      const fetchSilent = async () => {
+        try {
+          const now = new Date();
+          const vnTime = new Date(now.getTime() + (7 * 60 * 60 * 1000));
+          const today = vnTime.toISOString().split('T')[0];
+          const res = await fetch(`${API}/matches/${today}?t=${Date.now()}`)
+          const json = await res.json()
+          if (json.success && Array.isArray(json.data)) {
+             // Logic format tương tự fetchLiveMatches nhưng không setLoading
+             // (Để đơn giản có thể tách fetch thành hàm dùng chung có tham số silent)
+             fetchLiveMatches(true);
+          }
+        } catch (e) {}
+      }
+      fetchSilent();
     }, 60000);
 
     return () => { 
       socket.disconnect(); 
       clearInterval(interval);
     };
-  }, [selectedMatch?.id])
+  }, [])
 
   const handlePrepareStream = async () => {
     if (!selectedMatch) return
@@ -352,6 +472,15 @@ export function LiveControl({ API, showToast, matchId }: LiveControlProps) {
       showToast("Lỗi khi khởi tạo!");
     }
   }
+
+  // Tự động khôi phục kết nối luồng nếu trận đấu đang diễn ra mà bị mất token (do F5)
+  useEffect(() => {
+    if (selectedMatch && !lkToken) {
+      if (selectedMatch.liveStatus === 'inprogress' || selectedMatch.liveStatus === 'live') {
+        handlePrepareStream();
+      }
+    }
+  }, [selectedMatch?.id, selectedMatch?.liveStatus]);
 
   const handleGoLive = async () => {
     if (!selectedMatch) return
@@ -623,8 +752,10 @@ export function LiveControl({ API, showToast, matchId }: LiveControlProps) {
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: 32 }}>
-              {/* Monitor Section */}
-              <div style={{ background: '#000', borderRadius: 24, overflow: 'hidden', aspectRatio: '16/9', position: 'relative', boxShadow: '0 20px 40px rgba(0,0,0,0.8)' }}>
+              {/* Left Column (Monitor & Chat) */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+                {/* Monitor Section */}
+                <div style={{ background: '#000', borderRadius: 24, overflow: 'hidden', aspectRatio: '16/9', position: 'relative', boxShadow: '0 20px 40px rgba(0,0,0,0.8)' }}>
                   {lkToken ? (
                     <Room video={false} audio={false} connect={true} token={lkToken} serverUrl={LK_SERVER_URL} style={{ height: '100%' }}>
                       <Monitor />
@@ -638,6 +769,69 @@ export function LiveControl({ API, showToast, matchId }: LiveControlProps) {
                     </div>
                   )}
               </div>
+              
+              {/* Chat Box below Monitor */}
+              <div className="lc-chat-area">
+                  <div className="lc-chat-header">
+                      <div className="lc-chat-dot" />
+                      <h3>Trò chuyện trực tiếp</h3>
+                  </div>
+                  <div className="lc-chat-messages">
+                      <div className="chat-msg-wrapper" style={{ opacity: 0.7 }}>
+                          <div className="chat-avatar" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#22c55e' }}>
+                             <svg width="16" height="16" viewBox="0 0 24 24" fill="#000"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                          </div>
+                          <div className="chat-content">
+                              <div className="chat-header">
+                                  <span className="chat-username" style={{ color: '#22c55e' }}>Hệ thống</span>
+                                  <span className="chat-time">Vừa xong</span>
+                              </div>
+                              <span className="chat-text">Đây là khu vực hiển thị tin nhắn của khán giả. Bạn có thể trò chuyện trực tiếp tại đây!</span>
+                          </div>
+                      </div>
+                      
+                      {messages.map((msg, idx) => {
+                          const isSpecial = ['admin', 'super_admin'].includes(msg.role);
+                          const isMedia = msg.role === 'media';
+                          return (
+                              <div key={msg.id || idx} className="chat-msg-wrapper">
+                                  <img src={msg.avatar || 'https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y'} className="chat-avatar" />
+                                  <div className="chat-content">
+                                      <div className="chat-header">
+                                          <span className="chat-username" style={{ color: isSpecial ? '#ef4444' : isMedia ? '#3b82f6' : '#fff' }}>
+                                              {msg.username}
+                                          </span>
+                                          {isSpecial && <span className="chat-badge admin">Quản trị viên</span>}
+                                          {isMedia && <span className="chat-badge media">Truyền thông</span>}
+                                          <span className="chat-time">{new Date(msg.timestamp).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}</span>
+                                      </div>
+                                      <span className={`chat-text ${isSpecial || isMedia ? 'highlight' : ''}`}>{msg.message}</span>
+                                  </div>
+                              </div>
+                          )
+                      })}
+                      <div ref={chatEndRef} />
+                  </div>
+                  <div className="lc-chat-input-wrap">
+                      <input 
+                          type="text" 
+                          className="lc-chat-input" 
+                          placeholder={!currentUser ? "Đăng nhập để bình luận..." : !lkToken ? "Đang chờ luồng Video..." : "Nhập tin nhắn..."} 
+                          value={messageInput}
+                          onChange={(e) => setMessageInput(e.target.value)}
+                          onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
+                          disabled={!currentUser || !lkToken}
+                      />
+                      <button 
+                          className="lc-chat-send" 
+                          onClick={handleSendMessage}
+                          disabled={!currentUser || !lkToken || !messageInput.trim()}
+                      >
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
+                      </button>
+                  </div>
+              </div>
+            </div>
 
               {/* Control Panel */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>

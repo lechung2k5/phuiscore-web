@@ -4,6 +4,7 @@ const MatchRepo = require('../repositories/match.repo');
 const NotificationRepo = require('../repositories/notification.repo');
 const { generateStructure, allocateGreedy } = require('../utils/scheduler');
 const { v4: uuidv4 } = require('uuid');
+const { auditLog } = require('../utils/auditLogger');
 
 const tournamentController = {
   /**
@@ -108,6 +109,17 @@ const tournamentController = {
       }
 
       const updated = await TournamentRepo.update(req.params.id, req.body);
+      
+      // Ghi Audit Log
+      await auditLog(req, {
+        action: 'UPDATE_TOURNAMENT',
+        entityType: 'TOURNAMENT',
+        entityId: req.params.id,
+        oldValue: tournament,
+        newValue: updated,
+        note: `Cập nhật thông tin giải đấu: ${tournament.name}`
+      });
+
       res.json({ success: true, data: updated });
     } catch (error) {
       console.error('[Tournament] ❌ update:', error.message);
@@ -120,7 +132,19 @@ const tournamentController = {
    */
   remove: async (req, res) => {
     try {
+      const tournament = await TournamentRepo.getById(req.params.id);
       await TournamentRepo.delete(req.params.id);
+      
+      // Ghi Audit Log
+      await auditLog(req, {
+        action: 'DELETE_TOURNAMENT',
+        entityType: 'TOURNAMENT',
+        entityId: req.params.id,
+        oldValue: tournament,
+        newValue: null,
+        note: `Xóa giải đấu: ${tournament?.name || req.params.id}`
+      });
+
       res.json({ success: true, message: 'Đã xóa giải đấu' });
     } catch (error) {
       res.status(500).json({ success: false, message: error.message });
@@ -238,6 +262,16 @@ const tournamentController = {
         return res.status(400).json({ success: false, message: `Trạng thái không hợp lệ. Dùng: ${VALID.join(', ')}` });
       }
       const updated = await TournamentRepo.updateTeamStatus(id, teamId, status, btcNote || '');
+
+      // Ghi Audit Log
+      await auditLog(req, {
+        action: 'UPDATE_TEAM_STATUS',
+        entityType: 'TOURNAMENT',
+        entityId: id,
+        oldValue: { teamId, status: 'previous' },
+        newValue: { teamId, status, btcNote },
+        note: `Cập nhật trạng thái đội trong giải: ${status}`
+      });
 
       // 💥 Gửi thông báo cho người đăng ký đội bóng (sử dụng dữ liệu 'updated' vừa lưu)
       try {
@@ -530,6 +564,17 @@ const tournamentController = {
         await MatchRepo.deleteMatch(oldDate, match.id);
       }
       await MatchRepo.saveMatchesBatch([newMatch]);
+
+      // Ghi Audit Log
+      await auditLog(req, {
+        action: 'UPDATE_MATCH',
+        entityType: 'MATCH',
+        entityId: req.params.matchId,
+        oldValue: match,
+        newValue: newMatch,
+        note: `Cập nhật trận đấu: ${match.homeTeam?.name} vs ${match.awayTeam?.name}`
+      });
+
       res.json({ success: true, data: newMatch });
     } catch (error) {
       res.status(500).json({ success: false, message: error.message });

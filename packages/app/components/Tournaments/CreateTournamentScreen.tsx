@@ -148,7 +148,7 @@ const UploadZone = ({ label, accept, hint, value, onDone, type }: {
           onPress={() => !uploading && inputRef.current?.click()}
         >
           {uploading
-            ? <Spinner size="small" color={C.primary} />
+            ? <Spinner size="small" color={C.primary as any} />
             : (
               <YStack alignItems="center" gap="$1.5">
                 <Text fontSize={28}>{type === 'image' ? '🖼️' : '📄'}</Text>

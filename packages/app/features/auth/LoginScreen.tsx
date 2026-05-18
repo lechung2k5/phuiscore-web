@@ -1,12 +1,11 @@
 "use client"
 import React, { useState, useEffect } from 'react'
 import { YStack, XStack, Text, Input, Button, Card, View, Label, H2, Image, ScrollView, AnimatePresence } from 'tamagui'
-import { Eye, EyeOff, ArrowRight, Facebook, Chrome, User, Lock, LogIn, CheckCircle2 } from '@tamagui/lucide-icons'
+import { Eye, EyeOff, Facebook, Chrome, User, Lock, LogIn, CheckCircle2 } from '@tamagui/lucide-icons'
 import { useRouter } from 'solito/navigation'
 
-// 1. IMPORT LOGO ASSET
-import LogoAsset from '../../assets/logo.svg' 
-import { API_BASE } from '../../utils/api-config'
+import LogoAsset from '../../assets/logo.svg'
+import { apiLogin } from '../../services/auth.api'
 
 const COLORS: any = {
   green: '#28a745',
@@ -62,27 +61,17 @@ export const LoginScreen = () => {
     if (!validate()) return
 
     setLoading(true)
-    const API = API_BASE
     try {
-      const response = await fetch(`${API}/auth/login`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData)
-      })
-
-      const data = await response.json()
-
-      if (response.ok) {
-        // Lưu token và thông tin user vào localStorage để đồng bộ Header
-        localStorage.setItem('token', data.token)
-        localStorage.setItem('user', JSON.stringify(data.user)) 
-        setShowSuccessPopup(true)
-      } else {
-        // Hiển thị lỗi tổng quát từ server (sai pass/user)
-        setErrors({ global: data.message || "Tài khoản hoặc mật khẩu không chính xác." })
-      }
-    } catch (error) {
-      setErrors({ global: "Lỗi kết nối hệ thống. Vui lòng thử lại sau." })
+      const data = await apiLogin(formData.username, formData.password)
+      // Lưu cả 2 key để tương thích toàn bộ codebase:
+      // - 'token' → dùng bởi tất cả các component cũ (admin, tournaments, teams...)
+      // - 'accessToken' → dùng bởi refresh token flow mới
+      localStorage.setItem('token', data.accessToken)
+      localStorage.setItem('accessToken', data.accessToken)
+      localStorage.setItem('user', JSON.stringify(data.user))
+      setShowSuccessPopup(true)
+    } catch (error: any) {
+      setErrors({ global: error.message || "Tài khoản hoặc mật khẩu không chính xác." })
     } finally {
       setLoading(false)
     }
@@ -101,7 +90,7 @@ export const LoginScreen = () => {
 
           {/* BRANDING */}
           <YStack alignItems="center" marginBottom="$8" gap="$3">
-            <Image src={getImageUrl(LogoAsset) as any} width={220 as any} height={70 as any} alt="Phui Score Logo" resizeMode="contain" />
+            <Image src={getImageUrl(LogoAsset) as any} width={220 as any} height={70 as any} alt="Phui Score Logo" style={{ objectFit: 'contain' } as any} />
             <View backgroundColor={COLORS.green as any} height={2 as any} width={40 as any} borderRadius={1 as any} />
             <Text color={COLORS.textGray as any} fontSize={14 as any} fontWeight="800" letterSpacing={3 as any} fontFamily={FONT_BODY}>
               HỆ THỐNG QUẢN LÝ BÓNG ĐÁ PHONG TRÀO
@@ -162,7 +151,12 @@ export const LoginScreen = () => {
                 )}
 
                 <XStack justifyContent="flex-end">
-                  <Text color={COLORS.green as any} fontSize={13 as any} fontWeight="700" fontFamily={FONT_BODY} cursor="pointer" hoverStyle={{ opacity: 0.8 } as any}>
+                  <Text
+                    color={COLORS.green as any} fontSize={13 as any} fontWeight="700"
+                    fontFamily={FONT_BODY} cursor="pointer"
+                    hoverStyle={{ opacity: 0.8 } as any}
+                    onPress={() => router.push('/forgot-password' as any)}
+                  >
                     Quên mật khẩu?
                   </Text>
                 </XStack>

@@ -1,0 +1,49 @@
+[
+  {
+    "area": "Hà Nội",
+    "updatedAt": 1777717709985,
+    "status": "active",
+    "short_name": "MOBI",
+    "createdAt": 1777717709985,
+    "managerId": "admin_seed",
+    "id": "team-mobi",
+    "name": "Mobi FC",
+    "logo_url": "https://api.dicebear.com/7.x/identicon/svg?seed=mobi"
+  },
+  {
+    "area": "Thái Nguyên",
+    "updatedAt": 1777717710114,
+    "short_name": "DTU",
+    "status": "active",
+    "createdAt": 1777717710114,
+    "managerId": "admin_seed",
+    "id": "team-daitu",
+    "name": "Đại Từ FC",
+    "logo_url": "https://api.dicebear.com/7.x/identicon/svg?seed=daitu"
+  },
+  {
+    "founded_year": 2026,
+    "leader": "An Biên",
+    "area": "TP.HCM",
+    "updatedAt": 1779043325176,
+    "short_name": "ABI",
+    "status": "active",
+    "createdAt": 1777717710179,
+    "managerId": "admin_seed",
+    "id": "team-anbien",
+    "name": "An Biên FC",
+    "primary_color": "#db0000",
+    "logo_url": "https://phuiscore-media-storage.s3.amazonaws.com/others/1779043175820_11zon_cropped_(4).png"
+  },
+  {
+    "area": "Hà Nội",
+    "updatedAt": 1777717710049,
+    "short_name": "EOC",
+    "status": "active",
+    "createdAt": 1777717710049,
+    "managerId": "admin_seed",
+    "id": "team-eoc",
+    "name": "EOC FC",
+    "logo_url": "https://api.dicebear.com/7.x/identicon/svg?seed=eoc"
+  }
+]

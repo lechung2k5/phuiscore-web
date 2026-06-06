@@ -5,7 +5,9 @@
   "main": "index.js",
   "scripts": {
     "dev": "npx nodemon src/index.js",
-    "start": "node src/index.js"
+    "start": "node src/index.js",
+    "db:cleanup:preserve-tournament": "node scripts/cleanup-preserve-tournament.js",
+    "db:seed:8-team": "node scripts/seed-eight-team-tournament.js"
   },
   "keywords": [],
   "author": "",

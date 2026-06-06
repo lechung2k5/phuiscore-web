@@ -6,6 +6,332 @@ const { generateStructure, allocateGreedy } = require('../utils/scheduler');
 const { v4: uuidv4 } = require('uuid');
 const { auditLog } = require('../utils/auditLogger');
 
+const normalizeStatus = (status = '') => String(status).toLowerCase();
+const isPlayedStatus = (status) => ['finished', 'ongoing', 'inprogress', 'live'].includes(normalizeStatus(status));
+const isFinishedStatus = (status) => ['finished', 'ended', 'fulltime', 'ft'].includes(normalizeStatus(status));
+const isScheduledStatus = (status) => ['scheduled', 'notstarted', 'pending'].includes(normalizeStatus(status));
+
+const getScoreValue = (match, side) => {
+  const direct = side === 'home' ? match.homeScore : match.awayScore;
+  const score = match.score?.[side];
+  const value = direct ?? (typeof score === 'object' ? score?.current : score);
+  const number = Number(value);
+  return Number.isFinite(number) ? number : 0;
+};
+
+const getTeamId = (team) => String(team?.id || team?.teamId || team?.name || 'unknown');
+const getTeamName = (team) => team?.name || team?.teamName || team?.shortName || 'TBA';
+const getTeamLogo = (team) => team?.logo || team?.photo || team?.logo_url || '';
+
+const eventTypeOf = (event) => String(event.type || event.incidentType || event.eventType || '').toLowerCase();
+const eventPlayerOf = (event) => event.playerName || event.player?.name || event.player || event.name || 'Chưa rõ cầu thủ';
+
+const eventTeamInfo = (event, match) => {
+  const raw = String(event.team || event.incidentClass || event.side || '').toLowerCase();
+  if (raw.includes('away')) return match.awayTeam;
+  if (raw.includes('home')) return match.homeTeam;
+  const teamId = event.teamId || event.team?.id;
+  if (teamId && String(teamId) === getTeamId(match.awayTeam)) return match.awayTeam;
+  return match.homeTeam;
+};
+
+const addPlayerStat = (map, key, patch) => {
+  const current = map.get(key) || {
+    playerName: patch.playerName,
+    teamName: patch.teamName,
+    teamLogo: patch.teamLogo,
+    goals: 0,
+    yellowCards: 0,
+    redCards: 0,
+  };
+  map.set(key, {
+    ...current,
+    goals: current.goals + (patch.goals || 0),
+    yellowCards: current.yellowCards + (patch.yellowCards || 0),
+    redCards: current.redCards + (patch.redCards || 0),
+  });
+};
+
+const buildTournamentStats = (tournament, matches = []) => {
+  const teams = new Map();
+  const ensureTeam = (team) => {
+    const id = getTeamId(team);
+    if (!teams.has(id)) {
+      teams.set(id, {
+        teamId: id,
+        teamName: getTeamName(team),
+        teamLogo: getTeamLogo(team),
+        played: 0,
+        wins: 0,
+        draws: 0,
+        losses: 0,
+        goalsFor: 0,
+        goalsAgainst: 0,
+        goalDifference: 0,
+        cleanSheets: 0,
+        yellowCards: 0,
+        redCards: 0,
+        fairPlayPoints: 0,
+        form: '',
+      });
+    }
+    return teams.get(id);
+  };
+
+  (tournament.teams || []).forEach((team) => ensureTeam({
+    id: team.teamId || team.id,
+    name: team.teamName || team.name,
+    logo: team.logo,
+  }));
+
+  (tournament.standings || []).forEach((group) => {
+    (group.rows || []).forEach((row) => ensureTeam(row.team || {
+      id: row.teamId || row.id,
+      name: row.teamName || row.name,
+      logo: row.teamLogo || row.logo,
+    }));
+  });
+
+  const playerStats = new Map();
+  const playedMatches = matches.filter((match) => isPlayedStatus(match.status));
+  const finishedMatches = matches.filter((match) => isFinishedStatus(match.status));
+  const scheduledMatches = matches.filter((match) => isScheduledStatus(match.status));
+  const liveMatches = matches.filter((match) => ['ongoing', 'inprogress', 'live'].includes(normalizeStatus(match.status)));
+  let totalGoals = 0;
+  let totalYellowCards = 0;
+  let totalRedCards = 0;
+
+  const highlights = {
+    highestScoring: null,
+    biggestWin: null,
+    mostCards: null,
+    latestFinished: null,
+  };
+
+  for (const match of playedMatches) {
+    const home = ensureTeam(match.homeTeam);
+    const away = ensureTeam(match.awayTeam);
+    const homeScore = getScoreValue(match, 'home');
+    const awayScore = getScoreValue(match, 'away');
+    const goals = homeScore + awayScore;
+    const cardCountForMatch = { total: 0 };
+    totalGoals += goals;
+
+    if (isFinishedStatus(match.status)) {
+      home.played += 1;
+      away.played += 1;
+      home.goalsFor += homeScore;
+      home.goalsAgainst += awayScore;
+      away.goalsFor += awayScore;
+      away.goalsAgainst += homeScore;
+      if (awayScore === 0) home.cleanSheets += 1;
+      if (homeScore === 0) away.cleanSheets += 1;
+
+      if (homeScore > awayScore) {
+        home.wins += 1; away.losses += 1; home.form += 'W'; away.form += 'L';
+      } else if (homeScore < awayScore) {
+        away.wins += 1; home.losses += 1; away.form += 'W'; home.form += 'L';
+      } else {
+        home.draws += 1; away.draws += 1; home.form += 'D'; away.form += 'D';
+      }
+    }
+
+    for (const event of match.incidents || match.events || []) {
+      const type = eventTypeOf(event);
+      const team = eventTeamInfo(event, match);
+      const teamStat = ensureTeam(team);
+      const playerName = eventPlayerOf(event);
+      const playerKey = `${getTeamId(team)}::${playerName}`;
+
+      if (type.includes('goal') && !type.includes('own')) {
+        addPlayerStat(playerStats, playerKey, {
+          playerName,
+          teamName: getTeamName(team),
+          teamLogo: getTeamLogo(team),
+          goals: 1,
+        });
+      }
+
+      if (type.includes('yellow')) {
+        totalYellowCards += 1;
+        cardCountForMatch.total += 1;
+        teamStat.yellowCards += 1;
+        addPlayerStat(playerStats, playerKey, {
+          playerName,
+          teamName: getTeamName(team),
+          teamLogo: getTeamLogo(team),
+          yellowCards: 1,
+        });
+      }
+
+      if (type.includes('red')) {
+        totalRedCards += 1;
+        cardCountForMatch.total += 1;
+        teamStat.redCards += 1;
+        addPlayerStat(playerStats, playerKey, {
+          playerName,
+          teamName: getTeamName(team),
+          teamLogo: getTeamLogo(team),
+          redCards: 1,
+        });
+      }
+    }
+
+    const matchSummary = {
+      id: match.id,
+      dateString: match.dateString,
+      timeString: match.timeString,
+      status: match.status,
+      homeTeam: match.homeTeam,
+      awayTeam: match.awayTeam,
+      homeScore,
+      awayScore,
+      totalGoals: goals,
+      goalMargin: Math.abs(homeScore - awayScore),
+      totalCards: cardCountForMatch.total,
+    };
+
+    if (!highlights.highestScoring || goals > highlights.highestScoring.totalGoals) highlights.highestScoring = matchSummary;
+    if (!highlights.biggestWin || matchSummary.goalMargin > highlights.biggestWin.goalMargin) highlights.biggestWin = matchSummary;
+    if (!highlights.mostCards || cardCountForMatch.total > highlights.mostCards.totalCards) highlights.mostCards = matchSummary;
+    if (isFinishedStatus(match.status) && (!highlights.latestFinished || Number(match.startTimestamp || 0) > Number(highlights.latestFinished.startTimestamp || 0))) {
+      highlights.latestFinished = { ...matchSummary, startTimestamp: match.startTimestamp };
+    }
+  }
+
+  const fallbackTopScorers = tournament.stats?.topScorers || [];
+  const fallbackCards = tournament.stats?.cards || [];
+  for (const player of fallbackTopScorers) {
+    const key = `${player.teamName || ''}::${player.playerName}`;
+    if (!playerStats.has(key)) addPlayerStat(playerStats, key, player);
+  }
+  for (const player of fallbackCards) {
+    const key = `${player.teamName || ''}::${player.playerName}`;
+    if (!playerStats.has(key)) addPlayerStat(playerStats, key, player);
+  }
+
+  const teamStats = Array.from(teams.values()).map((team) => ({
+    ...team,
+    goalDifference: team.goalsFor - team.goalsAgainst,
+    points: team.wins * 3 + team.draws,
+    fairPlayPoints: team.yellowCards + team.redCards * 3,
+    form: team.form.slice(-5),
+  }));
+
+  const players = Array.from(playerStats.values());
+  const topScorers = players.filter((p) => p.goals > 0).sort((a, b) => b.goals - a.goals).slice(0, 20);
+  const cards = players
+    .filter((p) => p.yellowCards || p.redCards)
+    .sort((a, b) => (b.yellowCards + b.redCards * 3) - (a.yellowCards + a.redCards * 3))
+    .slice(0, 20);
+
+  return {
+    summary: {
+      totalMatches: matches.length,
+      playedMatches: playedMatches.length,
+      finishedMatches: finishedMatches.length,
+      scheduledMatches: scheduledMatches.length,
+      liveMatches: liveMatches.length,
+      totalGoals,
+      goalsPerMatch: finishedMatches.length ? Number((totalGoals / finishedMatches.length).toFixed(2)) : 0,
+      totalYellowCards,
+      totalRedCards,
+      cardsPerMatch: playedMatches.length ? Number(((totalYellowCards + totalRedCards) / playedMatches.length).toFixed(2)) : 0,
+    },
+    teamStats,
+    topScorers,
+    cards,
+    highlights,
+    updatedAt: new Date().toISOString(),
+  };
+};
+
+const buildTournamentStandings = (tournament, matches = []) => {
+  const groups = new Map();
+  const addTeam = (team, groupName = 'Bảng xếp hạng') => {
+    const id = getTeamId(team);
+    if (!groups.has(groupName)) groups.set(groupName, new Map());
+    const rows = groups.get(groupName);
+    if (!rows.has(id)) {
+      rows.set(id, {
+        team: { id, name: getTeamName(team), shortName: getTeamName(team), logo: getTeamLogo(team) },
+        teamId: id,
+        teamName: getTeamName(team),
+        teamLogo: getTeamLogo(team),
+        played: 0,
+        wins: 0,
+        draws: 0,
+        losses: 0,
+        scoresFor: 0,
+        scoresAgainst: 0,
+        points: 0,
+        form: [],
+      });
+    }
+    return rows.get(id);
+  };
+
+  for (const registration of tournament.teams || []) {
+    addTeam({
+      id: registration.id || registration.teamId,
+      name: registration.teamName || registration.name,
+      logo: registration.logo,
+    });
+  }
+
+  for (const match of matches.filter((m) => isFinishedStatus(m.status) || normalizeStatus(m.status) === 'ongoing')) {
+    const groupName = match.group ? `Bảng ${match.group}` : 'Bảng xếp hạng';
+    const home = addTeam(match.homeTeam, groupName);
+    const away = addTeam(match.awayTeam, groupName);
+    const homeScore = getScoreValue(match, 'home');
+    const awayScore = getScoreValue(match, 'away');
+
+    home.played += 1;
+    away.played += 1;
+    home.scoresFor += homeScore;
+    home.scoresAgainst += awayScore;
+    away.scoresFor += awayScore;
+    away.scoresAgainst += homeScore;
+
+    if (homeScore > awayScore) {
+      home.wins += 1; away.losses += 1; home.points += 3; home.form.push('W'); away.form.push('L');
+    } else if (homeScore < awayScore) {
+      away.wins += 1; home.losses += 1; away.points += 3; away.form.push('W'); home.form.push('L');
+    } else {
+      home.draws += 1; away.draws += 1; home.points += 1; away.points += 1; home.form.push('D'); away.form.push('D');
+    }
+  }
+
+  return Array.from(groups.entries()).map(([name, rowMap]) => ({
+    name,
+    rows: Array.from(rowMap.values())
+      .map((row) => ({
+        ...row,
+        goalDifference: row.scoresFor - row.scoresAgainst,
+        rank: 0,
+        mp: row.played,
+        w: row.wins,
+        d: row.draws,
+        l: row.losses,
+        gf: row.scoresFor,
+        ga: row.scoresAgainst,
+        gd: row.scoresFor - row.scoresAgainst,
+        pts: row.points,
+        form: row.form.slice(-5).join(''),
+      }))
+      .sort((a, b) => b.points - a.points || b.goalDifference - a.goalDifference || b.scoresFor - a.scoresFor)
+      .map((row, index) => ({ ...row, rank: index + 1 })),
+  }));
+};
+
+const refreshTournamentStandings = async (tournamentId) => {
+  const tournament = await TournamentRepo.getById(tournamentId);
+  if (!tournament) return;
+  const matches = await MatchRepo.getMatchesByTournament(tournamentId);
+  const standings = buildTournamentStandings(tournament, matches || []);
+  await TournamentRepo.update(tournamentId, { standings });
+};
+
 const tournamentController = {
   /**
    * GET /api/tournaments — Danh sách giải đấu (public, có filter)
@@ -38,6 +364,18 @@ const tournamentController = {
   /**
    * POST /api/tournaments — Tạo giải mới (yêu cầu login)
    */
+  getStats: async (req, res) => {
+    try {
+      const item = await TournamentRepo.getById(req.params.id);
+      if (!item) return res.status(404).json({ success: false, message: 'Khong tim thay giai dau' });
+      const matches = await MatchRepo.getMatchesByTournament(req.params.id);
+      res.json({ success: true, data: buildTournamentStats(item, matches || []) });
+    } catch (error) {
+      console.error('[Tournament] getStats:', error.message);
+      res.status(500).json({ success: false, message: error.message });
+    }
+  },
+
   create: async (req, res) => {
     try {
       const { name, region, stadium, format, maxTeams, pitchType, entryFee,
@@ -519,6 +857,9 @@ const tournamentController = {
       const t = await TournamentRepo.getById(req.params.id);
       if (!t) return res.status(404).json({ success: false, message: 'Tournament not found' });
       const m = req.body;
+      const homeScore = Number(m.homeScore ?? m.score?.home ?? 0);
+      const awayScore = Number(m.awayScore ?? m.score?.away ?? 0);
+      const status = m.status || 'Scheduled';
       const newMatch = {
         id: uuidv4(),
         tournamentId: t.id,
@@ -532,12 +873,21 @@ const tournamentController = {
         pitchNumber: m.pitchNumber || '',
         round: m.round || 'Vòng Bảng',
         group: m.group || null,
-        score: { home: 0, away: 0 },
-        status: 'Scheduled',
-        currentMinute: 0,
+        score: { home: homeScore, away: awayScore },
+        homeScore,
+        awayScore,
+        status,
+        currentMinute: Number(m.currentMinute || 0),
+        incidents: Array.isArray(m.incidents) ? m.incidents : [],
+        isManualControl: true,
+        liveStatus: status === 'Ongoing' ? 'streaming' : 'idle',
         startTimestamp: new Date(`${m.dateString}T${m.timeString || '00:00'}`).getTime()
       };
       await MatchRepo.saveMatchesBatch([newMatch]);
+      await refreshTournamentStandings(req.params.id);
+      invalidateCache(`/api/tournaments/${req.params.id}/matches`);
+      invalidateCache(`/api/tournaments/${req.params.id}/stats`);
+      invalidateCache(`/api/tournaments/${req.params.id}`);
       res.json({ success: true, data: newMatch });
     } catch (error) {
       res.status(500).json({ success: false, message: error.message });
@@ -554,6 +904,17 @@ const tournamentController = {
       if (!match) return res.status(404).json({ success: false, message: 'Match not found' });
       
       const newMatch = { ...match, ...updates };
+      if (updates.homeScore !== undefined || updates.awayScore !== undefined || updates.score) {
+        const homeScore = Number(updates.homeScore ?? updates.score?.home ?? match.homeScore ?? match.score?.home ?? 0);
+        const awayScore = Number(updates.awayScore ?? updates.score?.away ?? match.awayScore ?? match.score?.away ?? 0);
+        newMatch.homeScore = homeScore;
+        newMatch.awayScore = awayScore;
+        newMatch.score = { home: homeScore, away: awayScore };
+      }
+      if (updates.currentMinute !== undefined) newMatch.currentMinute = Number(updates.currentMinute || 0);
+      if (updates.incidents !== undefined) newMatch.incidents = Array.isArray(updates.incidents) ? updates.incidents : [];
+      newMatch.isManualControl = true;
+      newMatch.liveStatus = newMatch.status === 'Ongoing' ? 'streaming' : 'idle';
       if (updates.dateString || updates.timeString) {
         const d = updates.dateString || match.dateString;
         const t = updates.timeString || match.timeString;
@@ -564,6 +925,10 @@ const tournamentController = {
         await MatchRepo.deleteMatch(oldDate, match.id);
       }
       await MatchRepo.saveMatchesBatch([newMatch]);
+      await refreshTournamentStandings(req.params.id);
+      invalidateCache(`/api/tournaments/${req.params.id}/matches`);
+      invalidateCache(`/api/tournaments/${req.params.id}/stats`);
+      invalidateCache(`/api/tournaments/${req.params.id}`);
 
       // Ghi Audit Log
       await auditLog(req, {

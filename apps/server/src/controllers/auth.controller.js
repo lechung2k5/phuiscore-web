@@ -37,14 +37,16 @@ const issueTokens = (payload) => {
     return { accessToken, refreshToken };
 };
 
+const getRefreshTokenCookieOptions = () => ({
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+    maxAge: SESSION_TTL_SECONDS * 1000,
+    path: '/api/auth',
+});
+
 const setRefreshTokenCookie = (res, refreshToken) => {
-    res.cookie('refreshToken', refreshToken, {
-        httpOnly: true,                                       // Không thể đọc bằng JS (chống XSS)
-        secure: process.env.NODE_ENV === 'production',        // Chỉ HTTPS trên Production
-        sameSite: 'strict',                                   // Chống CSRF
-        maxAge: SESSION_TTL_SECONDS * 1000,                  // 30 ngày (ms)
-        path: '/api/auth',                                    // Chỉ gửi cookie cho các route auth
-    });
+    res.cookie('refreshToken', refreshToken, getRefreshTokenCookieOptions());
 };
 
 const safeRedisGet = async (key) => {
@@ -854,7 +856,8 @@ const logout = async (req, res) => {
         // Đổi session DB để token cũ không sống lại khi Redis đang lỗi/miss
         await UserRepo.updateUserSession(username, uuidv4());
         // Xóa RefreshToken cookie
-        res.clearCookie('refreshToken', { path: '/api/auth' });
+        const { maxAge, ...clearCookieOptions } = getRefreshTokenCookieOptions();
+        res.clearCookie('refreshToken', clearCookieOptions);
         res.json({ message: "Đăng xuất thành công!" });
     } catch (error) {
         console.error('[Logout Error]', error);

@@ -1,0 +1,135 @@
+[
+  {
+    "entityType": "TOURNAMENT",
+    "note": "Cập nhật thông tin giải đấu: Cup Thiên Long: Giải bóng đá lão tướng",
+    "action": "UPDATE_TOURNAMENT",
+    "userId": "admin1",
+    "newValue": {
+      "createdAt": 1777717709923,
+      "maxTeams": 16,
+      "teams": [],
+      "name": "Cup Thiên Long: Giải bóng đá lão tướng",
+      "banner": "https://i.pinimg.com/736x/cb/28/ef/cb28ef1a46afd815e5874abab2323209.jpg",
+      "organizerName": "Phur",
+      "description": "",
+      "logo": "https://i.pinimg.com/736x/cb/28/ef/cb28ef1a46afd815e5874abab2323209.jpg",
+      "id": "thien-long-cup",
+      "region": "TP.HCM",
+      "updatedAt": 1777740671646,
+      "status": "Ongoing"
+    },
+    "entityId": "thien-long-cup",
+    "timestamp": 1777740671708,
+    "id": "cf91e2cd-afcb-4183-9fe5-1471e7e4ba11",
+    "oldValue": {
+      "createdAt": 1777717709923,
+      "teams": [],
+      "name": "Cup Thiên Long: Giải bóng đá lão tướng",
+      "banner": "https://i.pinimg.com/736x/cb/28/ef/cb28ef1a46afd815e5874abab2323209.jpg",
+      "logo": "https://i.pinimg.com/736x/cb/28/ef/cb28ef1a46afd815e5874abab2323209.jpg",
+      "id": "thien-long-cup",
+      "region": "TP.HCM",
+      "updatedAt": 1777717709923,
+      "status": "Ongoing"
+    }
+  },
+  {
+    "entityType": "LIVESTREAM",
+    "action": "DELETE_INGRESS",
+    "note": "Xóa Ingress: IN_PSW3mS5k5sRV",
+    "userId": "admin1",
+    "entityId": "IN_PSW3mS5k5sRV",
+    "timestamp": 1779044702311,
+    "id": "59f658f4-ffae-49b6-bd3b-fe3a330a8117"
+  },
+  {
+    "entityType": "MATCH",
+    "note": "Cập nhật tỉ số trận đấu. Trạng thái: inprogress",
+    "action": "UPDATE_SCORE",
+    "userId": "media1",
+    "entityId": "16083438",
+    "newValue": "0 - 0",
+    "timestamp": 1777866209162,
+    "id": "7698d465-0752-46c4-9784-9ccc744b21ea"
+  },
+  {
+    "entityType": "MATCH",
+    "action": "UPDATE_SCORE",
+    "note": "Cập nhật tỉ số trận đấu. Trạng thái: finished",
+    "userId": "media1",
+    "entityId": "16083438",
+    "newValue": "0 - 0",
+    "timestamp": 1777866307347,
+    "id": "c23920c1-6dd7-4cd5-9954-f0919edecf16"
+  },
+  {
+    "entityType": "MATCH",
+    "note": "Cập nhật tỉ số trận đấu. Trạng thái: inprogress",
+    "action": "UPDATE_SCORE",
+    "userId": "admin1",
+    "newValue": "0 - 0",
+    "entityId": "14083666",
+    "timestamp": 1779045311956,
+    "id": "634763d8-e050-403c-8e5e-86e192dee5ef"
+  },
+  {
+    "entityType": "TEAM",
+    "action": "UPDATE_TEAM",
+    "id": "3ed557b5-3f65-4a2b-aac0-9b40d39ca71b",
+    "userId": "admin1",
+    "entityId": "team-anbien",
+    "timestamp": 1779043325213
+  },
+  {
+    "entityType": "MATCH",
+    "action": "UPDATE_MATCH",
+    "id": "178e4a64-d373-47f2-ad87-8ac9a6fdaadb",
+    "userId": "admin1",
+    "entityId": "13980058",
+    "timestamp": 1779043349017
+  },
+  {
+    "entityType": "TOURNAMENT",
+    "note": "Xóa giải đấu: thien-long-cup",
+    "action": "DELETE_TOURNAMENT",
+    "userId": "admin1",
+    "entityId": "thien-long-cup",
+    "newValue": null,
+    "timestamp": 1777740690138,
+    "id": "41b1092e-ec7f-4a3d-9e5c-1364c4d54a35",
+    "oldValue": null
+  },
+  {
+    "entityType": "TOURNAMENT",
+    "note": "Xóa giải đấu: Cup Thiên Long: Giải bóng đá lão tướng",
+    "action": "DELETE_TOURNAMENT",
+    "userId": "admin1",
+    "newValue": null,
+    "entityId": "thien-long-cup",
+    "timestamp": 1777740679359,
+    "id": "0cd3eac7-e513-4eb3-9d17-193beba31550",
+    "oldValue": {
+      "createdAt": 1777717709923,
+      "maxTeams": 16,
+      "teams": [],
+      "name": "Cup Thiên Long: Giải bóng đá lão tướng",
+      "banner": "https://i.pinimg.com/736x/cb/28/ef/cb28ef1a46afd815e5874abab2323209.jpg",
+      "description": "",
+      "logo": "https://i.pinimg.com/736x/cb/28/ef/cb28ef1a46afd815e5874abab2323209.jpg",
+      "organizerName": "Phur",
+      "id": "thien-long-cup",
+      "region": "TP.HCM",
+      "status": "Ongoing",
+      "updatedAt": 1777740671646
+    }
+  },
+  {
+    "entityType": "SYSTEM",
+    "action": "CLEAR_CACHE",
+    "note": "Dọn dẹp toàn bộ bộ nhớ đệm API",
+    "userId": "admin1",
+    "entityId": "ALL",
+    "timestamp": 1779044148348,
+    "id": "98db453a-4f4e-4fdd-9bc1-8434ac904df7"
+  }
+]

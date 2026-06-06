@@ -2,6 +2,7 @@ const { Worker } = require('bullmq');
 const connection = require('../config/redis.config');
 const { crawlByDate, fetchDetailedData } = require('../utils/crawler');
 const MatchRepo = require('../repositories/match.repo');
+const ENABLE_MATCH_DETAIL_CRAWL = process.env.ENABLE_MATCH_DETAIL_CRAWL === 'true';
 
 /**
  * Worker xử lý các task cào dữ liệu từ Queue
@@ -18,6 +19,10 @@ const crawlerWorker = new Worker('crawler-tasks', async (job) => {
         break;
 
       case 'MATCH_DETAIL':
+        if (!ENABLE_MATCH_DETAIL_CRAWL) {
+          console.log('[Worker] MATCH_DETAIL skipped because detail crawl is disabled.');
+          break;
+        }
         // Cào chi tiết một trận đấu (Stats, Incidents, Lineups)
         if (!matchId || !match) throw new Error('Thiếu MatchID hoặc dữ liệu trận đấu');
         const detailedData = await fetchDetailedData(match);

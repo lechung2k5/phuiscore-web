@@ -1,0 +1,101 @@
+[
+  {
+    "teams": [],
+    "banner": "https://i.pinimg.com/1200x/ab/67/93/ab6793f014fac7487b6d6f4d27aa79e2.jpg",
+    "updatedAt": 1777717709861,
+    "status": "Registration",
+    "createdAt": 1777717709861,
+    "region": "Quảng Nam",
+    "id": "mien-trung-phui",
+    "logo": "https://i.pinimg.com/1200x/ab/67/93/ab6793f014fac7487b6d6f4d27aa79e2.jpg",
+    "name": "Đại hội bóng đá Phủi miền Trung"
+  },
+  {
+    "teams": [],
+    "updatedAt": 1777717709486,
+    "banner": "https://i.pinimg.com/1200x/52/16/5f/52165f15fac900aa94603c543c44236e.jpg",
+    "status": "Registration",
+    "createdAt": 1777717709486,
+    "region": "Toàn quốc",
+    "id": "vpl-s5",
+    "logo": "https://i.pinimg.com/1200x/52/16/5f/52165f15fac900aa94603c543c44236e.jpg",
+    "name": "VPL-S5: Vòng chung kết bóng đá 7 người toàn quốc"
+  },
+  {
+    "teams": [],
+    "updatedAt": 1777717709800,
+    "banner": "https://i.pinimg.com/736x/63/51/e4/6351e41a65ca93971cead6b4b8408f3f.jpg",
+    "status": "Ongoing",
+    "createdAt": 1777717709800,
+    "region": "Cần Thơ",
+    "id": "can-tho-s7",
+    "logo": "https://i.pinimg.com/736x/63/51/e4/6351e41a65ca93971cead6b4b8408f3f.jpg",
+    "name": "Giải vô địch sân 7 Cần Thơ"
+  },
+  {
+    "teams": [],
+    "updatedAt": 1777717709423,
+    "banner": "https://i.pinimg.com/736x/56/9e/37/569e37ad9fbe097fa5d41eded93975ee.jpg",
+    "status": "Ongoing",
+    "createdAt": 1777717709423,
+    "region": "TP.HCM",
+    "logo": "https://i.pinimg.com/736x/56/9e/37/569e37ad9fbe097fa5d41eded93975ee.jpg",
+    "id": "spl-s6",
+    "name": "SPL-S6: Giải bóng đá 7 người vô địch quốc gia - Miền Nam"
+  },
+  {
+    "teams": [],
+    "banner": "https://i.pinimg.com/736x/d8/c4/dd/d8c4dded83b711772e12a368b72714e5.jpg",
+    "updatedAt": 1777717709547,
+    "status": "Ongoing",
+    "createdAt": 1777717709547,
+    "region": "Đà Nẵng",
+    "logo": "https://i.pinimg.com/736x/d8/c4/dd/d8c4dded83b711772e12a368b72714e5.jpg",
+    "id": "saigon-cup",
+    "name": "Giải bóng đá Cup Bia Saigon 2026"
+  },
+  {
+    "teams": [],
+    "banner": "https://i.pinimg.com/1200x/fa/d9/59/fad9596d8bd239c767b324b0dc975379.jpg",
+    "updatedAt": 1777717709671,
+    "status": "Ongoing",
+    "createdAt": 1777717709671,
+    "region": "Hà Nội",
+    "id": "nghe-an-hn",
+    "logo": "https://i.pinimg.com/1200x/fa/d9/59/fad9596d8bd239c767b324b0dc975379.jpg",
+    "name": "Giải bóng đá các CLB Nghệ An tại Hà Nội"
+  },
+  {
+    "teams": [],
+    "banner": "https://i.pinimg.com/736x/90/ca/d4/90cad41b39f71331c9c77c7c8ce4a7e5.jpg",
+    "updatedAt": 1777717709609,
+    "status": "Registration",
+    "createdAt": 1777717709609,
+    "region": "Hà Nội",
+    "id": "hanoi-d1",
+    "logo": "https://i.pinimg.com/736x/90/ca/d4/90cad41b39f71331c9c77c7c8ce4a7e5.jpg",
+    "name": "Hanoi Premier League - Division 1"
+  },
+  {
+    "teams": [],
+    "updatedAt": 1777717709358,
+    "banner": "https://i.pinimg.com/736x/cb/28/ef/cb28ef1a46afd815e5874abab2323209.jpg",
+    "status": "Ongoing",
+    "createdAt": 1777717709358,
+    "region": "Hà Nội",
+    "id": "hpl-s11",
+    "logo": "https://i.pinimg.com/736x/cb/28/ef/cb28ef1a46afd815e5874abab2323209.jpg",
+    "name": "HPL-S11: Giải bóng đá 7 người vô địch quốc gia - Miền Bắc"
+  },
+  {
+    "teams": [],
+    "banner": "https://i.pinimg.com/736x/f8/fc/14/f8fc1442994678a69076ed45de0f6539.jpg",
+    "updatedAt": 1777717709735,
+    "status": "Registration",
+    "createdAt": 1777717709735,
+    "region": "Hải Phòng",
+    "id": "hai-phong-s7",
+    "logo": "https://i.pinimg.com/736x/f8/fc/14/f8fc1442994678a69076ed45de0f6539.jpg",
+    "name": "Cup bóng đá sân 7 Hải Phòng"
+  }
+]

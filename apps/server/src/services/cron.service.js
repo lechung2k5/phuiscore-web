@@ -1,55 +1,61 @@
-// services/cron.service.js
 const cron = require('node-cron');
 const { crawlByDate } = require('../utils/crawler');
 const { syncExternalNews } = require('./newsFetcher.service');
 const { invalidateCache } = require('../middlewares/cacheMiddleware');
 
-let isCrawling = false; // Mutex lock chống chồng chéo
+const ENABLE_LIVE_CRAWL = process.env.ENABLE_LIVE_CRAWL === 'true';
+const ENABLE_NEWS_SYNC = process.env.ENABLE_NEWS_SYNC === 'true';
+
+let isCrawling = false;
+
+const getVietnamDate = (offsetDays = 0) => {
+    const date = new Date(Date.now() + 7 * 60 * 60 * 1000);
+    date.setDate(date.getDate() + offsetDays);
+    return date.toISOString().split('T')[0];
+};
 
 const setupCron = () => {
-    // 1. Cào dữ liệu mỗi 1 phút cho ngày hôm nay (Dành cho trận đang LIVE)
-    //    ⚡ Chỉnh lại từ 20s -> 60s để tránh làm loạn log và bảo vệ IP
-    cron.schedule('0 * * * * *', async () => {
-        if (isCrawling) return;
+    if (ENABLE_LIVE_CRAWL) {
+        cron.schedule('0 * * * * *', async () => {
+            if (isCrawling) return;
 
-        // Lấy ngày theo múi giờ Việt Nam (GMT+7)
-        const today = new Date(new Date().getTime() + 7 * 60 * 60 * 1000).toISOString().split('T')[0];
-        isCrawling = true;
-        try {
-            await crawlByDate(today);
-        } catch (error) {
-            console.error(`[Cron Job] ❌ Lỗi cập nhật Real-time:`, error.message);
-        } finally {
-            isCrawling = false;
-        }
-    });
+            isCrawling = true;
+            try {
+                await crawlByDate(getVietnamDate());
+            } catch (error) {
+                console.error('[Cron Job] Real-time crawl failed:', error.message);
+            } finally {
+                isCrawling = false;
+            }
+        });
+    } else {
+        console.log('[Cron Job] Live crawl disabled.');
+    }
 
-    // 2. Cào dữ liệu ngày mai mỗi 30 phút
     cron.schedule('0 */30 * * * *', async () => {
-        const tomorrow = new Date(new Date().getTime() + 7 * 60 * 60 * 1000);
-        tomorrow.setDate(tomorrow.getDate() + 1);
-        const dateStr = tomorrow.toISOString().split('T')[0];
-        
-        console.log(`[Cron Job] 📅 Đang cập nhật lịch thi đấu ngày mai: ${dateStr}`);
+        const dateStr = getVietnamDate(1);
+        console.log(`[Cron Job] Updating schedule for tomorrow: ${dateStr}`);
         try {
             await crawlByDate(dateStr);
         } catch (error) {
-            console.error(`[Cron Job] ❌ Lỗi cào ngày mai:`, error.message);
+            console.error('[Cron Job] Tomorrow schedule crawl failed:', error.message);
         }
     });
 
-    // 3. Đồng bộ tin tức từ ghienbongda.vn mỗi 30 phút
-    cron.schedule('0,30 * * * *', async () => {
-        try {
-            const result = await syncExternalNews();
-            if (result.success && (result.synced > 0 || result.updated > 0)) {
-                console.log(`[Cron Job] 🧹 Phát hiện bài mới, đang xóa cache /api/news...`);
-                invalidateCache('/api/news');
+    if (ENABLE_NEWS_SYNC) {
+        cron.schedule('0,30 * * * *', async () => {
+            try {
+                const result = await syncExternalNews();
+                if (result.success && (result.synced > 0 || result.updated > 0)) {
+                    invalidateCache('/api/news');
+                }
+            } catch (error) {
+                console.error('[Cron Job] News sync failed:', error.message);
             }
-        } catch (error) {
-            console.error(`[Cron Job] ❌ Lỗi đồng bộ tin tức:`, error.message);
-        }
-    });
+        });
+    } else {
+        console.log('[Cron Job] News sync disabled.');
+    }
 };
 
 module.exports = setupCron;

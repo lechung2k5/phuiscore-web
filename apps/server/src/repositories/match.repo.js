@@ -65,10 +65,19 @@ const MatchRepo = {
                 tournamentId: match.tournamentId,
                 tournamentName: match.tournamentName,
                 tournamentLogo: match.tournamentLogo,
+                id: match.id,
+                dateString: match.dateString,
+                timeString: match.timeString,
+                stadium: match.stadium,
+                pitchNumber: match.pitchNumber,
+                round: match.round,
+                group: match.group,
                 homeTeam: match.homeTeam,
                 awayTeam: match.awayTeam,
                 status: match.status,
                 score: match.score,
+                homeScore: match.homeScore,
+                awayScore: match.awayScore,
                 currentMinute: match.currentMinute,
                 startTimestamp: match.startTimestamp,
                 gsi1_pk: match.tournamentId ? `TOURNAMENT#${match.tournamentId}` : undefined,
@@ -80,6 +89,8 @@ const MatchRepo = {
                 info: match.info,
                 time: match.time,
                 seasonId: match.seasonId,
+                isManualControl: match.isManualControl,
+                liveStatus: match.liveStatus,
                 updatedAt: new Date().toISOString()
             };
 

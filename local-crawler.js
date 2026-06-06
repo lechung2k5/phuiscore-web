@@ -9,6 +9,8 @@ puppeteer.use(StealthPlugin());
 
 const SERVER_URL = process.env.SERVER_URL || 'http://localhost:5000';
 const SYNC_TOKEN = process.env.SYNC_TOKEN || 'phuiscore_secret_2026';
+const ENABLE_LIVE_CRAWL = process.env.ENABLE_LIVE_CRAWL === 'true';
+const ENABLE_MATCH_DETAIL_CRAWL = process.env.ENABLE_MATCH_DETAIL_CRAWL === 'true';
 
 const socket = io(SERVER_URL);
 
@@ -81,11 +83,15 @@ socket.on('requestMatches', async (data) => {
 });
 
 // 🔔 LẮNG NGHE LỆNH 2: Cào chi tiết trận đấu (BXH thu nhỏ)
-socket.on('requestDetail', async (data) => {
-    const { matchId, date } = data;
-    console.log(`[Socket] 📊 Yêu cầu chi tiết trận: ${matchId}`);
-    await crawlAndSyncDetail(matchId, date);
-});
+if (ENABLE_MATCH_DETAIL_CRAWL) {
+    socket.on('requestDetail', async (data) => {
+        const { matchId, date } = data;
+        console.log(`[Socket] 📊 Yêu cầu chi tiết trận: ${matchId}`);
+        await crawlAndSyncDetail(matchId, date);
+    });
+} else {
+    console.log('[Local Crawler] Match detail crawl disabled.');
+}
 
 // 🔔 LẮNG NGHE LỆNH 3: Cào Bảng xếp hạng của một giải đấu
 socket.on('requestStandings', async (data) => {
@@ -540,7 +546,11 @@ async function warmUpSession() {
 async function start() {
     await warmUpSession();
     backgroundRoutine();
-    liveSyncRoutine();
+    if (ENABLE_LIVE_CRAWL) {
+        liveSyncRoutine();
+    } else {
+        console.log('[Local Crawler] Live crawl disabled.');
+    }
 }
 
 start();

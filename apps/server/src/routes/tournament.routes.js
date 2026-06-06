@@ -40,6 +40,7 @@ router.get('/search-sofa', async (req, res) => {
 router.get('/list', cacheResponse(30), tc.getList);
 
 // ⚡ Cache 60s: Chi tiết giải (Tắt cache tạm thời để BTC thấy update realtime)
+router.get('/:id/stats', tc.getStats);
 router.get('/:id', tc.getDetail);
 
 // ⚡ Cache 30s: Danh sách trận đấu của giải (Tắt cache để xếp lịch hiển thị ngay)

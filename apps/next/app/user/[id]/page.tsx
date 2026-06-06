@@ -329,8 +329,7 @@ export default function ProfilePage({ params }: { params: { id: string } }) {
               <View position="relative">
                 <Avatar circular size={isMobile ? '$10' : '$12'} borderWidth={4} borderColor={C.bg as any}>
                   <Avatar.Image 
-                    src={userData.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=35d071&color=06120b&size=256`} 
-                    fullscreen={undefined as any}
+                    src={userData.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=35d071&color=06120b&size=256`}
                   />
                   <Avatar.Fallback backgroundColor={C.green as any} />
                 </Avatar>

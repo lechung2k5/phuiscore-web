@@ -42,7 +42,16 @@ const blinkStyles = `
 
 // Danh sách các giải đấu ưu tiên (ID SofaScore)
 // Ví dụ: 17 (Premier League), 8 (La Liga), 23 (Serie A), 34 (Ligue 1), 35 (Bundesliga)
-const PRIORITY_LEAGUE_IDS = [17, 8, 23, 35, 34, 7, 676];
+const PRIORITY_LEAGUE_IDS = [17, 8, 23, 35, 34, 7, 676, 'seed-8-team-ongoing-2026'];
+
+const normalizeStatus = (status: any) => String(status || '').toLowerCase();
+const isLiveStatus = (status: any) => ['inprogress', 'live', 'in_progress', 'ongoing'].includes(normalizeStatus(status));
+const isScheduledStatus = (status: any) => ['notstarted', 'not_started', 'scheduled'].includes(normalizeStatus(status));
+const isFinishedStatus = (status: any) => ['finished', 'canceled', 'postponed', 'ended', 'closed'].includes(normalizeStatus(status));
+const toUnixSeconds = (value: any) => {
+  const n = Number(value || 0);
+  return n > 100000000000 ? Math.floor(n / 1000) : n;
+};
 
 export default function MatchSchedulePage() {
   const media = useMedia()
@@ -87,9 +96,9 @@ export default function MatchSchedulePage() {
       // 1. Sắp xếp trận đấu bên trong giải: Live > Not Started > Finished
       const sortedMatches = [...league.matches].sort((a: any, b: any) => {
         const getStatusOrder = (m: any) => {
-          if (m.status === 'inprogress' || m.status === 'live' || m.status === 'in_progress') return 0;
-          if (m.status === 'notstarted' || m.status === 'not_started') return 1;
-          if (m.status === 'finished') return 2;
+          if (isLiveStatus(m.status)) return 0;
+          if (isScheduledStatus(m.status)) return 1;
+          if (isFinishedStatus(m.status)) return 2;
           return 3;
         };
         return getStatusOrder(a) - getStatusOrder(b);
@@ -98,11 +107,11 @@ export default function MatchSchedulePage() {
       const processedLeague = { ...league, matches: sortedMatches };
       
       const hasLiveMatch = league.matches.some((m: any) => {
-        if (m.liveStatus === 'inprogress' || m.liveStatus === 'live') return true;
-        if (m.status === 'inprogress' || m.status === 'live' || m.status === 'in_progress') return true;
+        if (isLiveStatus(m.liveStatus)) return true;
+        if (isLiveStatus(m.status)) return true;
         return false;
       });
-      const isPriority = PRIORITY_LEAGUE_IDS.includes(Number(league.id));
+      const isPriority = PRIORITY_LEAGUE_IDS.includes(Number(league.id)) || PRIORITY_LEAGUE_IDS.includes(String(league.id));
 
       if (hasLiveMatch || isPriority) {
         top.push(processedLeague);
@@ -110,6 +119,15 @@ export default function MatchSchedulePage() {
         minor.push(processedLeague);
       }
     });
+
+    const priorityRank = (league: any) => {
+      const id = String(league.id);
+      if (id === 'seed-8-team-ongoing-2026') return -1;
+      const index = PRIORITY_LEAGUE_IDS.findIndex((item) => String(item) === id);
+      return index === -1 ? 999 : index;
+    };
+
+    top.sort((a, b) => priorityRank(a) - priorityRank(b));
 
     return { topLeagues: top, minorLeagues: minor };
   }, [leagues]);
@@ -324,10 +342,10 @@ const LeagueContainer = ({ league, isExpandedDefault, onToggle }: any) => {
   const nowSec = Math.floor(Date.now() / 1000)
   const liveMatchCount = league.matches.filter((m: any) => {
     const status = String(m.status || '').toLowerCase();
-    if (['finished', 'canceled', 'postponed', 'ended', 'closed'].includes(status)) return false;
-    if (['inprogress', 'live', 'in_progress'].includes(status)) return true;
+    if (isFinishedStatus(status)) return false;
+    if (isLiveStatus(status)) return true;
     if (m.startTimestamp) {
-      const elapsed = nowSec - m.startTimestamp;
+      const elapsed = nowSec - toUnixSeconds(m.startTimestamp);
       return elapsed >= -30 * 60 && elapsed <= 130 * 60;
     }
     return false;
@@ -397,18 +415,19 @@ const LeagueContainer = ({ league, isExpandedDefault, onToggle }: any) => {
 const MatchRowDesktop = ({ match, isLast }: any) => {
   const nowSec = Math.floor(Date.now() / 1000)
   const cleanStatus = String(match.status || '').toLowerCase()
-  const explicitlyLive = ['inprogress', 'live', 'in_progress'].includes(cleanStatus)
-  const isFallbackLive = ['notstarted', 'not_started'].includes(cleanStatus) && match.startTimestamp && (nowSec - match.startTimestamp >= -30 * 60) && (nowSec - match.startTimestamp <= 130 * 60)
+  const startSec = toUnixSeconds(match.startTimestamp)
+  const explicitlyLive = isLiveStatus(cleanStatus)
+  const isFallbackLive = isScheduledStatus(cleanStatus) && startSec && (nowSec - startSec >= -30 * 60) && (nowSec - startSec <= 130 * 60)
   
   const isLive = explicitlyLive || isFallbackLive
-  const isFinished = ['finished', 'canceled', 'postponed', 'ended', 'closed'].includes(cleanStatus)
+  const isFinished = isFinishedStatus(cleanStatus)
 
   let timeDisplay = ""
   if (explicitlyLive) {
     if (match.currentMinute && match.currentMinute !== 'Not started') {
       timeDisplay = match.currentMinute
-    } else if (match.startTimestamp && nowSec - match.startTimestamp > 0) {
-      const elapsed = Math.floor((nowSec - match.startTimestamp) / 60)
+    } else if (startSec && nowSec - startSec > 0) {
+      const elapsed = Math.floor((nowSec - startSec) / 60)
       if (elapsed > 90) timeDisplay = "90+'"
       else if (elapsed > 45 && elapsed < 60) timeDisplay = "HT"
       else timeDisplay = `${elapsed}'`
@@ -416,12 +435,12 @@ const MatchRowDesktop = ({ match, isLast }: any) => {
       timeDisplay = "Đang đá"
     }
   } else if (isFallbackLive) {
-    const minLeft = Math.floor((match.startTimestamp - nowSec) / 60)
+    const minLeft = Math.floor((startSec - nowSec) / 60)
     timeDisplay = minLeft > 0 ? `Sắp đá (${minLeft}')` : "Đang đá"
   } else if (isFinished) {
     timeDisplay = "FT"
   } else {
-    timeDisplay = new Date(match.startTimestamp * 1000).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
+    timeDisplay = startSec ? new Date(startSec * 1000).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : (match.timeString || 'VS')
   }
 
   const timeLabel = timeDisplay;
@@ -482,7 +501,7 @@ const MatchRowDesktop = ({ match, isLast }: any) => {
               fontWeight="900"
               color={isLive ? "#000" : "#fff"}
             >
-              {match.status === 'notstarted'
+              {isScheduledStatus(match.status)
                 ? "VS"
                 : `${typeof match.score?.home === 'object' ? (match.score.home.current ?? 0) : (match.score?.home ?? 0)} - ${typeof match.score?.away === 'object' ? (match.score.away.current ?? 0) : (match.score?.away ?? 0)}`}
             </T>
@@ -515,18 +534,19 @@ const MatchRowDesktop = ({ match, isLast }: any) => {
 const MatchRowMobile = ({ match, isLast }: any) => {
   const nowSec = Math.floor(Date.now() / 1000)
   const cleanStatus = String(match.status || '').toLowerCase()
-  const explicitlyLive = ['inprogress', 'live', 'in_progress'].includes(cleanStatus)
-  const isFallbackLive = ['notstarted', 'not_started'].includes(cleanStatus) && match.startTimestamp && (nowSec - match.startTimestamp >= -30 * 60) && (nowSec - match.startTimestamp <= 130 * 60)
+  const startSec = toUnixSeconds(match.startTimestamp)
+  const explicitlyLive = isLiveStatus(cleanStatus)
+  const isFallbackLive = isScheduledStatus(cleanStatus) && startSec && (nowSec - startSec >= -30 * 60) && (nowSec - startSec <= 130 * 60)
   
   const isLive = explicitlyLive || isFallbackLive
-  const isFinished = ['finished', 'canceled', 'postponed', 'ended', 'closed'].includes(cleanStatus)
+  const isFinished = isFinishedStatus(cleanStatus)
 
   let timeDisplay = ""
   if (explicitlyLive) {
     if (match.currentMinute && match.currentMinute !== 'Not started') {
       timeDisplay = match.currentMinute
-    } else if (match.startTimestamp && nowSec - match.startTimestamp > 0) {
-      const elapsed = Math.floor((nowSec - match.startTimestamp) / 60)
+    } else if (startSec && nowSec - startSec > 0) {
+      const elapsed = Math.floor((nowSec - startSec) / 60)
       if (elapsed > 90) timeDisplay = "90+'"
       else if (elapsed > 45 && elapsed < 60) timeDisplay = "HT"
       else timeDisplay = `${elapsed}'`
@@ -534,12 +554,12 @@ const MatchRowMobile = ({ match, isLast }: any) => {
       timeDisplay = "Đang đá"
     }
   } else if (isFallbackLive) {
-    const minLeft = Math.floor((match.startTimestamp - nowSec) / 60)
+    const minLeft = Math.floor((startSec - nowSec) / 60)
     timeDisplay = minLeft > 0 ? `Sắp đá (${minLeft}')` : "Đang đá"
   } else if (isFinished) {
     timeDisplay = "FT"
   } else {
-    timeDisplay = new Date(match.startTimestamp * 1000).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
+    timeDisplay = startSec ? new Date(startSec * 1000).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : (match.timeString || 'VS')
   }
 
   const timeLabel = timeDisplay;
@@ -619,7 +639,7 @@ const MatchRowMobile = ({ match, isLast }: any) => {
             fontWeight="900"
             color={isLive ? "#f5a623" : "#fff"}
           >
-            {match.status === 'notstarted' ? "-" : (typeof match.score?.home === 'object' ? (match.score.home.current ?? 0) : (match.score?.home ?? 0))}
+            {isScheduledStatus(match.status) ? "-" : (typeof match.score?.home === 'object' ? (match.score.home.current ?? 0) : (match.score?.home ?? 0))}
           </T>
 
           <T
@@ -627,7 +647,7 @@ const MatchRowMobile = ({ match, isLast }: any) => {
             fontWeight="900"
             color={isLive ? "#f5a623" : "#fff"}
           >
-            {match.status === 'notstarted' ? "-" : (typeof match.score?.away === 'object' ? (match.score.away.current ?? 0) : (match.score?.away ?? 0))}
+            {isScheduledStatus(match.status) ? "-" : (typeof match.score?.away === 'object' ? (match.score.away.current ?? 0) : (match.score?.away ?? 0))}
           </T>
         </YS>
       </XS>

@@ -21,6 +21,9 @@ import { usePathname, useRouter } from 'next/navigation';
 import { jwtDecode } from 'jwt-decode';
 import LogoAsset from '../../../../packages/app/assets/logo.svg';
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+const API_BASE = API_URL.endsWith('/api') ? API_URL : `${API_URL}/api`;
+
 const AdminLayout = ({ children }: { children: React.ReactNode }) => {
   const [isSidebarOpen, setSidebarOpen] = useState(true);
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
@@ -80,9 +83,10 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
       setLoading(true);
       setError('');
       try {
-        const response = await fetch(`http://localhost:5000/api/auth/login`, {
+        const response = await fetch(`${API_BASE}/auth/login`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
+          credentials: "include",
           body: JSON.stringify(formData)
         });
         const data = await response.json();

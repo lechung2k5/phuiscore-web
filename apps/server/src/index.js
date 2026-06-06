@@ -32,10 +32,22 @@ const http = require('http');
 const { Server } = require('socket.io');
 const server = http.createServer(app);
 
+const allowedOrigins = (process.env.CORS_ORIGIN || 'http://localhost:3000')
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+
+const corsOrigin = (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin)) {
+        return callback(null, true);
+    }
+    return callback(new Error(`Origin ${origin} is not allowed by CORS`));
+};
+
 // Khởi tạo Socket.io với CORS
 const io = new Server(server, {
     cors: {
-        origin: process.env.CORS_ORIGIN || '*',
+        origin: allowedOrigins,
         methods: ["GET", "POST"]
     }
 });
@@ -125,7 +137,7 @@ app.use(helmet({
 
 // 3. CORS: Phải đặt TRƯỚC rate limiter để response 429 vẫn có CORS header
 app.use(cors({
-    origin: process.env.CORS_ORIGIN || 'http://localhost:3000',
+    origin: corsOrigin,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     credentials: true
 }));
@@ -273,14 +285,21 @@ app.post('/api/upload/tournament-file', async (req, res) => {
 // 🤖 HỆ THỐNG TỰ ĐỘNG (CRON JOBS & WORKERS)
 // ========================================
 
-// Khởi chạy Crawler Worker (Xử lý Queue)
-require('./workers/crawler.worker');
+// Khởi chạy crawler worker chỉ khi cần cào detail/live qua queue.
+// Mặc định tắt để hệ thống chỉ giữ lịch thi đấu và BXH.
+if (process.env.ENABLE_CRAWLER_WORKER === 'true') {
+    require('./workers/crawler.worker');
+} else {
+    console.log('[Crawler Worker] Disabled.');
+}
 
 setupCron();
 
-// Đồng bộ tin tức ngay khi khởi động
-const { syncExternalNews } = require('./services/newsFetcher.service');
-syncExternalNews().catch(err => console.error('[Startup] ❌ Lỗi đồng bộ tin tức:', err.message));
+// Đồng bộ tin tức startup chỉ khi bật rõ ràng.
+if (process.env.ENABLE_NEWS_SYNC === 'true') {
+    const { syncExternalNews } = require('./services/newsFetcher.service');
+    syncExternalNews().catch(err => console.error('[Startup] ❌ Lỗi đồng bộ tin tức:', err.message));
+}
 
 // Job: 00:05 sáng mỗi ngày, cào trước lịch cho 7 ngày tới
 cron.schedule('5 0 * * *', async () => {
@@ -353,6 +372,6 @@ server.listen(PORT, () => {
     console.log(`🚀 Server đang chạy tại: http://localhost:${PORT}`);
     console.log(`⚡ Middleware: compression + helmet + rate-limit`);
     console.log(`💾 Cache: in-memory (node-cache)`);
-    console.log(`✅ CORS: ${process.env.CORS_ORIGIN || 'http://localhost:3000'}`);
+    console.log(`✅ CORS: ${allowedOrigins.join(', ')}`);
     console.log(`==============================================\n`);
 });

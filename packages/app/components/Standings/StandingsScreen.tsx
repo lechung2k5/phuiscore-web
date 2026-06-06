@@ -18,6 +18,7 @@ const BTN: any = Button; const IMG: any = Image; const IPT: any = Input
 const API_BASE_URL = API_BASE
 
 const HOT_LEAGUES = [
+  { id: 900001, name: 'PhuiScore Seed Cup 2026', country: 'Demo', icon: 'https://api.dicebear.com/7.x/shapes/svg?seed=PhuiScoreSeedCup' },
   { id: 17,  name: 'Premier League',    country: 'Anh',       icon: 'https://api.sofascore.app/api/v1/unique-tournament/17/image' },
   { id: 626, name: 'V-League 1',        country: 'Việt Nam',  icon: 'https://api.sofascore.app/api/v1/unique-tournament/626/image' },
   { id: 8,   name: 'LaLiga',            country: 'TBN',       icon: 'https://api.sofascore.app/api/v1/unique-tournament/8/image' },
@@ -208,7 +209,7 @@ export default function StandingsScreen() {
   const media = useMedia()
   const isMobile = !media.gtMd
 
-  const [currentId, setCurrentId] = useState(17)
+  const [currentId, setCurrentId] = useState(900001)
   const [data, setData] = useState<any>(null)
   const [activeTab, setActiveTab] = useState<'groups' | 'knockout'>('groups')
   const [allLeagues, setAllLeagues] = useState<any[]>([])

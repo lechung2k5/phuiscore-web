@@ -7,6 +7,7 @@ const { crawlByDate } = require('../utils/crawler');
 const pendingDetailRequests = new Map();
 const { cacheResponse, invalidateCache } = require('../middlewares/cacheMiddleware');
 const { translateStats } = require('../utils/translator');
+const ENABLE_MATCH_DETAIL_CRAWL = process.env.ENABLE_MATCH_DETAIL_CRAWL === 'true';
 
 // Hàm gom nhóm giải đấu (giữ nguyên logic)
 const groupMatchesByLeague = (matches) => {
@@ -91,7 +92,7 @@ router.get('/detail/:matchId', cacheResponse(60), async (req, res) => {
             
             if (!match) {
                 // Thử phát lệnh cào chi tiết (Biết đâu cào ID sẽ ra)
-                if (global.io) global.io.emit('requestDetail', { matchId, date });
+                if (ENABLE_MATCH_DETAIL_CRAWL && global.io) global.io.emit('requestDetail', { matchId, date });
                 await new Promise(r => setTimeout(r, 2000));
                 match = await MatchRepo.getMatch(date, matchId);
             }
@@ -106,7 +107,7 @@ router.get('/detail/:matchId', cacheResponse(60), async (req, res) => {
         const now = Date.now();
         const lastRequestTime = pendingDetailRequests.get(matchId) || 0;
         
-        if (!hasDetailedData || req.query.refresh === 'true') {
+        if (ENABLE_MATCH_DETAIL_CRAWL && (!hasDetailedData || req.query.refresh === 'true')) {
             // Phát lệnh cào gấp qua Socket
             if (now - lastRequestTime > 30000) {
                 console.log(`[API] 📊 Thiếu thông số trận ${matchId}. Yêu cầu cào gấp...`);

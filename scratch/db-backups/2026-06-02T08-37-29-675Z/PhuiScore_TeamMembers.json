@@ -1,0 +1,111 @@
+[
+  {
+    "avatar": "https://phuiscore-media-storage.s3.ap-southeast-1.amazonaws.com/avatars/1777535947013_vybewocag7.jfif",
+    "shirtNumber": 3,
+    "role": "player",
+    "updatedAt": 1777535947696,
+    "status": "active",
+    "createdAt": 1777535935624,
+    "joinDate": 1777535935624,
+    "id": "member_6ff4c475-5db3-4e10-b767-14a812f20e4e",
+    "teamId": "team_ce790296-d7fc-4464-81d9-75b8cbbf450e",
+    "name": "Trần Văn B3",
+    "position": "N/A"
+  },
+  {
+    "shirtNumber": 12,
+    "role": "player",
+    "updatedAt": 1777535936736,
+    "status": "active",
+    "createdAt": 1777535936736,
+    "joinDate": 1777535936736,
+    "teamId": "team_ce790296-d7fc-4464-81d9-75b8cbbf450e",
+    "id": "member_24327582-6ae3-4fc0-8c6d-eb08a1c6f1b0",
+    "name": "Trần Văn B",
+    "position": "N/A"
+  },
+  {
+    "shirtNumber": 13,
+    "role": "player",
+    "updatedAt": 1777535936892,
+    "status": "active",
+    "createdAt": 1777535936892,
+    "joinDate": 1777535936892,
+    "teamId": "team_ce790296-d7fc-4464-81d9-75b8cbbf450e",
+    "id": "member_78da9187-bf60-4d83-b67e-8bd87e53de69",
+    "name": "Trần Văn B",
+    "position": "N/A"
+  },
+  {
+    "shirtNumber": 7,
+    "role": "player",
+    "updatedAt": 1777535935938,
+    "status": "active",
+    "createdAt": 1777535935938,
+    "joinDate": 1777535935938,
+    "teamId": "team_ce790296-d7fc-4464-81d9-75b8cbbf450e",
+    "id": "member_fa0a209e-580b-46a0-a34a-a63b911c90a7",
+    "name": "Trần Văn B",
+    "position": "N/A"
+  },
+  {
+    "shirtNumber": 11,
+    "role": "player",
+    "updatedAt": 1777535936581,
+    "status": "active",
+    "createdAt": 1777535936581,
+    "joinDate": 1777535936581,
+    "teamId": "team_ce790296-d7fc-4464-81d9-75b8cbbf450e",
+    "id": "member_8d4aba5f-2181-4525-894d-c04253422517",
+    "name": "Trần Văn B",
+    "position": "N/A"
+  },
+  {
+    "shirtNumber": 9,
+    "role": "player",
+    "updatedAt": 1777535936260,
+    "status": "active",
+    "createdAt": 1777535936260,
+    "joinDate": 1777535936260,
+    "teamId": "team_ce790296-d7fc-4464-81d9-75b8cbbf450e",
+    "id": "member_8665e893-ce0f-479d-8dd3-9fa4b03735e7",
+    "name": "Trần Văn B",
+    "position": "N/A"
+  },
+  {
+    "shirtNumber": 10,
+    "role": "player",
+    "updatedAt": 1777535936426,
+    "status": "active",
+    "createdAt": 1777535936426,
+    "joinDate": 1777535936426,
+    "teamId": "team_ce790296-d7fc-4464-81d9-75b8cbbf450e",
+    "id": "member_14a61a40-258c-4926-a5bc-0d65fa387c90",
+    "name": "Trần Văn B",
+    "position": "N/A"
+  },
+  {
+    "shirtNumber": 5,
+    "role": "player",
+    "updatedAt": 1777535935783,
+    "status": "active",
+    "createdAt": 1777535935783,
+    "joinDate": 1777535935783,
+    "teamId": "team_ce790296-d7fc-4464-81d9-75b8cbbf450e",
+    "id": "member_9ecf43e1-3d79-4d01-bc3e-7fe41f82cf98",
+    "name": "Trần Văn B",
+    "position": "N/A"
+  },
+  {
+    "shirtNumber": 8,
+    "role": "player",
+    "updatedAt": 1777535936099,
+    "status": "active",
+    "createdAt": 1777535936099,
+    "joinDate": 1777535936099,
+    "teamId": "team_ce790296-d7fc-4464-81d9-75b8cbbf450e",
+    "id": "member_0a34dc15-1532-4eb1-a330-84862062bd26",
+    "name": "Trần Văn B",
+    "position": "N/A"
+  }
+]

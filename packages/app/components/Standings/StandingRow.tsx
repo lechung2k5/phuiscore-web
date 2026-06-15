@@ -4,16 +4,7 @@ import React, { useMemo } from 'react'
 import { XStack, Text, Circle, View, Image, useMedia } from 'tamagui'
 import { Trophy } from '@tamagui/lucide-icons'
 
-const COUNTRY_MAP: any = {
-  'Qatar': 'qa', 'Switzerland': 'ch', 'Brazil': 'br', 'Morocco': 'ma',
-  'Japan': 'jp', 'Spain': 'es', 'Germany': 'de', 'Croatia': 'hr',
-  'Argentina': 'ar', 'Australia': 'au', 'Senegal': 'sn', 'England': 'gb-eng',
-  'France': 'fr', 'Poland': 'pl', 'Netherlands': 'nl', 'USA': 'us',
-  'Portugal': 'pt', 'South Korea': 'kr', 'Saudi Arabia': 'sa', 'Mexico': 'mx',
-  'Iran': 'ir', 'Tunisia': 'tn', 'Cameroon': 'cm', 'Uruguay': 'uy',
-  'Ecuador': 'ec', 'Canada': 'ca', 'Ghana': 'gh', 'Belgium': 'be',
-  'Serbia': 'rs', 'Costa Rica': 'cr', 'Wales': 'gb-wls', 'Denmark': 'dk'
-};
+import { COUNTRY_MAP } from 'app/utils/countryMap';
 
 const getSafeLogo = (originalUrl: string, name: string = '') => {
   if (!originalUrl) {

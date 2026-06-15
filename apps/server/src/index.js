@@ -158,6 +158,9 @@ const globalLimiter = rateLimit({
 });
 app.use(globalLimiter);
 
+// Phục vụ file upload local (avatar, logo)
+app.use('/uploads', express.static(require('path').join(__dirname, '../uploads')));
+
 // Rate limit riêng cho Auth (chống brute-force): 20 request / 15 phút
 const authLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,

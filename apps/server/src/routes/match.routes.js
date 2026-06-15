@@ -3,13 +3,15 @@ const router = express.Router();
 const MatchRepo = require('../repositories/match.repo');
 const { crawlByDate } = require('../utils/crawler');
 
+const crawledDates = new Set();
+
 // Cơ chế khóa để chống cào trùng lặp (Rate limiting requests)
 const pendingDetailRequests = new Map();
 const { cacheResponse, invalidateCache } = require('../middlewares/cacheMiddleware');
 const { translateStats } = require('../utils/translator');
 const ENABLE_MATCH_DETAIL_CRAWL = process.env.ENABLE_MATCH_DETAIL_CRAWL === 'true';
 
-// Hàm gom nhóm giải đấu (giữ nguyên logic)
+// Hàm gom nhóm giải đấu (giữ nguyên logic, có thêm tính ổn định logo)
 const groupMatchesByLeague = (matches) => {
     const grouped = matches.reduce((acc, match) => {
         const leagueId = match.tournamentId || match.gsi1_pk?.replace('TOURNAMENT#', '') || 'other';
@@ -22,6 +24,12 @@ const groupMatchesByLeague = (matches) => {
                 matches: []
             };
         }
+        
+        // Nếu trận đầu tiên không có logo nhưng trận sau có, cập nhật lại logo cho giải
+        if (!acc[leagueId].logo && match.tournamentLogo) {
+            acc[leagueId].logo = match.tournamentLogo;
+        }
+
         acc[leagueId].matches.push(match);
         return acc;
     }, {});
@@ -34,29 +42,27 @@ router.get('/:date', cacheResponse(10), async (req, res) => {
         const { date } = req.params;
         
         // 1. Kiểm tra trong Database trước
-        let matches = await MatchRepo.getMatchesByDate(date);
-        
-        // 2. Nếu trống, kích hoạt cào "On-demand" qua Local Crawler
-        if (!matches || matches.length === 0) {
-            console.log(`[API] 🚨 Thiếu dữ liệu ngày ${date}. Đang yêu cầu cào gấp qua Socket...`);
+        let matches = [];
+        if (date === 'all') {
+            matches = await MatchRepo.getAllMatches();
+        } else {
+            // TỰ ĐỘNG CÀO SOFASCORE 1 LẦN MỖI KHI RESTART SERVER NẾU USER YÊU CẦU NGÀY NÀY
+            if (!crawledDates.has(date)) {
+                console.log(`[API] 🚨 Tự động cào SofaScore cho ngày ${date}...`);
+                crawledDates.add(date); // Đánh dấu đã cào
+                const { crawlByDate } = require('../utils/crawler');
+                await crawlByDate(date);
+            }
             
-            // Phát lệnh qua Socket (Phải khớp với local-crawler.js)
-            if (global.io) {
-                global.io.emit('requestMatches', { date });
-            }
-
-            // VÒNG LẶP ĐỢI DỮ LIỆU (Đợi tối đa 2.5 giây để đảm bảo response < 3s)
-            let attempts = 0;
-            while (attempts < 12) {
-                await new Promise(r => setTimeout(r, 200)); // Kiểm tra mỗi 200ms
-                matches = await MatchRepo.getMatchesByDate(date);
-                
-                if (matches && matches.length > 0) {
-                    console.log(`[API] ⚡ Đã nhận được dữ liệu ngày ${date} từ Crawler sau ${attempts * 0.2}s!`);
-                    break;
-                }
-                attempts++;
-            }
+            matches = await MatchRepo.getMatchesByDate(date);
+        }
+        
+        // 2. Chỉ hiển thị dữ liệu World Cup (16) hoặc các giải tự tạo (ID UUID dài hơn 10 ký tự) hoặc trận đấu thủ công
+        if (matches) {
+            matches = matches.filter(m => {
+                const tIdStr = String(m.tournamentId || '');
+                return tIdStr === '16' || tIdStr.length > 10 || m.isManualControl === true;
+            });
         }
 
         // 3. Trả về dữ liệu (từ DB hoặc rỗng nếu SofaScore cũng không có)
@@ -85,17 +91,7 @@ router.get('/detail/:matchId', cacheResponse(60), async (req, res) => {
         
         // 1. Nếu không thấy trận đấu trong Database
         if (!match) {
-            console.log(`[API] 🕵️ Không thấy trận ${matchId} ở ngày ${date}, thử cào danh sách...`);
-            const { crawlByDate } = require('../utils/crawler');
-            const dailyMatches = await crawlByDate(date);
-            match = (dailyMatches || []).find(m => String(m.id) === String(matchId));
-            
-            if (!match) {
-                // Thử phát lệnh cào chi tiết (Biết đâu cào ID sẽ ra)
-                if (ENABLE_MATCH_DETAIL_CRAWL && global.io) global.io.emit('requestDetail', { matchId, date });
-                await new Promise(r => setTimeout(r, 2000));
-                match = await MatchRepo.getMatch(date, matchId);
-            }
+            console.log(`[API] 🕵️ Không thấy trận ${matchId} ở ngày ${date}.`);
         }
         
         if (!match) {

@@ -51,25 +51,28 @@ router.get('/:id/matches', tc.getMatches);
 router.get('/me/stats', verifyToken, tc.getMyStats);
 
 // Tạo giải mới (không bắt buộc login — anonymous OK)
+
+
 router.post('/create', verifyTokenOptional, tc.create);
 
 // Đăng ký đội vào giải (có thể anonymous hoặc login)
 router.post('/:id/register', verifyTokenOptional, tc.registerTeam);
 
 // ── OWNER / ADMIN ──────────────────────────────────────────────
-router.patch('/:id/publish', verifyTokenOptional, tc.publish);
-router.put('/:id', verifyTokenOptional, tc.update);
-router.patch('/:id/close-registration', verifyTokenOptional, tc.closeRegistration);
-router.patch('/:id/activate', verifyTokenOptional, tc.activateTournament);
-router.post('/:id/auto-schedule', verifyTokenOptional, tc.autoScheduleLeague);
+router.patch('/:id/publish', verifyToken, tc.publish);
+router.put('/:id', verifyToken, tc.update);
+router.patch('/:id/close-registration', verifyToken, tc.closeRegistration);
+router.patch('/:id/activate', verifyToken, tc.activateTournament);
+router.post('/:id/draw-groups', verifyToken, tc.drawGroups);
+router.post('/:id/auto-schedule', verifyToken, tc.autoScheduleLeague);
 router.patch('/:id/teams/:teamId', verifyToken, tc.updateTeamRegistration);
-router.patch('/:id/teams/:teamId/status', verifyTokenOptional, tc.updateTeamStatus);
-router.delete('/:id/teams/:teamId', verifyTokenOptional, tc.removeTeam);
+router.patch('/:id/teams/:teamId/status', verifyToken, tc.updateTeamStatus);
+router.delete('/:id/teams/:teamId', verifyToken, tc.removeTeam);
 
 // Quản lý lịch thi đấu thủ công (CRUD Match)
-router.post('/:id/matches', verifyTokenOptional, tc.createMatch);
-router.put('/:id/matches/:matchId', verifyTokenOptional, tc.updateMatch);
-router.patch('/:id/matches/drag-swap', verifyTokenOptional, tc.swapMatchSlots);
+router.post('/:id/matches', verifyToken, tc.createMatch);
+router.put('/:id/matches/:matchId', verifyToken, tc.updateMatch);
+router.patch('/:id/matches/drag-swap', verifyToken, tc.swapMatchSlots);
 
 // Xóa giải (chỉ admin)
 router.delete('/:id', verifyToken, isAdmin, tc.remove);

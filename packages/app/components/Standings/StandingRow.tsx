@@ -4,6 +4,32 @@ import React, { useMemo } from 'react'
 import { XStack, Text, Circle, View, Image, useMedia } from 'tamagui'
 import { Trophy } from '@tamagui/lucide-icons'
 
+const COUNTRY_MAP: any = {
+  'Qatar': 'qa', 'Switzerland': 'ch', 'Brazil': 'br', 'Morocco': 'ma',
+  'Japan': 'jp', 'Spain': 'es', 'Germany': 'de', 'Croatia': 'hr',
+  'Argentina': 'ar', 'Australia': 'au', 'Senegal': 'sn', 'England': 'gb-eng',
+  'France': 'fr', 'Poland': 'pl', 'Netherlands': 'nl', 'USA': 'us',
+  'Portugal': 'pt', 'South Korea': 'kr', 'Saudi Arabia': 'sa', 'Mexico': 'mx',
+  'Iran': 'ir', 'Tunisia': 'tn', 'Cameroon': 'cm', 'Uruguay': 'uy',
+  'Ecuador': 'ec', 'Canada': 'ca', 'Ghana': 'gh', 'Belgium': 'be',
+  'Serbia': 'rs', 'Costa Rica': 'cr', 'Wales': 'gb-wls', 'Denmark': 'dk'
+};
+
+const getSafeLogo = (originalUrl: string, name: string = '') => {
+  if (!originalUrl) {
+    return `https://ui-avatars.com/api/?name=${name ? encodeURIComponent(name) : 'T'}&background=random&color=fff&bold=true`;
+  }
+  if (!originalUrl.startsWith('http')) return originalUrl;
+  if (originalUrl.includes('api.sofascore.app') || originalUrl.includes('sofascore.com')) {
+    if (name) {
+      const countryCode = COUNTRY_MAP[name];
+      if (countryCode) return `https://flagcdn.com/w80/${countryCode}.png`;
+    }
+    return `https://ui-avatars.com/api/?name=${name ? encodeURIComponent(name) : 'T'}&background=random&color=fff&bold=true`;
+  }
+  return originalUrl;
+};
+
 export const StandingRow = ({ item, isLast, compact }: any) => {
   const media = useMedia()
   const isDesktop = !compact && media.gtMd
@@ -80,7 +106,7 @@ export const StandingRow = ({ item, isLast, compact }: any) => {
           borderRadius={compact ? 8 : 10}
         >
           <Image
-            src={item.team?.logo || ''}
+            src={getSafeLogo(item.team?.logo, item.team?.name)}
             width={compact ? 22 : 26}
             height={compact ? 22 : 26}
             style={{ objectFit: 'contain' }}

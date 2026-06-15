@@ -137,6 +137,11 @@ const crawlByDate = async (date) => {
         const cleanMatches = [];
         
         for (const m of rawEvents) {
+            // CHỈ CÀO GIẢI FIFA WORLD CUP (ID: 16)
+            if (m.tournament.uniqueTournament?.id !== 16) {
+                continue;
+            }
+
             const currentMin = calculateMinute(m);
             
             const matchData = {

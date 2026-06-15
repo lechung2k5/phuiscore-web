@@ -96,9 +96,15 @@ export function AddMatchModal({ tournamentId, teams, editMatch, onClose, onSucce
 
   const resolveTeam = (teamName: string, original: any) => {
     const match = teams.find(t => t.teamName === teamName)
-    if (match) return { id: match.id, name: match.teamName, logo: match.logo || '' }
+    if (match) return { 
+      id: match.id, 
+      name: match.teamName, 
+      logo: match.logo || '', 
+      players: match.players || [], 
+      coach: match.coach || match.manager || '' 
+    }
     if (original?.name === teamName) return original
-    return { id: null, name: teamName || 'TBA', logo: '' }
+    return { id: null, name: teamName || 'TBA', logo: '', players: [], coach: '' }
   }
 
   const updateIncident = (index: number, patch: Partial<IncidentForm>) => {

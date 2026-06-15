@@ -52,23 +52,7 @@ const normalizeStandings = (data: any) => {
   return []
 }
 
-const buildFallbackStats = (data: any) => {
-  const players = (data?.teams || []).flatMap((team: any) =>
-    (team.players || []).filter((p: any) => p?.name).map((p: any, index: number) => ({
-      playerName: p.name,
-      teamName: team.teamName,
-      teamLogo: team.logo,
-      goals: Math.max(0, 5 - index),
-      yellowCards: index % 3,
-      redCards: index === 4 ? 1 : 0,
-    }))
-  )
 
-  return {
-    topScorers: players.filter((p: any) => p.goals > 0).sort((a: any, b: any) => b.goals - a.goals).slice(0, 10),
-    cards: players.filter((p: any) => p.yellowCards || p.redCards).sort((a: any, b: any) => (b.yellowCards + b.redCards * 2) - (a.yellowCards + a.redCards * 2)).slice(0, 10),
-  }
-}
 
 const getScore = (match: any, side: 'home' | 'away') => {
   const direct = side === 'home' ? match.homeScore : match.awayScore
@@ -79,12 +63,12 @@ const getScore = (match: any, side: 'home' | 'away') => {
 }
 
 const normalizeMatchStatus = (status: any) => String(status || '').toLowerCase()
-const isPlayedMatch = (status: any) => ['finished', 'ongoing', 'inprogress', 'live'].includes(normalizeMatchStatus(status))
+const isLiveMatch = (status: any) => ['ongoing', 'inprogress', 'live', 'first_half', 'second_half', 'half_time', 'extra_time', 'penalty'].includes(normalizeMatchStatus(status))
+const isPlayedMatch = (status: any) => ['finished', 'ongoing', 'inprogress', 'live', 'first_half', 'second_half', 'half_time', 'extra_time', 'penalty'].includes(normalizeMatchStatus(status))
 const isFinishedMatch = (status: any) => ['finished', 'ended', 'fulltime', 'ft'].includes(normalizeMatchStatus(status))
-const isScheduledMatch = (status: any) => ['scheduled', 'notstarted', 'pending'].includes(normalizeMatchStatus(status))
+const isScheduledMatch = (status: any) => ['scheduled', 'notstarted', 'pending', 'pre_match'].includes(normalizeMatchStatus(status))
 
 const buildStatsFromMatches = (data: any, matches: any[] = []) => {
-  const fallback = buildFallbackStats(data)
   const teams = new Map<string, any>()
   const players = new Map<string, any>()
   const ensureTeam = (team: any) => {
@@ -146,19 +130,17 @@ const buildStatsFromMatches = (data: any, matches: any[] = []) => {
     let matchCards = 0
     totalGoals += total
 
-    if (isFinishedMatch(match.status)) {
-      home.played += 1
-      away.played += 1
-      home.goalsFor += homeScore
-      home.goalsAgainst += awayScore
-      away.goalsFor += awayScore
-      away.goalsAgainst += homeScore
-      if (awayScore === 0) home.cleanSheets += 1
-      if (homeScore === 0) away.cleanSheets += 1
-      if (homeScore > awayScore) { home.wins += 1; away.losses += 1 }
-      else if (homeScore < awayScore) { away.wins += 1; home.losses += 1 }
-      else { home.draws += 1; away.draws += 1 }
-    }
+    home.played += 1
+    away.played += 1
+    home.goalsFor += homeScore
+    home.goalsAgainst += awayScore
+    away.goalsFor += awayScore
+    away.goalsAgainst += homeScore
+    if (awayScore === 0) home.cleanSheets += 1
+    if (homeScore === 0) away.cleanSheets += 1
+    if (homeScore > awayScore) { home.wins += 1; away.losses += 1 }
+    else if (homeScore < awayScore) { away.wins += 1; home.losses += 1 }
+    else { home.draws += 1; away.draws += 1 }
 
     ;(match.incidents || match.events || []).forEach((event: any) => {
       const type = String(event.type || event.incidentType || event.eventType || '').toLowerCase()
@@ -187,14 +169,6 @@ const buildStatsFromMatches = (data: any, matches: any[] = []) => {
     if (isFinishedMatch(match.status) && (!highlights.latestFinished || Number(match.startTimestamp || 0) > Number(highlights.latestFinished.startTimestamp || 0))) highlights.latestFinished = summary
   })
 
-  fallback.topScorers.forEach((player: any) => {
-    const key = `${player.teamName || ''}::${player.playerName}`
-    if (!players.has(key)) players.set(key, player)
-  })
-  fallback.cards.forEach((player: any) => {
-    const key = `${player.teamName || ''}::${player.playerName}`
-    if (!players.has(key)) players.set(key, player)
-  })
 
   const teamStats = Array.from(teams.values()).map((team: any) => ({
     ...team,
@@ -225,14 +199,87 @@ const buildStatsFromMatches = (data: any, matches: any[] = []) => {
 
 const getTournamentStats = (data: any, matches: any[] = []) => {
   if (matches.length) return buildStatsFromMatches(data, matches)
-  const fallback = buildFallbackStats(data)
   return {
     summary: {},
     teamStats: [],
-    topScorers: data?.stats?.topScorers?.length ? data.stats.topScorers : fallback.topScorers,
-    cards: data?.stats?.cards?.length ? data.stats.cards : fallback.cards,
+    topScorers: data?.stats?.topScorers?.length ? data.stats.topScorers : [],
+    cards: data?.stats?.cards?.length ? data.stats.cards : [],
     highlights: {},
   }
+}
+
+// ─── Team Roster Modal (public) ────────────────────────────────────
+const TeamRosterModal = ({ team, onClose }: { team: any, onClose: () => void }) => {
+  return (
+    <View position="fixed" top={0} left={0} right={0} bottom={0}
+      style={{ background: 'rgba(0,0,0,0.9)', backdropFilter: 'blur(14px)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '12px' }}>
+      <YStack
+        backgroundColor={"#0a0f0c" as any} borderRadius={20}
+        borderWidth={1} borderColor={"rgba(40,167,69,0.2)" as any}
+        width={580} maxWidth="100%"
+        style={{ boxShadow: '0 24px 80px rgba(0,0,0,0.9)', overflow: 'hidden', display: 'flex', flexDirection: 'column', maxHeight: '93vh' }}>
+        
+        {/* Header */}
+        <XStack padding="$4" paddingBottom="$3" borderBottomWidth={1} borderColor={"rgba(255,255,255,0.06)" as any}
+          justifyContent="space-between" alignItems="center"
+          style={{ flexShrink: 0, background: 'linear-gradient(135deg, rgba(40,167,69,0.1) 0%, transparent 100%)' }}>
+          <XStack alignItems="center" gap="$3">
+            {team.logo ? (
+              <img src={team.logo} alt={team.teamName} style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover', border: '2px solid rgba(255,255,255,0.15)' }} />
+            ) : (
+              <View width={36} height={36} borderRadius={18} backgroundColor={(team.jerseyColor || 'rgba(40,167,69,0.2)') as any}
+                borderWidth={2} borderColor={"rgba(255,255,255,0.15)" as any} />
+            )}
+            <Text color="white" fontSize={18} fontWeight="900">{team.teamName}</Text>
+          </XStack>
+          <View padding={6} onPress={onClose} style={{ cursor: 'pointer' }}>
+            <X size={20} color="#555" />
+          </View>
+        </XStack>
+
+        {/* Body */}
+        <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px' }}>
+          <YStack gap="$4">
+            <XStack alignItems="center" gap="$1.5" paddingBottom="$1.5"
+              borderBottomWidth={1} borderColor={"rgba(255,255,255,0.06)" as any}>
+              <Users size={14} color={C.primary as any} />
+              <Text color="white" fontSize={13} fontWeight="900">Danh sách Cầu thủ</Text>
+            </XStack>
+
+            {(!team.players || team.players.length === 0) ? (
+              <Text color="#555" fontSize={12} textAlign="center" padding="$4">Chưa có cầu thủ nào</Text>
+            ) : (
+              <XStack gap="$3" flexWrap={"wrap" as any}>
+                {team.players.map((p: any, idx: number) => (
+                  <XStack key={p.id || idx} width="48%" minWidth={220} flexGrow={1}
+                    backgroundColor={"rgba(255,255,255,0.03)" as any}
+                    borderRadius={12} padding="$2" gap="$3" alignItems="center"
+                    borderWidth={1} borderColor={"rgba(255,255,255,0.05)" as any}>
+                    {p.photo ? (
+                      <Image src={p.photo} width={40} height={40} borderRadius={8} style={{ objectFit: 'cover' } as any} />
+                    ) : (
+                      <View width={40} height={40} borderRadius={8} backgroundColor={"rgba(40,167,69,0.1)" as any}
+                        alignItems="center" justifyContent="center">
+                        <User size={20} color={C.primary as any} />
+                      </View>
+                    )}
+                    <YStack flex={1} gap="$0.5">
+                      <Text color="white" fontSize={13} fontWeight="800" numberOfLines={1}>{p.name || p.playerName || 'Không rõ tên'}</Text>
+                      <XStack gap="$2" alignItems="center">
+                        <Text color="#888" fontSize={11} fontWeight="600">
+                          {p.position || p.role || 'Cầu thủ'}
+                        </Text>
+                      </XStack>
+                    </YStack>
+                  </XStack>
+                ))}
+              </XStack>
+            )}
+          </YStack>
+        </div>
+      </YStack>
+    </View>
+  )
 }
 
 // ─── Team Detail Panel (modal) ────────────────────────────────────
@@ -687,6 +734,7 @@ export default function TournamentDetailScreen({ id }: { id: string }) {
   const [publishing, setPublishing] = useState(false)
   const [publishMsg, setPublishMsg] = useState('')
   const [selectedTeam, setSelectedTeam] = useState<any>(null)
+  const [selectedPublicTeam, setSelectedPublicTeam] = useState<any>(null)
   const [editTeam, setEditTeam] = useState<any>(null)
   const [showScheduler, setShowScheduler] = useState(false)
   const [showAddMatch, setShowAddMatch] = useState(false)
@@ -861,6 +909,62 @@ export default function TournamentDetailScreen({ id }: { id: string }) {
       }
     })
   }
+  // Thiết lập SOCKET.IO cho danh sách trận đấu
+  useEffect(() => {
+    const { socket } = require('../../utils/socket')
+    socket.connect()
+
+    socket.on('scoreUpdate', (updatedData: any) => {
+        setMatches((prevMatches: any[]) => {
+            const matchIndex = prevMatches.findIndex((m: any) => String(m.id) === String(updatedData.matchId || updatedData.id));
+            if (matchIndex === -1) return prevMatches;
+            const newMatches = [...prevMatches];
+            newMatches[matchIndex] = {
+                ...newMatches[matchIndex],
+                homeScore: updatedData.homeScore ?? newMatches[matchIndex].homeScore,
+                awayScore: updatedData.awayScore ?? newMatches[matchIndex].awayScore,
+                currentMinute: updatedData.currentMinute ?? newMatches[matchIndex].currentMinute,
+                status: updatedData.status ?? newMatches[matchIndex].status,
+                liveStatus: updatedData.liveStatus ?? newMatches[matchIndex].liveStatus,
+                score: updatedData.score ?? newMatches[matchIndex].score,
+                incidents: updatedData.incidents ?? newMatches[matchIndex].incidents,
+                statistics: updatedData.statistics ?? newMatches[matchIndex].statistics
+            };
+            return newMatches;
+        })
+    })
+
+    socket.on('matchUpdate', () => {
+        fetchMatches()
+    })
+
+    socket.on('standingsUpdate', (payload: any) => {
+        if (Number(payload.tournamentId) === Number(id)) {
+            loadData()
+        }
+    })
+
+    return () => {
+        socket.off('scoreUpdate')
+        socket.off('matchUpdate')
+        socket.off('standingsUpdate')
+        socket.disconnect()
+    }
+  }, [fetchMatches, loadData, id])
+
+  // Tự động cập nhật mỗi 2 phút
+  useEffect(() => {
+    const interval = setInterval(() => {
+        fetchMatches()
+    }, 120000)
+    return () => clearInterval(interval)
+  }, [fetchMatches])
+
+  const tournamentStats = React.useMemo(() => {
+    if (!data) return null;
+    if (matches && matches.length > 0) return getTournamentStats(data, matches);
+    return statsData || getTournamentStats(data, []);
+  }, [data, matches, statsData])
 
   if (loading) return (
     <YStack flex={1} backgroundColor={C.bg as any} justifyContent="center" alignItems="center" minHeight="100vh">
@@ -919,7 +1023,6 @@ export default function TournamentDetailScreen({ id }: { id: string }) {
   })
   const sortedDates = Object.keys(groupedMatches).sort()
   const standingsGroups = normalizeStandings(data)
-  const tournamentStats = statsData || getTournamentStats(data, matches)
 
   const TABS = [
     { key: 'info',  label: 'Thông tin' },
@@ -1152,7 +1255,8 @@ export default function TournamentDetailScreen({ id }: { id: string }) {
               const st = TEAM_STATUS[team.status] || TEAM_STATUS.Pending
               return (
                 <XStack key={team.id ?? team.teamName ?? i} backgroundColor={C.card as any} borderRadius={14}
-                  borderWidth={1} borderColor={C.border as any} padding="$3.5" alignItems="center" gap="$3">
+                  borderWidth={1} borderColor={C.border as any} padding="$3.5" alignItems="center" gap="$3"
+                  cursor="pointer" hoverStyle={{ opacity: 0.8 } as any} onPress={() => setSelectedPublicTeam(team)}>
                   {team.logo ? (
                     <img src={team.logo} alt={team.teamName || 'team logo'} style={{ width: 42, height: 42, borderRadius: '50%', objectFit: 'cover', flexShrink: 0, border: '1px solid rgba(255,255,255,0.1)' }} />
                   ) : team.players?.[0]?.photo ? (
@@ -1415,6 +1519,11 @@ export default function TournamentDetailScreen({ id }: { id: string }) {
           onSuccess={() => { setShowAddMatch(false); setEditMatch(null); fetchMatches(); fetchStats(); loadData() }} />
       )}
 
+      {/* Team Roster Modal cho user thường */}
+      {selectedPublicTeam && (
+        <TeamRosterModal team={selectedPublicTeam} onClose={() => setSelectedPublicTeam(null)} />
+      )}
+
       {/* Team Detail Panel */}
       {selectedTeam && (
         <TeamDetailPanel
@@ -1465,14 +1574,17 @@ const TournamentStandingsPanel = ({ groups, compact }: { groups: any[]; compact:
         )}
         <XStack paddingHorizontal={compact ? '$3' : '$5'} paddingVertical="$2"
           backgroundColor="#0f1410" borderBottomWidth={1} borderColor="#111" alignItems="center">
-          <Text width={compact ? 32 : 44} color="#777" fontSize={10} fontWeight="800">#</Text>
+          <Text width={compact ? 32 : 44} color="#777" fontSize={10} fontWeight="800" textAlign="center">#</Text>
           <Text flex={1} color="#777" fontSize={10} fontWeight="800">Đội bóng</Text>
-          <Text width={compact ? 28 : 36} color="#777" fontSize={10} fontWeight="800" textAlign="center">ST</Text>
-          {!compact && <Text width={36} color="#777" fontSize={10} fontWeight="800" textAlign="center">T</Text>}
-          {!compact && <Text width={36} color="#777" fontSize={10} fontWeight="800" textAlign="center">H</Text>}
-          {!compact && <Text width={36} color="#777" fontSize={10} fontWeight="800" textAlign="center">B</Text>}
-          <Text width={compact ? 34 : 44} color="#777" fontSize={10} fontWeight="800" textAlign="center">HS</Text>
-          <Text width={compact ? 34 : 44} color={C.primary as any} fontSize={10} fontWeight="900" textAlign="center">D</Text>
+          <XStack alignItems="center" gap={0}>
+            <Text width={compact ? 32 : 40} textAlign="center" color="#777" fontSize={10} fontWeight="800">ST</Text>
+            {!compact && <Text width={36} textAlign="center" color="#777" fontSize={10} fontWeight="800">T</Text>}
+            {!compact && <Text width={36} textAlign="center" color="#777" fontSize={10} fontWeight="800">H</Text>}
+            {!compact && <Text width={36} textAlign="center" color="#777" fontSize={10} fontWeight="800">B</Text>}
+            <Text width={compact ? 38 : 44} textAlign="center" color="#777" fontSize={10} fontWeight="800">HS</Text>
+            <Text width={compact ? 36 : 48} textAlign="center" color={C.primary as any} fontSize={10} fontWeight="900">D</Text>
+            {!compact && <Text width={140} textAlign="right" color="#777" fontSize={10} fontWeight="800" paddingRight={4}>PHONG ĐỘ</Text>}
+          </XStack>
         </XStack>
         {(group.rows || []).map((item: any, index: number) => (
           <StandingRow
@@ -1506,7 +1618,9 @@ const StatList = ({ title, rows, valueKey, valueLabel, renderValue }: any) => (
         <Text width={28} color={index < 3 ? C.primary as any : '#777'} fontSize={13} fontWeight="900">
           {index + 1}
         </Text>
-        {row.teamLogo ? (
+        {(row.playerPhoto || row.avatar) ? (
+          <Image src={row.playerPhoto || row.avatar} width={30} height={30} borderRadius={15} style={{ objectFit: 'cover' } as any} />
+        ) : row.teamLogo ? (
           <Image src={row.teamLogo} width={30} height={30} borderRadius={15} style={{ objectFit: 'cover' } as any} />
         ) : (
           <View width={30} height={30} borderRadius={15} backgroundColor={"rgba(40,167,69,0.12)" as any}
@@ -1529,12 +1643,17 @@ const StatList = ({ title, rows, valueKey, valueLabel, renderValue }: any) => (
   </YStack>
 )
 
-const StatSummaryCard = ({ label, value, sub }: { label: string; value: string | number; sub: string }) => (
+const StatSummaryCard = ({ label, value, sub, image }: { label: string; value: string | number; sub: string; image?: string }) => (
   <YStack flex={1} minWidth={120} backgroundColor={"rgba(255,255,255,0.04)" as any}
     borderWidth={1} borderColor={"rgba(255,255,255,0.08)" as any}
-    borderRadius={14} padding="$3" gap="$1">
+    borderRadius={14} padding="$3" gap="$1" position="relative">
+    {image && (
+      <View position="absolute" top={12} right={12}>
+        <Image src={image} width={36} height={36} borderRadius={18} style={{ objectFit: 'cover' } as any} />
+      </View>
+    )}
     <Text color="#777" fontSize={11} fontWeight="800">{label}</Text>
-    <Text color="white" fontSize={22} fontWeight="900">{value}</Text>
+    <Text color="white" fontSize={22} fontWeight="900" marginTop={image ? 10 : 0}>{value}</Text>
     <Text color="#666" fontSize={10} fontWeight="700" numberOfLines={1}>{sub}</Text>
   </YStack>
 )
@@ -1637,7 +1756,12 @@ const TournamentStatsPanel = ({ stats }: { stats: any }) => {
       <XStack gap="$3" flexWrap={"wrap" as any}>
         <StatSummaryCard label="Trận đã đá" value={summary.finishedMatches ?? summary.playedMatches ?? 0} sub={`${summary.totalMatches || 0} trận toàn giải`} />
         <StatSummaryCard label="Bàn thắng" value={summary.totalGoals ?? 0} sub={`${summary.goalsPerMatch || 0} bàn/trận`} />
-        <StatSummaryCard label="Vua phá lưới" value={leader?.goals ?? 0} sub={leader ? `${leader.playerName} - ${leader.teamName}` : 'Chưa có cầu thủ'} />
+        <StatSummaryCard 
+          label="Vua phá lưới" 
+          value={leader?.goals ?? 0} 
+          sub={leader ? `${leader.playerName} - ${leader.teamName}` : 'Chưa có cầu thủ'} 
+          image={leader ? (leader.playerPhoto || leader.avatar || leader.teamLogo) : undefined}
+        />
         <StatSummaryCard label="Thẻ phạt" value={`${summary.totalYellowCards || 0}/${summary.totalRedCards || 0}`} sub="Vàng / Đỏ" />
       </XStack>
 
@@ -1681,9 +1805,9 @@ const TournamentStatsPanel = ({ stats }: { stats: any }) => {
           <XStack gap="$3" flexWrap={"wrap" as any}>
             <StatSummaryCard label="Hàng công" value={bestAttack?.goalsFor ?? 0} sub={bestAttack?.teamName || 'Chưa có đội'} />
             <StatSummaryCard label="Hàng thủ" value={bestDefense?.goalsAgainst ?? 0} sub={bestDefense?.teamName || 'Chưa có đội'} />
-            <StatSummaryCard label="Sạch lưới" value={[...teamStats].sort((a: any, b: any) => (b.cleanSheets || 0) - (a.cleanSheets || 0))[0]?.cleanSheets ?? 0} sub="Dẫn đầu giải" />
+            <StatSummaryCard label="Sạch lưới" value={[...teamStats].filter((t: any) => (t.played || 0) > 0).sort((a: any, b: any) => (b.cleanSheets || 0) - (a.cleanSheets || 0))[0]?.cleanSheets ?? 0} sub="Dẫn đầu giải" />
           </XStack>
-          <TeamStatsList title="Đội ghi bàn nhiều nhất" rows={[...teamStats].sort((a: any, b: any) => (b.goalsFor || 0) - (a.goalsFor || 0)).slice(0, 10)} valueKey="goalsFor" valueLabel="Bàn" />
+          <TeamStatsList title="Đội ghi bàn nhiều nhất" rows={[...teamStats].filter((t: any) => (t.goalsFor || 0) > 0).sort((a: any, b: any) => (b.goalsFor || 0) - (a.goalsFor || 0)).slice(0, 10)} valueKey="goalsFor" valueLabel="Bàn" />
         </YStack>
       )}
 
@@ -1699,7 +1823,7 @@ const TournamentStatsPanel = ({ stats }: { stats: any }) => {
             valueLabel="V / Đ"
             renderValue={(row: any) => `${row.yellowCards || 0} / ${row.redCards || 0}`}
           />
-          <TeamStatsList title="Bảng fair-play" rows={fairPlay.slice(0, 10)} valueKey="fairPlayPoints" valueLabel="Điểm" />
+          <TeamStatsList title="Bảng fair-play" rows={[...teamStats].filter((t: any) => (t.played || 0) > 0).sort((a: any, b: any) => (a.fairPlayPoints || 0) - (b.fairPlayPoints || 0)).slice(0, 10)} valueKey="fairPlayPoints" valueLabel="Điểm" />
         </YStack>
       )}
 
@@ -1711,8 +1835,8 @@ const TournamentStatsPanel = ({ stats }: { stats: any }) => {
 }
 
 const TournamentMatchRowDesktop = ({ m, isLast, isOrganizer, isDragOver, onEdit, onDragStart, onDragOver, onDragLeave, onDrop }: any) => {
-  const isLive = m.status === 'Ongoing'
-  const isFinished = m.status === 'Finished'
+  const isLive = isLiveMatch(m.status)
+  const isFinished = isFinishedMatch(m.status)
   const timeLabel = isLive 
     ? (m.currentMinute ? `${m.currentMinute}'` : "🔴 LIVE") 
     : isFinished 
@@ -1724,7 +1848,7 @@ const TournamentMatchRowDesktop = ({ m, isLast, isOrganizer, isDragOver, onEdit,
   const homeLogo = m.homeTeam?.logo || m.homeTeam?.photo || 'https://phuiscore.com/default-logo.png' 
   const awayLogo = m.awayTeam?.logo || m.awayTeam?.photo || 'https://phuiscore.com/default-logo.png'
 
-  const scoreText = (isFinished || isLive) ? `${m.homeScore} - ${m.awayScore}` : 'VS'
+  const scoreText = (isFinished || isLive) ? `${m.score?.home ?? m.homeScore ?? 0} - ${m.score?.away ?? m.awayScore ?? 0}` : 'VS'
 
   const blinkStyles = `
     @keyframes blinker {
@@ -1824,8 +1948,8 @@ const TournamentMatchRowDesktop = ({ m, isLast, isOrganizer, isDragOver, onEdit,
 }
 
 const TournamentMatchRowMobile = ({ m, isLast, isOrganizer, isDragOver, onEdit, onDragStart, onDragOver, onDragLeave, onDrop }: any) => {
-  const isLive = m.status === 'Ongoing'
-  const isFinished = m.status === 'Finished'
+  const isLive = isLiveMatch(m.status)
+  const isFinished = isFinishedMatch(m.status)
   const timeLabel = isLive 
     ? (m.currentMinute ? `${m.currentMinute}'` : "🔴 LIVE") 
     : isFinished 
@@ -1913,10 +2037,10 @@ const TournamentMatchRowMobile = ({ m, isLast, isOrganizer, isDragOver, onEdit, 
             borderColor={(isLive ? "#f5a623" : "#2a2a2a") as any}
           >
             <Text fontSize={16} fontWeight="900" color={isLive ? "#f5a623" : "#fff"}>
-              {(!isLive && !isFinished) ? "-" : (m.homeScore ?? "-")}
+              {(!isLive && !isFinished) ? "-" : (m.score?.home ?? m.homeScore ?? "-")}
             </Text>
             <Text fontSize={16} fontWeight="900" color={isLive ? "#f5a623" : "#fff"}>
-              {(!isLive && !isFinished) ? "-" : (m.awayScore ?? "-")}
+              {(!isLive && !isFinished) ? "-" : (m.score?.away ?? m.awayScore ?? "-")}
             </Text>
           </YStack>
         </XStack>

@@ -10,23 +10,13 @@ import { StandingRow } from './StandingRow'
 import { KnockoutBracket } from './KnockoutBracket'
 import { API_BASE } from 'app/utils/api-config'
 import { socket } from 'app/utils/socket'
+import { getImageUrl } from 'app/utils/image'
 
 // Alias
 const YS: any = YStack; const XS: any = XStack; const Txt: any = Text
 const BTN: any = Button; const IMG: any = Image; const IPT: any = Input
 
 const API_BASE_URL = API_BASE
-
-const HOT_LEAGUES = [
-  { id: 900001, name: 'PhuiScore Seed Cup 2026', country: 'Demo', icon: 'https://api.dicebear.com/7.x/shapes/svg?seed=PhuiScoreSeedCup' },
-  { id: 17,  name: 'Premier League',    country: 'Anh',       icon: 'https://api.sofascore.app/api/v1/unique-tournament/17/image' },
-  { id: 626, name: 'V-League 1',        country: 'Việt Nam',  icon: 'https://api.sofascore.app/api/v1/unique-tournament/626/image' },
-  { id: 8,   name: 'LaLiga',            country: 'TBN',       icon: 'https://api.sofascore.app/api/v1/unique-tournament/8/image' },
-  { id: 23,  name: 'Serie A',           country: 'Ý',         icon: 'https://api.sofascore.app/api/v1/unique-tournament/23/image' },
-  { id: 35,  name: 'Bundesliga',        country: 'Đức',       icon: 'https://api.sofascore.app/api/v1/unique-tournament/35/image' },
-  { id: 34,  name: 'Ligue 1',           country: 'Pháp',      icon: 'https://api.sofascore.app/api/v1/unique-tournament/34/image' },
-  { id: 7,   name: 'Champions League',  country: 'EU',        icon: 'https://api.sofascore.app/api/v1/unique-tournament/7/image' },
-]
 
 const CUP_IDS = new Set([7, 679, 931, 19, 329, 137, 106, 481, 11, 955])
 
@@ -39,31 +29,13 @@ function MobileLeaguePicker({ currentId, onSelect, allLeagues }: any) {
 
   // SofaScore Search logic (duplicated for simplicity in this component)
   useEffect(() => {
-    const q = search.trim()
-    if (q.length < 2) {
-      setSofaResults([])
-      return
-    }
-    const timer = setTimeout(async () => {
-      setSearching(true)
-      try {
-        const res = await axios.get(`${API_BASE_URL}/tournaments/search-sofa?q=${encodeURIComponent(q)}`)
-        setSofaResults(res.data || [])
-      } catch (e) {
-      } finally {
-        setSearching(false)
-      }
-    }, 600)
-    return () => clearTimeout(timer)
+    // No SofaScore search anymore
   }, [search])
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase()
     if (!q) return []
-    const local = allLeagues.filter((l: any) => l.name?.toLowerCase().includes(q)).slice(0, 10)
-    const localIds = new Set(local.map(l => Number(l.id)))
-    const sofa = sofaResults.filter(l => !localIds.has(Number(l.id)))
-    return [...local, ...sofa]
+    return allLeagues.filter((l: any) => l.name?.toLowerCase().includes(q)).slice(0, 10)
   }, [search, allLeagues, sofaResults])
 
   return (
@@ -108,7 +80,7 @@ function MobileLeaguePicker({ currentId, onSelect, allLeagues }: any) {
             contentContainerStyle={{ paddingHorizontal: 12, paddingVertical: 8, gap: 8 }}
             style={{ flex: 1 }}
           >
-            {HOT_LEAGUES.map(l => {
+            {allLeagues.slice(0, 8).map((l: any) => {
               const isActive = currentId === l.id
               return (
                 <BTN
@@ -126,7 +98,9 @@ function MobileLeaguePicker({ currentId, onSelect, allLeagues }: any) {
                   borderWidth={1}
                   borderColor={isActive ? '#28a745' : '#1e1e1e'}
                 >
-                  <IMG src={l.icon} width={18} height={18} style={{ objectFit: 'contain', borderRadius: 3 }} />
+                  <View padding={6} backgroundColor="#161b18" borderRadius={8} marginVertical={8} marginLeft={8}>
+                    <IMG src={getImageUrl(l.banner || l.logo, 'tournament', l.id)} width={18} height={18} style={{ objectFit: 'contain', borderRadius: 3 }} />
+                  </View>
                   <Txt
                     color={isActive ? '#28a745' : '#aaa'}
                     fontSize={12}
@@ -174,7 +148,7 @@ function MobileLeaguePicker({ currentId, onSelect, allLeagues }: any) {
             return (
               <button
                 key={l.id}
-                onClick={() => { onSelect(Number(l.id)); setSearch(''); setShowSearch(false) }}
+                onClick={() => { onSelect(l.id); setSearch(''); setShowSearch(false) }}
                 style={{
                   display: 'flex', alignItems: 'center', gap: 10,
                   width: '100%', padding: '10px 14px',
@@ -185,10 +159,11 @@ function MobileLeaguePicker({ currentId, onSelect, allLeagues }: any) {
                 onMouseEnter={e => (e.currentTarget.style.background = '#161616')}
                 onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
               >
-                <img src={`https://api.sofascore.app/api/v1/unique-tournament/${l.id}/image`} width={24} height={24} alt={l.name} style={{ objectFit: 'contain', flexShrink: 0 }} />
+                <View padding={8} backgroundColor="#161b18" borderRadius={10}>
+                  <img src={getImageUrl(l.banner || l.logo, 'tournament', l.id)} width={24} height={24} alt={l.name} style={{ objectFit: 'contain', flexShrink: 0 }} />
+                </View>
                 <span style={{ flex: 1, color: isCup ? '#f0d060' : '#ddd', fontSize: 13, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {l.name}
-                  {l.isExternal && <span style={{ color: '#555', fontSize: 10 }}> (SofaScore)</span>}
                 </span>
                 {isCup && (
                   <span style={{ backgroundColor: 'rgba(255,215,0,0.12)', borderRadius: 6, padding: '2px 6px', fontSize: 9, color: '#ffd700', fontWeight: 900 }}>
@@ -209,20 +184,18 @@ export default function StandingsScreen() {
   const media = useMedia()
   const isMobile = !media.gtMd
 
-  const [currentId, setCurrentId] = useState(900001)
+  const [currentId, setCurrentId] = useState<any>(null)
   const [data, setData] = useState<any>(null)
   const [activeTab, setActiveTab] = useState<'groups' | 'knockout'>('groups')
   const [allLeagues, setAllLeagues] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [searchLeague, setSearchLeague] = useState('')
-  const [sofaResults, setSofaResults] = useState<any[]>([])
-  const [searchingSofa, setSearchingSofa] = useState(false)
   const [mounted, setMounted] = useState(false)
 
-  const selectLeague = (id: number) => {
+  const selectLeague = (id: string | number) => {
     setCurrentId(id)
     setSearchLeague('')
-    if (CUP_IDS.has(id)) setActiveTab('knockout')
+    if (CUP_IDS.has(Number(id))) setActiveTab('knockout')
     else setActiveTab('groups')
   }
 
@@ -230,13 +203,20 @@ export default function StandingsScreen() {
 
   useEffect(() => {
     if (mounted) {
-      axios.get(`${API_BASE_URL}/leagues`)
-        .then(res => setAllLeagues(res.data || []))
+      axios.get(`${API_BASE_URL}/tournaments/list`)
+        .then(res => {
+           const list = res.data?.data || [];
+           setAllLeagues(list);
+           if (list.length > 0 && currentId === null) {
+              setCurrentId(list[0].id);
+           }
+        })
         .catch(() => {})
     }
   }, [mounted])
 
   const fetchStandings = useCallback(async () => {
+    if (!currentId) return;
     setLoading(true)
     try {
       const res = await axios.get(`${API_BASE_URL}/standings/${currentId}`)
@@ -249,7 +229,7 @@ export default function StandingsScreen() {
   }, [currentId])
 
   useEffect(() => {
-    if (!mounted) return
+    if (!mounted || !currentId) return
     fetchStandings()
   }, [currentId, mounted, fetchStandings])
 
@@ -298,40 +278,11 @@ export default function StandingsScreen() {
     }
   }, [data, loading, groupsToRender, hasKnockout, currentId])
 
-  // ─── SEARCH SOFASCORE LOGIC ───
-  useEffect(() => {
-    const query = searchLeague.trim()
-    if (query.length < 2) {
-      setSofaResults([])
-      return
-    }
-
-    const timer = setTimeout(async () => {
-      setSearchingSofa(true)
-      try {
-        const res = await axios.get(`${API_BASE_URL}/tournaments/search-sofa?q=${encodeURIComponent(query)}`)
-        setSofaResults(res.data || [])
-      } catch (e) {
-        console.error('Search error:', e)
-      } finally {
-        setSearchingSofa(false)
-      }
-    }, 600) // Debounce 600ms
-
-    return () => clearTimeout(timer)
-  }, [searchLeague])
-
+  // ─── SEARCH LOGIC ───
   const filteredLeagues = useMemo(() => {
     const query = searchLeague.trim().toLowerCase()
-    // Kết hợp kết quả từ local list và SofaScore
-    const local = allLeagues.filter(l => l.name?.toLowerCase().includes(query)).slice(0, 10)
-    
-    // Loại bỏ trùng lặp nếu SofaScore trả về giải đã có trong local
-    const localIds = new Set(local.map(l => Number(l.id)))
-    const sofa = sofaResults.filter(l => !localIds.has(Number(l.id)))
-    
-    return [...local, ...sofa]
-  }, [searchLeague, allLeagues, sofaResults])
+    return allLeagues.filter(l => l.name?.toLowerCase().includes(query))
+  }, [searchLeague, allLeagues])
 
   if (!mounted) return null
 
@@ -364,7 +315,7 @@ export default function StandingsScreen() {
                 height={44}
                 borderWidth={0}
               >
-                <Search size={16} color={searchingSofa ? "#28a745" : "#555"} />
+                <Search size={16} color="#555" />
                 <IPT
                   flex={1}
                   backgroundColor="transparent"
@@ -385,10 +336,10 @@ export default function StandingsScreen() {
                     const isCupResult = CUP_IDS.has(Number(l.id))
                     return (
                       <BTN key={l.id} unstyled
-                        onPress={() => selectLeague(Number(l.id))}
+                        onPress={() => selectLeague(l.id)}
                         paddingVertical="$2" paddingHorizontal="$3"
                         borderRadius={10} alignItems="center" gap="$3"
-                        backgroundColor={currentId === Number(l.id) ? 'rgba(40,167,69,0.12)' : "transparent"}
+                        backgroundColor={currentId === l.id ? 'rgba(40,167,69,0.12)' : "transparent"}
                         hoverStyle={{ backgroundColor: isCupResult ? "rgba(255,215,0,0.07)" : "rgba(40,167,69,0.1)" }}
                       >
                         <View padding={8} backgroundColor="#161b18" borderRadius={10}>
@@ -413,7 +364,7 @@ export default function StandingsScreen() {
                       <Flame size={14} color="#e67e22" />
                       <Txt color="#555" fontWeight="900" fontSize={11} letterSpacing={1}>NỔI BẬT</Txt>
                     </XS>
-                    {HOT_LEAGUES.map(l => (
+                    {allLeagues.slice(0, 8).map((l: any) => (
                       <BTN key={l.id} unstyled
                         onPress={() => setCurrentId(l.id)}
                         paddingVertical="$2.5" paddingHorizontal="$3"
@@ -422,14 +373,11 @@ export default function StandingsScreen() {
                         hoverStyle={{ backgroundColor: "rgba(40,167,69,0.1)" }}
                       >
                         <View padding={8} backgroundColor="#161b18" borderRadius={10}>
-                          <IMG src={l.icon} width={24} height={24} style={{ objectFit: 'contain' }} />
+                          <IMG src={getImageUrl(l.banner || l.logo, 'tournament', l.id)} width={24} height={24} style={{ objectFit: 'contain' }} />
                         </View>
                         <YS flex={1}>
                           <Txt color={currentId === l.id ? "#28a745" : "#ddd"} fontWeight="800" fontSize={13.5}>
                             {typeof l.name === 'string' ? l.name : 'Giải đấu'}
-                          </Txt>
-                          <Txt color="#444" fontSize={10} fontWeight="700">
-                            {typeof l.country === 'string' ? l.country.toUpperCase() : ''}
                           </Txt>
                         </YS>
                         {currentId === l.id && <View width={6} height={6} borderRadius={3} backgroundColor="#28a745" />}
@@ -464,7 +412,7 @@ export default function StandingsScreen() {
                 {/* Logo + Name */}
                 <XS alignItems="center" gap={isMobile ? "$2" : "$4"} flex={1}>
                   <IMG
-                    src={data?.tournamentInfo?.logo || `https://api.sofascore.app/api/v1/unique-tournament/${currentId}/image`}
+                    src={getImageUrl(data?.tournamentInfo?.logo, 'tournament', currentId)}
                     width={isMobile ? 36 : 56}
                     height={isMobile ? 36 : 56}
                     style={{ objectFit: 'contain' }}

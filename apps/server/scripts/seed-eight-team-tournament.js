@@ -49,14 +49,14 @@ const teams = [
 }));
 
 const playerNames = [
-  ['Minh Quan', 'Hoang Nam', 'Duc Anh', 'Gia Huy', 'Tuan Kiet'],
-  ['Thanh Binh', 'Quoc Bao', 'Van Lam', 'Hai Dang', 'Tuan Anh'],
-  ['Anh Khoa', 'Bao Long', 'Nhat Minh', 'Quang Huy', 'Thanh Phong'],
-  ['Dinh Khang', 'Gia Bao', 'Minh Tri', 'Phuc Thinh', 'Thanh Dat'],
-  ['Hoang Phuc', 'Huu Nghia', 'Manh Hung', 'Quoc Viet', 'Tien Dat'],
-  ['Bao Khanh', 'Duy Khang', 'Hieu Minh', 'Ngoc Thien', 'Trong Tin'],
-  ['Dang Khoa', 'Hoang Long', 'Khai Hoan', 'Minh Nhat', 'Viet Hoang'],
-  ['Duy Anh', 'Huu Phat', 'Kien Trung', 'Quang Minh', 'Thanh Tung'],
+  ['Nguyễn Văn Quyết', 'Phạm Tuấn Hải', 'Đỗ Duy Mạnh', 'Nguyễn Thành Chung', 'Bùi Hoàng Việt Anh'],
+  ['Nguyễn Quang Hải', 'Đoàn Văn Hậu', 'Hồ Tấn Tài', 'Vũ Văn Thanh', 'Nguyễn Tiến Linh'],
+  ['Nguyễn Tuấn Anh', 'Nguyễn Phong Hồng Duy', 'Vũ Minh Tuấn', 'Nguyễn Hoàng Đức', 'Bùi Tiến Dũng'],
+  ['Đặng Văn Lâm', 'Quế Ngọc Hải', 'Bùi Tiến Dụng', 'Hà Đức Chinh', 'Phan Văn Đức'],
+  ['Nguyễn Văn Toàn', 'Nguyễn Công Phượng', 'Lương Xuân Trường', 'Trần Đình Trọng', 'Trần Minh Vương'],
+  ['Nguyễn Trọng Hoàng', 'Phạm Đức Huy', 'Nguyễn Anh Đức', 'Lê Công Vinh', 'Phạm Thành Lương'],
+  ['Nguyễn Phi Hoàng', 'Đinh Thanh Trung', 'Nguyễn Xuân Sơn', 'Nguyễn Hải Huy', 'Mạc Hồng Quân'],
+  ['Nguyễn Filip', 'Patrik Lê Giang', 'Đỗ Hùng Dũng', 'Nguyễn Thái Sơn', 'Khuất Văn Khang'],
 ];
 
 const teamRegistrations = teams.map((team, index) => ({

@@ -97,7 +97,7 @@ export const AutoSchedulerModal = ({
       const res = await axios.post(`${API}/tournaments/${tournamentId}/auto-schedule`, { slotsConfig }, {
         headers: { Authorization: `Bearer ${token}` }
       })
-      alert(`Thành công! Đã xếp lịch ${res.data.data?.length || 0} trận đấu.`)
+      alert(`Thành công! Đã xếp lịch ${res.data.totalMatches || res.data.data?.length || 0} trận đấu.`)
       onSuccess()
     } catch (error: any) {
       alert(error.response?.data?.message || 'Lỗi xếp lịch! Kiểm tra số lượng sân có đáp ứng đủ số lượng trận đấu không.')
@@ -128,7 +128,7 @@ export const AutoSchedulerModal = ({
               <X size={18} color="#aaa" />
             </View>
           </XStack>
-          <Text color="#888" fontSize={13}>Cấp phép các Slot (Ngày, Giờ, Sân). Hệ thống sẽ tự động gắp trận đấu vòng bảng, nhánh đấu và trộn vào các Slot hợp lệ theo thuật toán Greedy.</Text>
+          <Text color="#888" fontSize={13}>Nhập các slot ngày, giờ và số sân. Hệ thống sẽ rải lịch theo bảng đấu/BXH đã tạo trước đó.</Text>
         </YStack>
 
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ gap: '$4', paddingBottom: 20 }}>
@@ -204,7 +204,7 @@ export const AutoSchedulerModal = ({
           {loading ? (
             <YStack alignItems="center" gap="$3" padding="$4">
               <Spinner size="large" color={COLORS.primary as any} />
-              <Text color={COLORS.primary as any} fontWeight="700">Hệ thống AI đang nhồi lịch chống đụng giờ...</Text>
+              <Text color={COLORS.primary as any} fontWeight="700">Đang rải lịch vào các slot hợp lệ...</Text>
             </YStack>
           ) : (
             <XStack gap="$3" marginTop="$2">

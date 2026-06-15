@@ -1,5 +1,6 @@
 const { client, getHeaders } = require('../utils/httpClient');
 const StandingRepo = require('../repositories/standing.repo');
+const TournamentRepo = require('../repositories/tournament.repo');
 const { mapSofaStandingToPhuiScore, formatCupTree } = require('../utils/standingMapper');
 
 // 🔒 KHÓA ĐỒNG BỘ: Ngăn việc nhiều user cùng kích hoạt cào BXH của cùng 1 giải đấu
@@ -25,7 +26,41 @@ async function fetchKnockoutData(tournamentId, seasonId) {
 }
 
 const getStandings = async (req, res) => {
-    const tournamentId = parseInt(req.params.tournamentId);
+    const rawTournamentId = req.params.tournamentId;
+    const isLocalTournament = isNaN(Number(rawTournamentId));
+
+    if (isLocalTournament) {
+        try {
+            const tournament = await TournamentRepo.getById(rawTournamentId);
+            if (!tournament) {
+                return res.status(404).json({ success: false, message: 'Tournament not found' });
+            }
+            
+            let logoUrl = tournament.banner || tournament.logo || 'https://via.placeholder.com/150';
+            if (logoUrl.startsWith('/uploads')) {
+                logoUrl = `${req.protocol}://${req.get('host')}${logoUrl}`;
+            }
+
+            return res.status(200).json({ 
+                success: true, 
+                source: 'local_db', 
+                data: {
+                    tournamentId: rawTournamentId,
+                    tournamentInfo: {
+                        name: tournament.name,
+                        logo: logoUrl,
+                        season: tournament.season || ''
+                    },
+                    standings: tournament.standings || [],
+                    knockoutData: []
+                } 
+            });
+        } catch (e) {
+            return res.status(500).json({ success: false, message: e.message });
+        }
+    }
+
+    const tournamentId = parseInt(rawTournamentId);
     
     if (isNaN(tournamentId)) {
         return res.status(400).json({ success: false, message: 'Invalid tournamentId' });
@@ -85,21 +120,50 @@ const getStandings = async (req, res) => {
             }
 
             // 3. Trường hợp chưa bao giờ có dữ liệu
-            console.log(`[Standing] 📊 Dữ liệu mới hoàn toàn cho giải ${tournamentId}. Kích hoạt cào...`);
+            console.log(`[Standing] 📊 Dữ liệu mới hoàn toàn cho giải ${tournamentId}. Kích hoạt cào trực tiếp...`);
+            
             if (global.io) {
                 global.io.emit('requestStandings', { tournamentId, seasonId });
             }
 
-            // Đợi tối đa 2.5s cho lần đầu tiên (để đảm bảo < 3s)
-            let attempts = 0;
-            while (attempts < 5) {
-                await new Promise(r => setTimeout(r, 500));
-                const updated = await StandingRepo.getLatestStandings(tournamentId);
-                if (updated) return updated;
-                attempts++;
+            let finalSeasonId = seasonId;
+            if (!finalSeasonId) {
+                const seasonUrl = `https://www.sofascore.com/api/v1/unique-tournament/${tournamentId}/seasons`;
+                const sData = await client.get(seasonUrl, { headers: getHeaders() }).json().catch(() => null);
+                finalSeasonId = sData?.seasons?.[0]?.id;
             }
 
-            return { success: false, message: "Đang cào dữ liệu, vui lòng quay lại sau" };
+            if (finalSeasonId) {
+                const standingsUrl = `https://www.sofascore.com/api/v1/unique-tournament/${tournamentId}/season/${finalSeasonId}/standings/total`;
+                const stdData = await client.get(standingsUrl, { headers: getHeaders() }).json().catch(() => null);
+                
+                let cleanStandings = [];
+                if (stdData?.standings) {
+                    cleanStandings = stdData.standings.map(s => {
+                        return {
+                            name: s.name,
+                            description: s.description,
+                            tournamentId: s.tournament?.id,
+                            rows: mapSofaStandingToPhuiScore(s, {})
+                        };
+                    });
+                }
+                
+                const knockoutData = await fetchKnockoutData(tournamentId, finalSeasonId) || [];
+                
+                const finalData = {
+                    tournamentId: Number(tournamentId),
+                    seasonId: Number(finalSeasonId),
+                    standings: cleanStandings,
+                    knockoutData: knockoutData,
+                    lastUpdated: Date.now()
+                };
+                
+                await StandingRepo.saveStandings(tournamentId, finalSeasonId, finalData);
+                return finalData;
+            }
+
+            return { success: false, message: "Không thể lấy dữ liệu từ SofaScore" };
 
         } catch (error) {
             console.error('[Standing] ❌ Lỗi lấy BXH:', error.message);

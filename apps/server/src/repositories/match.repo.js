@@ -2,6 +2,7 @@ const {docClient} = require('../config/db.config');
 const { 
     BatchWriteCommand, 
     QueryCommand, 
+    ScanCommand,
     UpdateCommand,
     GetCommand,
     DeleteCommand
@@ -158,6 +159,27 @@ const MatchRepo = {
     },
 
     /**
+     * 2.5 Lấy tất cả các trận đấu trong DB
+     */
+    getAllMatches: async () => {
+        try {
+            const command = new ScanCommand({
+                TableName: TABLE_NAME
+            });
+            const response = await docClient.send(command);
+            const items = response.Items || [];
+            
+            return items.map(item => ({
+                ...item,
+                id: item.id || (item.sk ? item.sk.replace('MATCH#', '') : null)
+            }));
+        } catch (error) {
+            console.error(`[MatchRepo] ❌ Lỗi khi lấy tất cả dữ liệu từ DynamoDB:`, error.message);
+            throw error;
+        }
+    },
+
+    /**
      * 3. Lấy tất cả trận của một giải đấu (Sử dụng GSI)
      */
     getMatchesByTournament: async (tournamentId) => {
@@ -252,7 +274,7 @@ const MatchRepo = {
 
         // Chỉ cập nhật tỉ số và phút nếu KHÔNG ở chế độ thủ công
         if (!isManual) {
-            setClause += `, score.home = :h, score.away = :a, currentMinute = :m`;
+            setClause += `, score.home = :h, score.away = :a, homeScore = :h, awayScore = :a, currentMinute = :m`;
             exprAttrValues[":h"] = homeScore ?? 0;
             exprAttrValues[":a"] = awayScore ?? 0;
             exprAttrValues[":m"] = currentMinute || "";
@@ -273,21 +295,26 @@ const MatchRepo = {
      * ⚡ CẬP NHẬT NHANH TỈ SỐ & PHÚT (Cho BLV)
      * Đã nâng cấp: Hỗ trợ incidents (diễn biến) và isDraft (chế độ nháp)
      */
-    updateMatchScoreboard: async (date, matchId, { homeScore, awayScore, currentMinute, liveStatus, statistics, incidents, isDraft }) => {
+    updateMatchScoreboard: async (date, matchId, { homeScore, awayScore, currentMinute, liveStatus, status, statistics, incidents, isDraft }) => {
         let updateExp = `
             SET score.home = :h, 
                 score.away = :a, 
+                homeScore = :h,
+                awayScore = :a,
                 currentMinute = :m,
                 liveStatus = :ls,
+                #stat = :statVal,
                 isManualControl = :true,
                 isDraft = :draft,
                 updatedAt = :u
         `;
+        const exprAttrNames = { "#stat": "status" };
         const exprAttrValues = {
             ":h": homeScore,
             ":a": awayScore,
             ":m": currentMinute,
             ":ls": liveStatus || 'streaming',
+            ":statVal": status || 'inprogress',
             ":true": true,
             ":draft": isDraft || false,
             ":u": new Date().toISOString()
@@ -307,6 +334,7 @@ const MatchRepo = {
             TableName: TABLE_NAME,
             Key: { pk: `DATE#${date}`, sk: `MATCH#${matchId}` },
             UpdateExpression: updateExp,
+            ExpressionAttributeNames: exprAttrNames,
             ExpressionAttributeValues: exprAttrValues,
             ReturnValues: "ALL_NEW"
         });

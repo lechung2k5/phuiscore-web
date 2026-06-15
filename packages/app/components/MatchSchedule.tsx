@@ -32,6 +32,55 @@ const THEME_COLORS: any = {
   liveOrange: '#f5a623'
 }
 
+
+// --- BỘ LỌC FIX LỖI LOGO SOFASCORE 403 ---
+const WORLD_CUP_LOGO = 'https://brandlogos.net/wp-content/uploads/2026/06/fifa-world-cup-2026-black-logo.png';
+
+const COUNTRY_MAP: any = {
+  'Qatar': 'qa', 'Switzerland': 'ch', 'Brazil': 'br', 'Morocco': 'ma',
+  'Haiti': 'ht', 'Scotland': 'gb-sct', 'Australia': 'au', 'Türkiye': 'tr',
+  'Germany': 'de', 'Curaçao': 'cw', 'Argentina': 'ar', 'France': 'fr',
+  'England': 'gb-eng', 'Spain': 'es', 'Portugal': 'pt', 'Netherlands': 'nl',
+  'Italy': 'it', 'Croatia': 'hr', 'Uruguay': 'uy', 'Belgium': 'be',
+  'Colombia': 'co', 'Senegal': 'sn', 'USA': 'us', 'Mexico': 'mx', 'Japan': 'jp',
+  'Korea Republic': 'kr', 'Saudi Arabia': 'sa', 'Iran': 'ir', 'Canada': 'ca',
+  'Ecuador': 'ec', 'Chile': 'cl', 'Peru': 'pe', 'Wales': 'gb-wls', 'Poland': 'pl',
+  'Serbia': 'rs', 'Denmark': 'dk', 'Sweden': 'se', 'Nigeria': 'ng', 'Cameroon': 'cm',
+  'Ghana': 'gh', 'Ivory Coast': 'ci', 'Algeria': 'dz', 'Egypt': 'eg', 'Vietnam': 'vn'
+};
+
+const getSafeLogo = (originalUrl: string, type: 'team' | 'tournament' = 'team', name: string = '') => {
+  if (!originalUrl) {
+    return `https://ui-avatars.com/api/?name=${name ? encodeURIComponent(name) : 'T'}&background=random&color=fff&bold=true`;
+  }
+
+  // Nếu là ảnh tải lên nội bộ
+  if (!originalUrl.startsWith('http')) {
+    return `${API_BASE_URL}${originalUrl}`;
+  }
+
+  // Bị Cloudflare SofaScore block (403)
+  if (originalUrl.includes('api.sofascore.app') || originalUrl.includes('sofascore.com')) {
+    if (type === 'tournament' && (name.toLowerCase().includes('world cup') || originalUrl.includes('/16/'))) {
+      return WORLD_CUP_LOGO;
+    }
+    
+    if (type === 'team' && name) {
+      const countryCode = COUNTRY_MAP[name];
+      if (countryCode) {
+        return `https://flagcdn.com/w80/${countryCode}.png`;
+      }
+    }
+    
+    // Nếu không tìm thấy cờ, trả về Avatar chữ cái đầu (UI Avatars)
+    return `https://ui-avatars.com/api/?name=${name ? encodeURIComponent(name) : 'T'}&background=random&color=fff&bold=true`;
+  }
+
+  // Mặc định trả về URL gốc
+  return originalUrl;
+};
+// ----------------------------------------
+
 const blinkStyles = `
   @keyframes blinker {
     0% { opacity: 1; }
@@ -376,7 +425,7 @@ const LeagueContainer = ({ league, isExpandedDefault, onToggle }: any) => {
         <XS alignItems="center" justifyContent="space-between">
           <XS alignItems="center" gap="$3">
             <V padding="$1.5" backgroundColor="#161616" borderRadius={8}>
-              <IMG src={league.logo} width={18} height={18} style={{ objectFit: 'contain' }} />
+              <IMG src={getSafeLogo(league.logo, 'tournament', league.name)} width={18} height={18} style={{ objectFit: 'contain' }} />
             </V>
             <YS>
               <T color="#fff" fontWeight="800" fontSize={13} letterSpacing={0.5}>
@@ -482,7 +531,7 @@ const MatchRowDesktop = ({ match, isLast }: any) => {
             >
               {typeof match.homeTeam?.name === 'string' ? match.homeTeam.name : 'Đội Nhà'}
             </T>
-            <IMG src={match.homeTeam.logo} width={32} height={32} />
+            <IMG src={getSafeLogo(match.homeTeam?.logo, 'team', match.homeTeam?.name)} width={32} height={32} />
         </XS>
 
         {/* Tỉ số - CỐ ĐỊNH Ở GIỮA */}
@@ -510,7 +559,7 @@ const MatchRowDesktop = ({ match, isLast }: any) => {
 
         {/* Tên + logo khách - căn trái sát tỉ số */}
         <XS flex={1} justifyContent="flex-start" alignItems="center" gap="$3" maxWidth={300}>
-          <IMG src={match.awayTeam.logo} width={32} height={32} />
+          <IMG src={getSafeLogo(match.awayTeam?.logo, 'team', match.awayTeam?.name)} width={32} height={32} />
           <T
             fontSize={15}
             fontWeight="700"
@@ -594,7 +643,7 @@ const MatchRowMobile = ({ match, isLast }: any) => {
         <YS flex={1} gap="$2">
           {/* Home */}
           <XS alignItems="center" gap="$3">
-            <IMG src={match.homeTeam.logo} width={24} height={24} style={{ objectFit: 'contain' }} />
+            <IMG src={getSafeLogo(match.homeTeam?.logo, 'team', match.homeTeam?.name)} width={24} height={24} style={{ objectFit: 'contain' }} />
             <T
               color="#eaeaea"
               fontSize={14}
@@ -609,7 +658,7 @@ const MatchRowMobile = ({ match, isLast }: any) => {
 
           {/* Away */}
           <XS alignItems="center" gap="$3">
-            <IMG src={match.awayTeam.logo} width={24} height={24} style={{ objectFit: 'contain' }} />
+            <IMG src={getSafeLogo(match.awayTeam?.logo, 'team', match.awayTeam?.name)} width={24} height={24} style={{ objectFit: 'contain' }} />
             <T
               color="#cfcfcf"
               fontSize={14}

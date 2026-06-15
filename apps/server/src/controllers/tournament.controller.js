@@ -340,11 +340,27 @@ const tournamentController = {
     try {
       const { status, region, search } = req.query;
       const items = await TournamentRepo.getAll({ status, region, search });
+      
+      // Chèn giải World Cup 2026 vào đầu danh sách nếu không bị search loại trừ
+      if (!search || 'world cup'.includes(search.toLowerCase())) {
+          items.unshift({
+              id: '16', // SofaScore ID cho World Cup
+              name: 'World Cup 2026',
+              logo: 'https://brandlogos.net/wp-content/uploads/2026/06/fifa-world-cup-2026-black-logo.png',
+              status: 'ongoing',
+              format: 'Cup'
+          });
+      }
+
       res.json({ success: true, data: items, total: items.length });
     } catch (error) {
       console.error('[Tournament] ❌ getList:', error.message);
       res.status(500).json({ success: false, message: error.message });
     }
+  },
+
+  drawGroups: async (req, res) => {
+      res.json({ success: true, message: 'Stub for drawGroups' });
   },
 
   /**

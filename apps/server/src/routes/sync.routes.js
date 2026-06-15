@@ -3,6 +3,7 @@ const router = express.Router();
 const MatchRepo = require('../repositories/match.repo');
 const StandingRepo = require('../repositories/standing.repo');
 const { invalidateCache } = require('../middlewares/cacheMiddleware');
+const { refreshTournamentStandings } = require('../controllers/tournament.controller');
 
 // Middleware kiểm tra Token bảo mật (Tránh việc ai cũng có thể post dữ liệu lên server)
 const validateSyncToken = (req, res, next) => {
@@ -161,6 +162,75 @@ router.post('/standings', validateSyncToken, async (req, res) => {
         res.status(200).json({ success: true, message: `Synced standings/knockout for ${tournamentId}` });
     } catch (error) {
         console.error('[Sync Standings Error]', error.message);
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
+/**
+ * @route   POST /api/sync/vmix-webhook
+ * @desc    Webhook để vMix báo cáo khi có thay đổi
+ */
+router.post('/vmix-webhook', validateSyncToken, async (req, res) => {
+    try {
+        const { matchId, date, homeScore, awayScore, currentMinute, liveStatus, status, statistics, incidents, tournamentId } = req.body;
+        
+        if (!matchId) {
+            return res.status(400).json({ success: false, message: 'Missing matchId' });
+        }
+
+        console.log(`[Sync] 🎮 Nhận webhook từ vMix cho trận ${matchId}`);
+        
+        // 💾 LƯU DỮ LIỆU VÀO DYNAMODB
+        if (date && matchId) {
+            await MatchRepo.updateMatchScoreboard(date, matchId, {
+                homeScore,
+                awayScore,
+                currentMinute,
+                liveStatus: liveStatus || 'live',
+                status: status || 'inprogress',
+                statistics,
+                incidents,
+                isDraft: false
+            });
+        }
+
+        // Cập nhật BXH tự động liên tục theo thời gian thực
+        if (tournamentId) {
+            console.log(`[Sync] 🏆 Tiến hành tính lại BXH giải đấu ${tournamentId}...`);
+            await refreshTournamentStandings(tournamentId).catch(err => {
+                console.error(`[Sync] Lỗi khi làm mới BXH: ${err.message}`);
+            });
+            invalidateCache(`/api/tournaments/${tournamentId}/stats`);
+            invalidateCache(`/api/tournaments/${tournamentId}`);
+            invalidateCache(`/api/standings/${tournamentId}`);
+            if (global.io) {
+                global.io.emit('standingsUpdate', { tournamentId });
+            }
+        }
+
+        // Cập nhật bộ nhớ đệm
+        invalidateCache(`/api/matches/detail/${matchId}`);
+        if (date) invalidateCache(`/api/matches/${date}`);
+
+        // Phát tín hiệu Real-time cho web clients ngay lập tức
+        if (global.io) {
+            global.io.emit('scoreUpdate', { 
+                matchId, 
+                homeScore, 
+                awayScore, 
+                currentMinute, 
+                liveStatus, 
+                status,
+                statistics,
+                incidents,
+                isDraft: false
+            });
+            console.log(`[Socket] 📢 Đã phát tín hiệu scoreUpdate từ vMix cho trận ${matchId}`);
+        }
+
+        res.status(200).json({ success: true, message: `Webhook processed for match ${matchId}` });
+    } catch (error) {
+        console.error('[Sync vMix Webhook Error]', error.message);
         res.status(500).json({ success: false, message: error.message });
     }
 });

@@ -7,6 +7,11 @@ const S3_BASE_URL = `https://${S3_BUCKET}.s3.${S3_REGION}.amazonaws.com`;
  * Ưu tiên lấy từ SofaScore API nếu có ID, nếu không lấy từ S3/Local
  */
 export const getImageUrl = (path: string | null | undefined, type: 'logo' | 'banner' | 'avatar' | 'tournament' = 'logo', id?: string | number) => {
+    // Nếu đã là URL hoàn chỉnh và không phải của SofaScore (ví dụ custom logo World Cup), ưu tiên dùng luôn
+    if (path && path.startsWith('http') && !path.includes('api.sofascore.app')) {
+        return path;
+    }
+
     // Nếu có ID và là dạng số (SofaScore ID), ưu tiên lấy từ SofaScore API
     if (id && !isNaN(Number(id))) {
         if (type === 'logo') return `https://api.sofascore.app/api/v1/team/${id}/image`;

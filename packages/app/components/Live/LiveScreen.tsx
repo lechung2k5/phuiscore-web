@@ -313,7 +313,7 @@ export default function LiveScreen() {
       }
 
       // 3. Chỉ lấy các trận THỰC SỰ đang diễn ra (LIVE)
-      const isActuallyLive = ['inprogress', 'live', 'in_progress', 'streaming'].includes(status) || 
+      const isActuallyLive = ['inprogress', 'live', 'in_progress', 'streaming', 'first_half', 'second_half', 'half_time', 'extra_time', 'penalty'].includes(status) || 
                              ['inprogress', 'live'].includes(liveStatus);
       
       const isRecentlyStarted = m.startTimestamp && (nowSec - m.startTimestamp > 0) && (nowSec - m.startTimestamp < 5 * 60);
@@ -343,7 +343,7 @@ export default function LiveScreen() {
   const upcomingMatches = React.useMemo(() => {
     return matches.filter(m => {
       const status = String(m.status || "").toLowerCase();
-      if (['finished', 'canceled', 'postponed', 'closed', 'ended', 'live', 'inprogress', 'in_progress'].includes(status)) return false;
+      if (['finished', 'canceled', 'postponed', 'closed', 'ended', 'live', 'inprogress', 'in_progress', 'first_half', 'second_half', 'half_time', 'extra_time', 'penalty'].includes(status)) return false;
       return m.startTimestamp && m.startTimestamp > nowSec;
     }).sort((a, b) => (a.startTimestamp || 0) - (b.startTimestamp || 0));
   }, [matches, nowSec]);

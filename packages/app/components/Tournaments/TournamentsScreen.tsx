@@ -139,7 +139,7 @@ export default function TournamentsScreen() {
   return (
     <YStack flex={1} backgroundColor={COLORS.bg as any} minHeight="100vh">
       {/* Font Import */}
-      <style>{`
+      <style dangerouslySetInnerHTML={{ __html: `
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
         * { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important; }
         .gradient-filter-btn {
@@ -199,7 +199,7 @@ export default function TournamentsScreen() {
           border-color: rgba(34,197,94,0.4) !important;
           box-shadow: 0 0 0 3px rgba(34,197,94,0.08);
         }
-      `}</style>
+      ` }} />
 
       {/* HERO */}
       <YStack

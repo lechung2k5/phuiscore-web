@@ -50,7 +50,7 @@ export const LiveMatchCard = React.memo((props: any) => {
   const nowSec = Math.floor(Date.now() / 1000)
   const cleanStatus = String(status || "").toLowerCase()
   
-  const explicitlyLive = ['live', 'inprogress', 'in_progress'].includes(cleanStatus)
+  const explicitlyLive = ['live', 'inprogress', 'in_progress', 'first_half', 'second_half', 'half_time', 'extra_time', 'penalty'].includes(cleanStatus)
   const isFallbackLive = ['notstarted', 'not_started'].includes(cleanStatus) && startTimestamp && (nowSec - startTimestamp >= -30 * 60) && (nowSec - startTimestamp <= 130 * 60)
   
   const isLive = explicitlyLive || isFallbackLive

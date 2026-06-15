@@ -1,15 +1,17 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import AdminPage from './pages/AdminPage';
+import ControlPage from './pages/ControlPage';
 import LiveOverlayPage from './pages/LiveOverlayPage';
+
+import HomePage from './pages/HomePage';
 
 function App() {
   return (
     <Router>
       <Routes>
-        <Route path="/admin" element={<AdminPage />} />
+        <Route path="/" element={<HomePage />} />
+        <Route path="/control/:matchId" element={<ControlPage />} />
         <Route path="/overlay/live/:matchId" element={<LiveOverlayPage />} />
-        {/* Mặc định chuyển hướng tới admin của trận demo */}
-        <Route path="*" element={<Navigate to="/admin" replace />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Router>
   );

@@ -1,0 +1,130 @@
+.card-popup-container {
+  position: absolute;
+  bottom: 80px;
+  left: 80px;
+  width: 700px;
+  height: 140px;
+  display: flex;
+  align-items: center;
+  font-family: 'Chakra Petch', 'Inter', sans-serif;
+}
+
+/* Khối ảnh đại diện (trái) */
+.card-popup-avatar-wrapper {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 140px;
+  height: 140px;
+  border: 4px solid #00ff88; /* Màu viền mặc định, sẽ bị ghi đè inline */
+  background: #111;
+  z-index: 3;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+  overflow: hidden;
+}
+
+.card-popup-avatar {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  overflow: hidden;
+}
+
+.card-avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center top;
+  display: block;
+}
+
+/* Chiếc thẻ (nằm sau avatar, thò lên trên) được vẽ bằng CSS thuần */
+.card-popup-graphic {
+  position: absolute;
+  left: 100px;
+  top: -40px;
+  width: 70px;
+  height: 100px;
+  background: #ffe600; /* Vàng rực rỡ */
+  border-radius: 6px;
+  z-index: 2;
+  transform-origin: bottom left;
+  box-shadow: 2px 5px 10px rgba(0,0,0,0.4), inset 0 0 10px rgba(255,255,255,0.5);
+  border: 2px solid rgba(255,255,255,0.8);
+}
+
+.card-popup-graphic.red-card {
+  background: #ff4d4f; /* Đỏ tươi */
+}
+
+/* Dải băng hiển thị thông tin (phải) */
+.card-popup-banner-wrapper {
+  position: absolute;
+  left: 120px; /* Thụt vào dưới avatar */
+  top: 20px; /* Thấp hơn avatar một chút */
+  height: 100px;
+  width: 550px;
+  z-index: 1;
+  /* Kỹ thuật vát nghiêng (skew) */
+  transform: skewX(-20deg);
+  overflow: hidden;
+  box-shadow: 5px 5px 15px rgba(0,0,0,0.5);
+  border: 2px solid #00ff88;
+}
+
+/* Layer tạo họa tiết sọc carbon chéo trên dải băng */
+.card-popup-banner-bg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: repeating-linear-gradient(
+    45deg,
+    rgba(255, 255, 255, 0.05),
+    rgba(255, 255, 255, 0.05) 4px,
+    transparent 4px,
+    transparent 8px
+  );
+  z-index: 0;
+}
+
+/* Layer nội dung chữ (phải skew ngược lại để chữ không bị nghiêng) */
+.card-popup-content {
+  position: absolute;
+  left: 120px;
+  top: 20px;
+  width: 530px;
+  height: 100px;
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding-left: 50px;
+  /* Nội dung nằm ngang bình thường */
+  transform: skewX(0deg);
+}
+
+.card-popup-title {
+  color: #ffe600; /* Vàng mặc định */
+  font-size: 20px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  margin-bottom: 2px;
+  margin-left: 20px; /* Dịch phải thêm 10px nữa để không bị thẻ đè */
+  text-shadow: 1px 1px 3px rgba(0,0,0,0.8);
+}
+
+.card-popup-title.red-title {
+  color: #ff4d4f;
+}
+
+.card-popup-player {
+  color: #ffffff;
+  font-size: 36px;
+  font-weight: 900;
+  text-transform: uppercase;
+  text-shadow: 2px 2px 5px rgba(0,0,0,0.8);
+  white-space: nowrap;
+}

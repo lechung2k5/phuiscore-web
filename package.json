@@ -52,6 +52,7 @@
     "puppeteer-extra-plugin-stealth": "^2.11.2",
     "socket.io-client": "^4.7.5",
     "tamagui": "2.0.0-rc.0",
+    "tesseract.js": "^7.0.0",
     "turbo": "^1.13.4",
     "typescript": "~5.8.3",
     "ultra-runner": "^3.10.5",

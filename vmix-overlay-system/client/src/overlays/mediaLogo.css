@@ -1,0 +1,81 @@
+.media-logo-container {
+  position: absolute;
+  top: 30px;
+  left: 30px;
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  /* Bố cục Không Nền (No Background) */
+}
+
+.media-logo-static {
+  width: 130px;
+  height: 130px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  /* Đổ bóng đậm để nổi bật trên nền video không dự đoán được */
+  filter: drop-shadow(0 10px 20px rgba(0, 0, 0, 0.85));
+}
+
+.media-logo-static img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+.media-divider {
+  width: 3px;
+  height: 80px;
+  background: linear-gradient(to bottom, rgba(255,255,255,0) 0%, rgba(255,170,0,0.8) 50%, rgba(255,255,255,0) 100%);
+  filter: drop-shadow(0 0 5px rgba(255,170,0,0.5));
+}
+
+.media-logo-dynamic {
+  width: 145px;
+  height: 145px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  perspective: 1000px;
+}
+
+.media-spin-wrapper {
+  position: relative; /* Giữ tia sáng absolute ở lại trong thẻ này */
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  transform-style: preserve-3d;
+  will-change: transform, opacity;
+  /* Đổ bóng cho chính khối 3D */
+  filter: drop-shadow(0 10px 15px rgba(0, 0, 0, 0.8));
+}
+
+.media-spin-wrapper img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  /* Đổ bóng sắc nét nhỏ bên trong để chữ/logo không bị chìm nếu là màu trắng */
+  filter: drop-shadow(1px 1px 0 rgba(0,0,0,0.9));
+  transform: translateZ(20px); /* Parallax 3D nổi nhẹ */
+}
+
+/* Tia sáng chạy qua logo giống nhà tài trợ */
+.media-shiny {
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 130px; /* Tăng độ rộng của dải sáng (to hơn ~60px so với 50% lúc nãy) */
+  height: 100%;
+  background: linear-gradient(
+    to right,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.9) 50%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  transform: skewX(-25deg);
+  pointer-events: none;
+  z-index: 10;
+}

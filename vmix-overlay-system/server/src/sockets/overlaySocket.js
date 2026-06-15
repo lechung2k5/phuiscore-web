@@ -1,6 +1,23 @@
-const { getOverlayState, updateOverlayState } = require('../state/overlayStore');
+const { getOverlayState, updateOverlayState, getAllMatchIds } = require('../state/overlayStore');
 
 const setupSockets = (io) => {
+  // Clock Manager: emit 'clock:tick' riêng (nhẹ) thay vì full 'overlay:state' mỗi giây
+  // Tránh gây re-render toàn bộ overlay components không liên quan đến clock
+  setInterval(() => {
+    const matchIds = getAllMatchIds();
+    matchIds.forEach(matchId => {
+      const state = getOverlayState(matchId);
+      if (state && state.matchInfo?.isRunning) {
+        const newTime = (state.matchInfo.time || 0) + 1;
+        updateOverlayState(matchId, {
+          matchInfo: { time: newTime }
+        });
+        // Chỉ emit thời gian - không emit full state
+        io.to(matchId).emit('clock:tick', { time: newTime });
+      }
+    });
+  }, 1000);
+
   io.on('connection', (socket) => {
     console.log('Client connected:', socket.id);
 
@@ -23,32 +40,172 @@ const setupSockets = (io) => {
       io.to(matchId).emit('overlay:state', updatedState);
     };
 
-    socket.on('match:update', ({ matchId, matchData }) => {
-      handleUpdate(matchId, { match: matchData });
+    socket.on('update_state', ({ matchId, updates }) => {
+      handleUpdate(matchId, updates);
     });
 
-    socket.on('layer:toggle', ({ matchId, layerName, visible }) => {
-      handleUpdate(matchId, { layers: { [layerName]: { visible } } });
-    });
+    socket.on('trigger_event', ({ matchId, eventData }) => {
+      let layerName = null;
+      if (eventData.type === 'scoreboard_goal') {
+        handleUpdate(matchId, { scoreboardEvent: eventData });
+        return;
+      }
+      
+      if (eventData.type === 'goal') {
+        layerName = 'goalPopup';
+        // Lưu bàn thắng vào mảng goals của đội
+        const currentState = getOverlayState(matchId);
+        if (currentState) {
+          const teamKey = eventData.team === 'home' ? 'homeTeam' : 'awayTeam';
+          const teamData = currentState[teamKey] || {};
+          const currentGoals = teamData.goals || [];
+          handleUpdate(matchId, {
+            [teamKey]: { goals: [...currentGoals, { id: eventData.id, playerName: eventData.playerName, minute: eventData.minute }] }
+          });
+        }
+      }
+      else if (eventData.type === 'undo_goal') {
+        const currentState = getOverlayState(matchId);
+        if (currentState) {
+          const teamKey = eventData.team === 'home' ? 'homeTeam' : 'awayTeam';
+          const teamData = currentState[teamKey] || {};
+          const currentGoals = teamData.goals || [];
+          const currentIncidents = currentState.incidents || [];
+          if (currentGoals.length > 0) {
+            const lastGoal = currentGoals[currentGoals.length - 1];
+            handleUpdate(matchId, {
+              [teamKey]: { goals: currentGoals.slice(0, -1) },
+              incidents: currentIncidents.filter(inc => inc.id !== lastGoal.id)
+            });
+          }
+        }
+        return; // Không hiện popup
+      }
+      else if (eventData.type === 'delete_goal') {
+        const currentState = getOverlayState(matchId);
+        if (currentState) {
+          const teamKey = eventData.team === 'home' ? 'homeTeam' : 'awayTeam';
+          const teamData = currentState[teamKey] || {};
+          const currentGoals = teamData.goals || [];
+          const currentIncidents = currentState.incidents || [];
+          handleUpdate(matchId, {
+            [teamKey]: { goals: currentGoals.filter(g => g.id !== eventData.id) },
+            incidents: currentIncidents.filter(inc => inc.id !== eventData.id)
+          });
+        }
+        return;
+      }
+      else if (eventData.type === 'delete_card') {
+        const currentState = getOverlayState(matchId);
+        if (currentState) {
+          const teamKey = eventData.team === 'home' ? 'homeTeam' : 'awayTeam';
+          const teamData = currentState[teamKey] || {};
+          const currentCards = teamData.cards || [];
+          const currentIncidents = currentState.incidents || [];
+          handleUpdate(matchId, {
+            [teamKey]: { cards: currentCards.filter(c => c.id !== eventData.id) },
+            incidents: currentIncidents.filter(inc => inc.id !== eventData.id)
+          });
+        }
+        return;
+      }
+      else if (eventData.type === 'delete_sub') {
+        const currentState = getOverlayState(matchId);
+        if (currentState) {
+          const teamKey = eventData.team === 'home' ? 'homeTeam' : 'awayTeam';
+          const teamData = currentState[teamKey] || {};
+          const currentSubs = teamData.subs || [];
+          const currentIncidents = currentState.incidents || [];
+          handleUpdate(matchId, {
+            [teamKey]: { subs: currentSubs.filter(s => s.id !== eventData.id) },
+            incidents: currentIncidents.filter(inc => inc.id !== eventData.id)
+          });
+        }
+        return;
+      }
+      else if (eventData.type === 'toggle_overlay') {
+        const currentState = getOverlayState(matchId);
+        if (currentState && currentState.layers) {
+          const layerKey = eventData.target;
+          if (currentState.layers[layerKey]) {
+            handleUpdate(matchId, {
+              layers: {
+                [layerKey]: {
+                  visible: !currentState.layers[layerKey].visible
+                }
+              }
+            });
+          }
+        }
+        return;
+      }
+      else if (eventData.type === 'yellow_card' || eventData.type === 'red_card') {
+        layerName = 'cardPopup';
+        const currentState = getOverlayState(matchId);
+        if (currentState) {
+          const teamKey = eventData.team === 'home' ? 'homeTeam' : 'awayTeam';
+          const teamData = currentState[teamKey] || {};
+          const currentCards = teamData.cards || [];
+          handleUpdate(matchId, {
+            [teamKey]: { cards: [...currentCards, { id: eventData.id, type: eventData.type, playerName: eventData.playerName, minute: eventData.minute }] }
+          });
+        }
+      }
+      else if (eventData.type === 'sub') {
+        layerName = 'substitution';
+        const currentState = getOverlayState(matchId);
+        if (currentState) {
+          const teamKey = eventData.team === 'home' ? 'homeTeam' : 'awayTeam';
+          const teamData = currentState[teamKey] || {};
+          const currentSubs = teamData.subs || [];
+          handleUpdate(matchId, {
+            [teamKey]: { subs: [...currentSubs, { id: eventData.id, playerOutName: eventData.playerOutName, playerInName: eventData.playerInName, minute: eventData.minute }] }
+          });
+        }
+      }
+      else if (eventData.type === 'coach') layerName = 'coachPopup';
+      else if (eventData.type === 'media_logo') layerName = 'mediaLogo';
+      else if (eventData.type === 'lineup') layerName = 'lineup';
 
-    socket.on('layer:show-temporary', ({ matchId, layerName, duration = 8000, data = null }) => {
-      // Bật layer kèm data (ví dụ goalPopup có thông tin cầu thủ)
-      handleUpdate(matchId, { layers: { [layerName]: { visible: true, data } } });
-
-      // Cài giờ tắt
-      setTimeout(() => {
-        handleUpdate(matchId, { layers: { [layerName]: { visible: false, data: null } } });
-      }, duration);
-    });
-
-    socket.on('timer:start', ({ matchId }) => {
-        // Logic đếm giờ có thể phức tạp nếu tick ở server.
-        // Tạm thời chỉ phát event timer:start để các client bắt đầu chạy đồng hồ tự động.
-        io.to(matchId).emit('timer:tick', { action: 'start' });
-    });
-
-    socket.on('timer:pause', ({ matchId }) => {
-        io.to(matchId).emit('timer:tick', { action: 'pause' });
+      if (layerName) {
+        handleUpdate(matchId, { layers: { [layerName]: { visible: true, data: eventData } } });
+        
+        // Lưu vào mảng incidents
+        if (['goal', 'yellow_card', 'red_card', 'sub'].includes(eventData.type)) {
+          const currentState = getOverlayState(matchId);
+          if (currentState) {
+            const currentIncidents = currentState.incidents || [];
+            handleUpdate(matchId, { incidents: [...currentIncidents, eventData] });
+          }
+        }
+        
+        // Lưu HLV vào lineups
+        if (eventData.type === 'coach') {
+          const currentState = getOverlayState(matchId);
+          if (currentState) {
+            // Dùng JSON parse/stringify để clone object tránh lỗi tham chiếu
+            const currentLineups = JSON.parse(JSON.stringify(currentState.lineups || currentState.dbData?.lineups || {}));
+            const teamKey = eventData.teamType === 'home' ? 'home' : 'away';
+            
+            if (!currentLineups[teamKey]) currentLineups[teamKey] = {};
+            currentLineups[teamKey].coach = {
+              ...(currentLineups[teamKey].coach || {}),
+              name: eventData.coachName
+            };
+            
+            handleUpdate(matchId, { lineups: currentLineups });
+          }
+        }
+        
+        // Ngoại trừ logo đài phát (mediaLogo) và đội hình (lineup), các hiệu ứng khác sẽ tự động tắt
+        if (layerName !== 'mediaLogo' && layerName !== 'lineup') {
+          // Các hiệu ứng khác hiện 8 giây
+          const displayDuration = 8000;
+          setTimeout(() => {
+            handleUpdate(matchId, { layers: { [layerName]: { visible: false, data: null } } });
+          }, displayDuration);
+        }
+      }
     });
 
     socket.on('disconnect', () => {

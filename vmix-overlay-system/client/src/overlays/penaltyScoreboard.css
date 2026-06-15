@@ -1,0 +1,223 @@
+.penalty-scoreboard-wrapper {
+  position: absolute;
+  top: 22px;
+  right: 0;
+  margin-top: 20px;
+  margin-right: 25px;
+  width: 815px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  pointer-events: none;
+  font-family: 'Chakra Petch', sans-serif;
+  visibility: hidden;
+  transform: scale(1.2);
+  transform-origin: top right;
+}
+
+.penalty-tournament-logo {
+  position: absolute;
+  top: -20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
+  height: 46px;
+}
+
+.penalty-tournament-logo img {
+  height: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 4px 6px rgba(0,0,0,0.8));
+}
+
+.penalty-main-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  margin-top: 20px;
+}
+
+/* WINGS */
+.penalty-wing {
+  position: relative;
+  display: flex;
+  align-items: center;
+  height: 60px;
+  padding: 0 10px;
+  z-index: 1;
+}
+
+.penalty-wing.left {
+  flex-direction: row;
+  margin-right: -15px; /* Overlap with center */
+}
+
+.penalty-wing.right {
+  flex-direction: row;
+  margin-left: -15px;
+}
+
+/* Background for wings using asset images */
+.penalty-wing-bg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: -1;
+}
+
+.penalty-wing.left .penalty-wing-bg {
+  transform: translateX(11px);
+}
+
+.penalty-wing.right .penalty-wing-bg {
+  transform: translateX(-11px);
+}
+
+/* TEAM LOGOS */
+.penalty-team-logo-box {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+}
+
+.penalty-team-logo-box.left {
+  margin-left: 5px;
+  margin-right: 10px;
+}
+
+.penalty-team-logo-box.right {
+  margin-right: 5px;
+  margin-left: 10px;
+}
+
+.penalty-team-logo-box img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.8));
+}
+
+/* CIRCLES */
+.penalty-circles-container {
+  display: flex;
+  gap: 10px;
+  z-index: 2;
+}
+
+.penalty-circles-container.left {
+  margin-right: 25px;
+}
+
+.penalty-circles-container.right {
+  margin-left: 25px;
+}
+
+.penalty-circle {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 3px solid #fff;
+  background-color: #222;
+  box-shadow: inset 0 3px 5px rgba(0,0,0,0.8), 0 2px 4px rgba(0,0,0,0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  transition: all 0.3s ease;
+}
+
+.penalty-circle.scored {
+  background-color: #00ff00;
+  box-shadow: inset 0 0 10px rgba(255,255,255,0.8), 0 0 10px #00ff00;
+  border-color: #fff;
+}
+
+.penalty-circle.missed {
+  background-color: #ff0000;
+  box-shadow: inset 0 0 10px rgba(0,0,0,0.5), 0 0 5px #ff0000;
+  border-color: #fff;
+}
+
+/* Dấu X khi trượt */
+.penalty-circle .cross {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+}
+.penalty-circle .cross::before,
+.penalty-circle .cross::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 14px;
+  height: 2px;
+  background-color: #fff;
+  border-radius: 1px;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.8);
+}
+.penalty-circle .cross::before {
+  transform: translate(-50%, -50%) rotate(45deg);
+}
+.penalty-circle .cross::after {
+  transform: translate(-50%, -50%) rotate(-45deg);
+}
+
+/* CENTER BOX */
+.penalty-center {
+  position: relative;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.penalty-score-box {
+  background: #000;
+  border: 2px solid #fff;
+  border-bottom: none;
+  height: 48px;
+  padding: 0 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32px;
+  font-weight: 900;
+  color: #fff;
+  clip-path: polygon(15% 0, 85% 0, 100% 100%, 0 100%);
+  box-shadow: 0 8px 16px rgba(0,0,0,0.8);
+}
+
+.p-score {
+  min-width: 32px;
+  text-align: center;
+  text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+}
+
+.p-divider {
+  width: 3px;
+  height: 24px;
+  background-color: rgba(255,255,255,0.3);
+  margin: 0 12px;
+}
+
+.penalty-bottom-label {
+  background: linear-gradient(to bottom, #111, #333);
+  border: 2px solid #eab308;
+  color: #fff;
+  font-weight: 800;
+  font-size: 16px;
+  letter-spacing: 2px;
+  padding: 2px 32px;
+  text-align: center;
+  clip-path: polygon(0 0, 100% 0, 90% 100%, 10% 100%);
+  margin-top: -2px; /* Overlap with score box slightly */
+  box-shadow: 0 5px 12px rgba(0,0,0,0.8);
+  text-shadow: 0 2px 4px rgba(0,0,0,1);
+}

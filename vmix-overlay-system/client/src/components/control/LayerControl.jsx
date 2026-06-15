@@ -1,0 +1,63 @@
+import React from 'react';
+import { Row, Col } from 'antd';
+
+const LAYERS = [
+  { key: 'scoreboardTop',   title: 'TỶ SỐ TRÊN',    icon: '📺', color: '#177ddc' },
+  { key: 'scoreboardBottom',title: 'TỶ SỐ DƯỚI',    icon: '📊', color: '#177ddc' },
+  { key: 'prematchBanner',  title: 'BANNER INTRO',   icon: '🎬', color: '#9c27b0' },
+  { key: 'penaltyBoard',    title: 'LUÂN LƯU',       icon: '🥅', color: '#faad14' },
+  { key: 'eventTicker',     title: 'TIN CHẠY',       icon: '📡', color: '#13c2c2' },
+  { key: 'sponsorOverlay',  title: 'NHÀ TÀI TRỢ',   icon: '💼', color: '#eb2f96' },
+  { key: 'mediaLogo',       title: 'LOGO ĐÀI',       icon: '📷', color: '#fa8c16' },
+  { key: 'highlightOverlay',title: 'HIGHLIGHTS',     icon: '🔥', color: '#ff4500' },
+];
+
+const LayerControl = ({ matchState, toggleLayer, horizontal }) => {
+  // horizontal: render tất cả nút trong 1 hàng ngang (dùng trong thanh top)
+  const colSpan = horizontal ? { xs: 12, sm: 6, md: 4, lg: 3 } : { span: 12 };
+
+  return (
+    <Row gutter={[8, 8]}>
+      {LAYERS.map(item => {
+        const isActive = matchState.layers[item.key]?.visible;
+        return (
+          <Col {...colSpan} key={item.key}>
+            <div
+              onClick={() => toggleLayer(item.key, !isActive)}
+              title={item.title}
+              style={{
+                background: isActive ? `${item.color}22` : '#1c2128',
+                color: isActive ? item.color : '#6e7681',
+                border: `1.5px solid ${isActive ? item.color : '#30363d'}`,
+                borderRadius: 6,
+                height: horizontal ? 42 : 54,
+                display: 'flex',
+                flexDirection: horizontal ? 'row' : 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 4,
+                fontWeight: 800,
+                fontSize: 12,
+                letterSpacing: 0.5,
+                cursor: 'pointer',
+                boxShadow: isActive ? `0 0 8px ${item.color}55` : 'none',
+                transition: 'all 0.15s ease',
+                userSelect: 'none',
+                textAlign: 'center',
+                padding: '0 6px',
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+              }}
+            >
+              <span style={{ fontSize: horizontal ? 16 : 20 }}>{item.icon}</span>
+              <span style={{ fontSize: 12, marginLeft: horizontal ? 5 : 0, fontWeight: 800 }}>{item.title}</span>
+            </div>
+          </Col>
+        );
+      })}
+    </Row>
+  );
+};
+
+export default React.memo(LayerControl);

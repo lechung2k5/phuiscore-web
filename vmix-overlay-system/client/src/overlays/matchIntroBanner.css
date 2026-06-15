@@ -1,0 +1,191 @@
+.intro-banner-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 1920px;
+  height: 1080px;
+  overflow: hidden;
+  font-family: 'Chakra Petch', sans-serif;
+  color: white;
+}
+
+.intro-asset {
+  position: absolute;
+  object-fit: contain;
+  /* Force GPU layer cho toàn bộ asset */
+  will-change: transform;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+
+/* KHUNG TRÁI */
+.intro-bg-left {
+  left: 0;
+  top: 0;
+  height: 1080px;
+  width: auto;
+  z-index: 1;
+}
+
+@keyframes floatShard1 {
+  0%   { transform: translateZ(0) translateY(0px) rotate(0deg); }
+  50%  { transform: translateZ(0) translateY(-15px) rotate(1deg); }
+  100% { transform: translateZ(0) translateY(0px) rotate(0deg); }
+}
+
+@keyframes floatShard2 {
+  0%   { transform: translateZ(0) translateY(0px) rotate(0deg); }
+  50%  { transform: translateZ(0) translateY(-20px) rotate(-2deg); }
+  100% { transform: translateZ(0) translateY(0px) rotate(0deg); }
+}
+
+.intro-shard1-left {
+  left: 0;
+  top: 0;
+  height: 1080px;
+  width: auto;
+  z-index: 3;
+  /* Giữ nguyên hiệu ứng gốc */
+  filter: blur(1.5px) drop-shadow(0 15px 20px rgba(0,0,0,0.6)) contrast(1.1);
+  animation: floatShard1 7s ease-in-out infinite;
+}
+
+.intro-player-left {
+  left: 50px;
+  bottom: -60px;
+  width: auto;
+  height: 1100px;
+  z-index: 2;
+  object-fit: contain;
+  object-position: bottom center;
+}
+
+.intro-team-box-left {
+  left: 140px;
+  bottom: 120px;
+  width: 180px;
+  height: 180px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 4;
+}
+
+.intro-shard2-left {
+  left: 0px;
+  bottom: 350px;
+  width: 389px;
+  height: auto;
+  z-index: 5;
+  object-fit: contain;
+  filter: blur(2.5px) drop-shadow(0 20px 30px rgba(0,0,0,0.7)) brightness(1.1);
+  animation: floatShard2 5s ease-in-out infinite;
+}
+
+/* KHUNG PHẢI */
+.intro-bg-right {
+  right: 0;
+  top: 0;
+  height: 1080px;
+  width: auto;
+  z-index: 1;
+}
+
+.intro-shard1-right {
+  right: 0;
+  top: 0;
+  height: 1080px;
+  width: auto;
+  z-index: 3;
+  filter: blur(1.5px) drop-shadow(0 15px 20px rgba(0,0,0,0.6)) contrast(1.1);
+  animation: floatShard1 6s ease-in-out infinite reverse;
+}
+
+.intro-player-right {
+  right: 50px;
+  bottom: -60px;
+  width: auto;
+  height: 1100px;
+  z-index: 2;
+  object-fit: contain;
+  object-position: bottom center;
+}
+
+.intro-team-box-right {
+  right: 143px;
+  bottom: 120px;
+  width: 180px;
+  height: 180px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 4;
+}
+
+.intro-shard2-right {
+  right: 0px; 
+  bottom: 350px;
+  width: 389px;
+  height: auto;
+  z-index: 5;
+  object-fit: contain;
+  filter: blur(2.5px) drop-shadow(0 20px 30px rgba(0,0,0,0.7)) brightness(1.1);
+  animation: floatShard2 6s ease-in-out infinite reverse;
+}
+
+@keyframes floatCenterVs {
+  0%   { transform: translateZ(0) translate(-50%, -50%) translateY(0px) rotate(0deg); }
+  50%  { transform: translateZ(0) translate(-50%, -50%) translateY(-15px) rotate(2deg); }
+  100% { transform: translateZ(0) translate(-50%, -50%) translateY(0px) rotate(0deg); }
+}
+
+@keyframes floatCenterLeague {
+  0%   { transform: translateZ(0) translateX(-50%) translateY(0px) rotate(0deg); }
+  50%  { transform: translateZ(0) translateX(-50%) translateY(-10px) rotate(-1deg); }
+  100% { transform: translateZ(0) translateX(-50%) translateY(0px) rotate(0deg); }
+}
+
+/* BOX LOGO DÙNG CHUNG */
+.intro-team-logo-inner {
+  width: 140px;
+  height: 140px;
+  object-fit: contain;
+  filter: blur(1px) drop-shadow(0 15px 20px rgba(0,0,0,0.6)) contrast(1.1);
+  animation: floatShard1 6s ease-in-out infinite;
+  will-change: transform;
+  transform: translateZ(0);
+}
+
+/* TRUNG TÂM */
+.intro-vs {
+  left: calc(50% - 80px);
+  top: calc(50% - 30px);
+  transform: translateZ(0) translate(-50%, -50%);
+  width: 474px;
+  height: 475px;
+  z-index: 10;
+  filter: blur(1px) drop-shadow(0 20px 30px rgba(0,0,0,0.7)) contrast(1.1);
+  animation: floatCenterVs 5s ease-in-out infinite;
+}
+
+.intro-league {
+  left: 50%;
+  top: 30px;
+  transform: translateZ(0) translateX(-50%);
+  width: 189px;
+  height: 196px;
+  z-index: 9;
+  filter: blur(1px) drop-shadow(0 15px 20px rgba(0,0,0,0.6)) contrast(1.1);
+  animation: floatCenterLeague 7s ease-in-out infinite reverse;
+}
+
+.intro-media {
+  left: 50%;
+  bottom: 80px;
+  transform: translateZ(0) translateX(-50%);
+  width: 217px;
+  height: 218px;
+  z-index: 9;
+  filter: blur(1px) drop-shadow(0 15px 20px rgba(0,0,0,0.6)) contrast(1.1);
+  animation: floatCenterLeague 6s ease-in-out infinite;
+}

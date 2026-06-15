@@ -1,0 +1,122 @@
+[
+  {
+    "member_id": "member_d68d93e6-608c-4510-a6f7-3b00228739bb",
+    "name": "Tề Thiên",
+    "avatar": "http://localhost:5000/uploads/teams/avatars/DNI_member_d68d93e6-608c-4510-a6f7-3b00228739bb.jpg"
+  },
+  {
+    "member_id": "member_14900024-4594-488e-ab3e-c6bc706cb2f9",
+    "name": "Sơn Dybala",
+    "avatar": "http://localhost:5000/uploads/teams/avatars/DNI_member_14900024-4594-488e-ab3e-c6bc706cb2f9.jpg"
+  },
+  {
+    "member_id": "member_e808a474-b8ba-4538-960b-e188d4082e1c",
+    "name": "Đăng Vinh",
+    "avatar": "http://localhost:5000/uploads/teams/avatars/DNI_member_e808a474-b8ba-4538-960b-e188d4082e1c.jpg"
+  },
+  {
+    "member_id": "member_a46a2683-7dcc-4276-aece-812e6db1206d",
+    "name": "Quốc Mãng",
+    "avatar": "http://localhost:5000/uploads/teams/avatars/DNI_member_a46a2683-7dcc-4276-aece-812e6db1206d.jpg"
+  },
+  {
+    "member_id": "member_d9a7cec4-b171-42fc-b561-863f0bce3786",
+    "name": "Đức Tiến",
+    "avatar": "http://localhost:5000/uploads/teams/avatars/DNI_member_d9a7cec4-b171-42fc-b561-863f0bce3786.jpg"
+  },
+  {
+    "member_id": "member_3b35d296-c1e3-4e95-8b99-71a4f4dd24e3",
+    "name": "Minh Thuận",
+    "avatar": "http://localhost:5000/uploads/teams/avatars/DNI_member_3b35d296-c1e3-4e95-8b99-71a4f4dd24e3.jpg"
+  },
+  {
+    "member_id": "member_7f6ea69a-15dc-4859-9fd1-ded5e4f53b5a",
+    "name": "Thành Nhân",
+    "avatar": "http://localhost:5000/uploads/teams/avatars/DNI_member_7f6ea69a-15dc-4859-9fd1-ded5e4f53b5a.jpg"
+  },
+  {
+    "member_id": "member_e3798984-d8c4-45da-9b2e-b76d17f99882",
+    "name": "Linh Mizuno",
+    "avatar": "http://localhost:5000/uploads/teams/avatars/DNI_member_e3798984-d8c4-45da-9b2e-b76d17f99882.jpg"
+  },
+  {
+    "member_id": "member_48cfccdb-975b-48d9-9d74-50613bc405f7",
+    "name": "Quốc Thạnh",
+    "avatar": "http://localhost:5000/uploads/teams/avatars/DNI_member_48cfccdb-975b-48d9-9d74-50613bc405f7.jpg"
+  },
+  {
+    "member_id": "member_aa2215da-468a-4238-ac22-2ce03a6b1825",
+    "name": "Quốc Huy",
+    "avatar": "http://localhost:5000/uploads/teams/avatars/DNI_member_aa2215da-468a-4238-ac22-2ce03a6b1825.jpg"
+  },
+  {
+    "member_id": "member_63dc3cae-512a-4ff9-96b5-0c4c9cdde2b5",
+    "name": "Đại Vệ",
+    "avatar": "http://localhost:5000/uploads/teams/avatars/DNI_member_63dc3cae-512a-4ff9-96b5-0c4c9cdde2b5.jpg"
+  },
+  {
+    "member_id": "member_61a4105e-ee37-4aae-b57d-31c6f0301dc8",
+    "name": "Sang Chíp",
+    "avatar": "http://localhost:5000/uploads/teams/avatars/DNI_member_61a4105e-ee37-4aae-b57d-31c6f0301dc8.jpg"
+  },
+  {
+    "member_id": "member_6c1edd42-22d7-49ea-a96c-acaec59b7325",
+    "name": "Khởi Ka",
+    "avatar": "http://localhost:5000/uploads/teams/avatars/DNI_member_6c1edd42-22d7-49ea-a96c-acaec59b7325.jpg"
+  },
+  {
+    "member_id": "member_04a1923e-d34f-4976-89e5-c58f105c6e30",
+    "name": "Long Messi",
+    "avatar": "http://localhost:5000/uploads/teams/avatars/DNI_member_04a1923e-d34f-4976-89e5-c58f105c6e30.jpg"
+  },
+  {
+    "member_id": "member_af7be5bd-14b0-4fdf-b125-636ac2b95b43",
+    "name": "Linh Boppy",
+    "avatar": "http://localhost:5000/uploads/teams/avatars/DNI_member_af7be5bd-14b0-4fdf-b125-636ac2b95b43.jpg"
+  },
+  {
+    "member_id": "member_ddf5efbb-9560-44ed-8806-7ee7b25fb820",
+    "name": "Ronachum",
+    "avatar": "http://localhost:5000/uploads/teams/avatars/DNI_member_ddf5efbb-9560-44ed-8806-7ee7b25fb820.jpg"
+  },
+  {
+    "member_id": "member_b92cae17-1ba6-4c0c-8730-c58ec7f06260",
+    "name": "Quang Hải",
+    "avatar": "http://localhost:5000/uploads/teams/avatars/DNI_member_b92cae17-1ba6-4c0c-8730-c58ec7f06260.jpg"
+  },
+  {
+    "member_id": "member_dca6cbf7-841b-47f6-8c64-659dd84b86b1",
+    "name": "Nụ Ninô",
+    "avatar": "http://localhost:5000/uploads/teams/avatars/DNI_member_dca6cbf7-841b-47f6-8c64-659dd84b86b1.jpg"
+  },
+  {
+    "member_id": "member_b5915cd6-8dfc-45bf-84b2-3ca089a71842",
+    "name": "Phát La",
+    "avatar": "http://localhost:5000/uploads/teams/avatars/DNI_member_b5915cd6-8dfc-45bf-84b2-3ca089a71842.jpg"
+  },
+  {
+    "member_id": "member_036da9af-cb0c-42ad-a4bb-0da7f1f709c3",
+    "name": "Trần Lâm Khánh Duy",
+    "avatar": "http://localhost:5000/uploads/teams/avatars/DNI_member_036da9af-cb0c-42ad-a4bb-0da7f1f709c3.jpg"
+  },
+  {
+    "member_id": "member_d4602344-08af-46b4-8ac1-5c7293b17cec",
+    "name": "Vỹ Hakimi",
+    "avatar": null
+  },
+  {
+    "member_id": "member_052d8c85-d359-4336-9b89-e4b2ae8106f8",
+    "name": "Lộc Sado",
+    "avatar": null
+  },
+  {
+    "member_id": "member_a9d5c03e-c72b-4f1c-b442-6f8bc4766695",
+    "name": "Văn Khang",
+    "avatar": null
+  },
+  {
+    "member_id": "member_94b2ec0e-80df-42d5-abc3-6ccaf43d47f5",
+    "name": "Sư Thầy",
+    "avatar": null
+  }
+]

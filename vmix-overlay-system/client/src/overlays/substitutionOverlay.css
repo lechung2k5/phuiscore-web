@@ -1,0 +1,147 @@
+.sub-overlay-container {
+  position: absolute;
+  bottom: 80px;
+  left: 80px;
+  display: flex;
+  height: 160px;
+  font-family: 'Chakra Petch', 'Inter', sans-serif;
+  filter: drop-shadow(8px 8px 15px rgba(0,0,0,0.8));
+  transform: scale(0.85);
+  transform-origin: bottom left;
+}
+
+/* KHỐI LOGO BÊN TRÁI */
+.sub-logo-box {
+  width: 160px;
+  height: 160px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border: 4px solid #00ff88;
+  border-right: none;
+  background-size: cover;
+  background-position: center;
+  position: relative;
+  overflow: hidden;
+  z-index: 2;
+}
+
+/* Tạo hiệu ứng góc vát sáng (shine) cho khối logo */
+.sub-logo-box::after {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: linear-gradient(
+    to bottom right,
+    rgba(255,255,255,0) 0%,
+    rgba(255,255,255,0) 40%,
+    rgba(255,255,255,0.4) 50%,
+    rgba(255,255,255,0) 60%,
+    rgba(255,255,255,0) 100%
+  );
+  transform: rotate(30deg);
+}
+
+.sub-logo-img {
+  width: 80%;
+  height: 80%;
+  object-fit: contain;
+  filter: drop-shadow(2px 4px 6px rgba(0,0,0,0.8));
+}
+
+/* KHỐI CẦU THỦ BÊN PHẢI */
+.sub-players-box {
+  display: flex;
+  flex-direction: column;
+  height: 160px;
+  width: 550px; /* Cỡ vừa phải */
+  z-index: 1;
+}
+
+/* Từng dòng (Row) */
+.sub-row {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #0b1120; /* Màu nền xanh đen sậm */
+  border: 3px solid #00ff88;
+  border-left: none;
+  padding-left: 20px;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Họa tiết lưới carbon chìm */
+.sub-row::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: repeating-linear-gradient(
+    45deg,
+    rgba(255, 255, 255, 0.03),
+    rgba(255, 255, 255, 0.03) 2px,
+    transparent 2px,
+    transparent 6px
+  );
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Khoảng hở nhỏ giữa 2 dòng */
+.sub-row.out-row {
+  margin-bottom: 2px;
+}
+
+/* Nhãn OUT / IN */
+.sub-label {
+  font-size: 32px;
+  font-weight: 900;
+  text-transform: uppercase;
+  z-index: 1;
+}
+
+.sub-label.out {
+  color: #ff0000;
+  text-shadow: 2px 2px 0px rgba(0,0,0,0.8);
+}
+
+.sub-label.in {
+  color: #00ff88;
+  text-shadow: 2px 2px 0px rgba(0,0,0,0.8);
+}
+
+/* Tên cầu thủ (Cải tiến thêm) */
+.sub-player-name {
+  flex: 1;
+  text-align: right;
+  padding-right: 20px;
+  color: white;
+  font-size: 28px;
+  font-weight: 700;
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  z-index: 1;
+  text-shadow: 2px 2px 4px rgba(0,0,0,0.9);
+}
+
+/* Khung Avatar */
+.sub-avatar-box {
+  width: 76px;
+  height: 76px;
+  border-left: 2px solid #00ff88;
+  background: #111;
+  z-index: 1;
+}
+
+.sub-avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center top;
+  display: block;
+}

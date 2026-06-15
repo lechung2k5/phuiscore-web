@@ -1,0 +1,109 @@
+.highlight-overlay-container {
+  position: absolute;
+  bottom: 80px;
+  left: 80px;
+  display: flex;
+  height: 100px;
+  font-family: 'Chakra Petch', 'Inter', sans-serif;
+  filter: drop-shadow(8px 8px 15px rgba(0,0,0,0.8));
+  transform: scale(0.9);
+  transform-origin: bottom left;
+}
+
+/* KHỐI ẢNH ĐẠI DIỆN BÊN TRÁI */
+.highlight-avatar-box {
+  width: 100px;
+  height: 100px;
+  background: #000;
+  border: 4px solid #ffcc00;
+  border-right: none;
+  z-index: 2;
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+  box-shadow: inset 0 0 20px rgba(0,0,0,0.9);
+}
+
+.highlight-avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  display: block;
+  filter: drop-shadow(2px 4px 6px rgba(0,0,0,0.8)) contrast(1.1);
+}
+
+.highlight-avatar-box::after {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: linear-gradient(
+    to bottom right,
+    rgba(255,255,255,0) 0%,
+    rgba(255,255,255,0) 30%,
+    rgba(255,255,255,0.5) 50%,
+    rgba(255,255,255,0) 70%,
+    rgba(255,255,255,0) 100%
+  );
+  transform: rotate(30deg);
+  pointer-events: none;
+}
+
+/* KHỐI THÔNG TIN BÊN PHẢI */
+.highlight-info-box {
+  display: flex;
+  flex-direction: column;
+  height: 100px;
+  width: 350px;
+  z-index: 1;
+  transform: skewX(-15deg);
+  margin-left: -15px; /* Thụt vào đè nhẹ lên avatar */
+}
+
+/* Các dòng */
+.highlight-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+  border: 4px solid #ffcc00;
+  border-left: none;
+  box-shadow: inset 0 0 10px rgba(0,0,0,0.5);
+  height: 100%;
+  background: linear-gradient(90deg, #ff8c00 0%, #ff4500 100%);
+}
+
+.highlight-row::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: repeating-linear-gradient(
+    45deg,
+    rgba(255, 255, 255, 0.08),
+    rgba(255, 255, 255, 0.08) 3px,
+    transparent 3px,
+    transparent 8px
+  );
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Chữ HIGHLIGHTS */
+.highlight-title {
+  color: white;
+  font-size: 40px;
+  margin-left: 30px;
+  font-weight: 900;
+  font-style: italic;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  z-index: 1;
+  text-shadow: 4px 4px 0px rgba(0,0,0,0.4), 0px 0px 15px rgba(255,255,255,0.4);
+  transform: skewX(15deg); /* Bù lại độ nghiêng của khung cha */
+}

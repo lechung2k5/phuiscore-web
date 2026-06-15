@@ -1,0 +1,87 @@
+.sponsor-container {
+  position: absolute;
+  bottom: 25px;
+  right: 25px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  font-family: 'Chakra Petch', sans-serif;
+}
+
+.sponsor-scene {
+  perspective: 1500px; /* Perspective lớn hơn vì khung to */
+}
+
+.sponsor-card {
+  position: relative;
+  width: 360px; /* Layer to ra */
+  height: 120px; /* Layer to ra */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 15px 20px;
+  transform-style: preserve-3d; /* Giữ không gian 3D cho thẻ con */
+  will-change: transform;
+}
+
+/* Nền và viền được tách riêng để overflow: hidden không làm hỏng 3D của các thẻ con */
+.sponsor-card-bg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(10, 10, 10, 0.7); /* Tăng opacity lên 0.7 theo yêu cầu */
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-top: 5px solid #ffaa00; /* Làm viền trên dày hơn */
+  border-radius: 8px;
+  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.7);
+  overflow: hidden; /* Cắt phần tia sáng lọt ra ngoài */
+  z-index: 0;
+}
+
+/* Label bên trong, dính vào khung ở góc trên phải, kích thước nhỏ */
+.sponsor-label-inner.top-right {
+  position: absolute;
+  top: 0;
+  right: 0; /* Góc trên phải */
+  font-size: 10px; /* Chữ bé lại */
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #000; /* Chữ màu đen */
+  background: #ffaa00;
+  padding: 3px 8px; /* Khung bé lại */
+  border-radius: 0 0 0 8px; /* Bo tròn góc dưới trái để hợp với viền */
+  transform: translateZ(30px); /* Kỹ thuật Parallax: Nổi lên không gian 30px */
+  z-index: 3;
+}
+
+.sponsor-logo {
+  max-width: 85%;
+  max-height: 85%;
+  object-fit: contain;
+  filter: drop-shadow(0 8px 15px rgba(0,0,0,0.6));
+  transform: translateZ(50px); /* Kỹ thuật Parallax: Bật logo ra khỏi mặt phẳng màn hình 50px */
+  z-index: 2;
+}
+
+/* Hiệu ứng ánh sáng lướt qua (Shiny effect) - bám sát logo hơn */
+.sponsor-shiny {
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 50%;
+  height: 100%;
+  background: linear-gradient(
+    to right,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.25) 50%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  transform: skewX(-25deg);
+  pointer-events: none;
+  z-index: 2;
+}

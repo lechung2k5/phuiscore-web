@@ -36,10 +36,11 @@ async function clearTable(tableName) {
 }
 
 async function seed() {
-    console.log("🚀 Bắt đầu dọn dẹp và Seed lại dữ liệu...");
+    console.log("🚀 Bắt đầu Seed lại dữ liệu bổ sung (Không xoá dữ liệu cũ)...");
     
-    await clearTable(TABLE_TOURNAMENTS);
-    await clearTable(TABLE_TEAMS);
+    // ĐÃ BỎ LỆNH XÓA DỮ LIỆU ĐỂ BẢO VỆ DỮ LIỆU CŨ CỦA NGƯỜI DÙNG
+    // await clearTable(TABLE_TOURNAMENTS);
+    // await clearTable(TABLE_TEAMS);
 
     for (const t of tournaments) {
         const now = Date.now();

@@ -37,19 +37,6 @@ const THEME_COLORS: any = {
 // --- BỘ LỌC FIX LỖI LOGO SOFASCORE 403 ---
 const WORLD_CUP_LOGO = 'https://brandlogos.net/wp-content/uploads/2026/06/fifa-world-cup-2026-black-logo.png';
 
-const COUNTRY_MAP: any = {
-  'Qatar': 'qa', 'Switzerland': 'ch', 'Brazil': 'br', 'Morocco': 'ma',
-  'Haiti': 'ht', 'Scotland': 'gb-sct', 'Australia': 'au', 'Türkiye': 'tr',
-  'Germany': 'de', 'Curaçao': 'cw', 'Argentina': 'ar', 'France': 'fr',
-  'England': 'gb-eng', 'Spain': 'es', 'Portugal': 'pt', 'Netherlands': 'nl',
-  'Italy': 'it', 'Croatia': 'hr', 'Uruguay': 'uy', 'Belgium': 'be',
-  'Colombia': 'co', 'Senegal': 'sn', 'USA': 'us', 'Mexico': 'mx', 'Japan': 'jp',
-  'Korea Republic': 'kr', 'Saudi Arabia': 'sa', 'Iran': 'ir', 'Canada': 'ca',
-  'Ecuador': 'ec', 'Chile': 'cl', 'Peru': 'pe', 'Wales': 'gb-wls', 'Poland': 'pl',
-  'Serbia': 'rs', 'Denmark': 'dk', 'Sweden': 'se', 'Nigeria': 'ng', 'Cameroon': 'cm',
-  'Ghana': 'gh', 'Ivory Coast': 'ci', 'Algeria': 'dz', 'Egypt': 'eg', 'Vietnam': 'vn'
-};
-
 const getSafeLogo = (originalUrl: string, type: 'team' | 'tournament' = 'team', name: string = '') => {
   if (!originalUrl) {
     return `https://ui-avatars.com/api/?name=${name ? encodeURIComponent(name) : 'T'}&background=random&color=fff&bold=true`;

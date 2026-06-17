@@ -1364,6 +1364,7 @@ export default function TournamentDetailScreen({ id }: { id: string }) {
                         isMobile={isMobile}
                         isDragOver={isDragOver}
                         onEdit={() => { setEditMatch(m); setShowAddMatch(true); }}
+                        onViewDetail={() => router.push(`/truc-tiep/${m.id}`)}
                         onDragStart={(e: any) => handleDragStart(e, m)}
                         onDragOver={(e: any) => handleDragOver(e, m.id)}
                         onDragLeave={() => setDragOverId(null)}
@@ -1837,7 +1838,7 @@ const TournamentStatsPanel = ({ stats }: { stats: any }) => {
   )
 }
 
-const TournamentMatchRowDesktop = ({ m, isLast, isOrganizer, isDragOver, onEdit, onDragStart, onDragOver, onDragLeave, onDrop }: any) => {
+const TournamentMatchRowDesktop = ({ m, isLast, isOrganizer, isDragOver, onEdit, onViewDetail, onDragStart, onDragOver, onDragLeave, onDrop }: any) => {
   const isLive = isLiveMatch(m.status)
   const isFinished = isFinishedMatch(m.status)
   const timeLabel = isLive 
@@ -1863,8 +1864,8 @@ const TournamentMatchRowDesktop = ({ m, isLast, isOrganizer, isDragOver, onEdit,
 
   return (
     <View
-      style={{ cursor: isOrganizer ? 'grab' : 'pointer' } as any}
-      onPress={isOrganizer ? onEdit : undefined}
+      style={{ cursor: 'pointer' } as any}
+      onPress={isOrganizer ? onEdit : onViewDetail}
       {...(isOrganizer ? {
         draggable: true,
         onDragStart, onDragOver, onDragLeave, onDrop
@@ -1950,7 +1951,7 @@ const TournamentMatchRowDesktop = ({ m, isLast, isOrganizer, isDragOver, onEdit,
   )
 }
 
-const TournamentMatchRowMobile = ({ m, isLast, isOrganizer, isDragOver, onEdit, onDragStart, onDragOver, onDragLeave, onDrop }: any) => {
+const TournamentMatchRowMobile = ({ m, isLast, isOrganizer, isDragOver, onEdit, onViewDetail, onDragStart, onDragOver, onDragLeave, onDrop }: any) => {
   const isLive = isLiveMatch(m.status)
   const isFinished = isFinishedMatch(m.status)
   const timeLabel = isLive 
@@ -1967,8 +1968,8 @@ const TournamentMatchRowMobile = ({ m, isLast, isOrganizer, isDragOver, onEdit, 
 
   return (
     <View
-      style={{ cursor: isOrganizer ? 'grab' : 'pointer', width: '100%' } as any}
-      onPress={isOrganizer ? onEdit : undefined}
+      style={{ cursor: 'pointer', width: '100%' } as any}
+      onPress={isOrganizer ? onEdit : onViewDetail}
       {...(isOrganizer ? {
         draggable: true,
         onDragStart, onDragOver, onDragLeave, onDrop

@@ -2,7 +2,13 @@ import React, { useEffect, useRef, useState } from 'react';
 import { gsap } from 'gsap';
 import './commentatorOverlay.css';
 const leagueLogoFallback = '/assets/logo_giai.png';
-const micPng = '/assets/microphone.png';
+const micPng = 'https://png.pngtree.com/png-clipart/20240810/original/pngtree-microphone-3d-png-image_15742492.png';
+
+const BLV_IMAGES = {
+  'MINH NHẬT': '/assets/blv/minhnhat.png',
+  'LÊ CHUNG': '/assets/blv/lechung.png',
+  'BẢO LALIGA': '/assets/blv/baolaliga.png'
+};
 
 const CommentatorOverlay = ({ zIndex, data, visible, tournamentLogo }) => {
   const containerRef = useRef(null);
@@ -55,7 +61,15 @@ const CommentatorOverlay = ({ zIndex, data, visible, tournamentLogo }) => {
 
   const displayData = localData || {};
   const commentatorName = displayData.name || '';
-  const avatarUrl = displayData.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(commentatorName)}&background=random&color=fff&size=150`;
+  
+  let avatarUrl = displayData.avatar;
+  if (!avatarUrl && BLV_IMAGES[commentatorName]) {
+    avatarUrl = BLV_IMAGES[commentatorName];
+  }
+  if (!avatarUrl) {
+    avatarUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(commentatorName)}&background=random&color=fff&size=150`;
+  }
+
   const teamColor = '#1890ff';
 
   return (

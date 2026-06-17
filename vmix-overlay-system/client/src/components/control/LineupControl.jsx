@@ -56,11 +56,41 @@ const AWAY_SQUAD = [
 const AWAY_COACH = "HLV. Philippe Troussier";
 
 const LineupControl = ({ matchState, triggerEvent }) => {
+  const [tournamentTeams, setTournamentTeams] = useState(null);
+
+  React.useEffect(() => {
+    const fetchTournament = async () => {
+      const tId = matchState?.dbData?.tournamentId || (matchState?.dbData?.gsi1_pk ? matchState.dbData.gsi1_pk.replace('TOURNAMENT#', '') : null);
+      if (tId && tId.length > 10) {
+        try {
+          const res = await fetch(`http://localhost:5000/api/tournaments/${tId}`);
+          const json = await res.json();
+          if (json.success && json.data && json.data.teams) {
+             setTournamentTeams(json.data.teams);
+          }
+        } catch(e) {}
+      }
+    };
+    fetchTournament();
+  }, [matchState?.dbData?.tournamentId, matchState?.dbData?.gsi1_pk]);
+
   // Hàm lấy danh sách cầu thủ từ API (nếu có) hoặc dùng MOCK
   const getPlayers = (teamKey) => {
     const apiLineups = matchState?.dbData?.lineups;
     // Lấy từ SofaScore format (lineups.home.players) hoặc Generic format
-    const playersRaw = apiLineups?.[teamKey]?.players || matchState?.dbData?.[teamKey === 'home' ? 'homeTeam' : 'awayTeam']?.players;
+    let playersRaw = apiLineups?.[teamKey]?.players || matchState?.dbData?.[teamKey === 'home' ? 'homeTeam' : 'awayTeam']?.players;
+    
+    // Lấy từ danh sách đăng ký giải nếu trận đấu chưa có lineups
+    if ((!playersRaw || playersRaw.length === 0) && tournamentTeams) {
+        const teamData = matchState?.dbData?.[teamKey === 'home' ? 'homeTeam' : 'awayTeam'];
+        const teamId = teamData?.id || teamData?.teamId;
+        const teamName = teamData?.name;
+        
+        const matchedTeam = tournamentTeams.find(t => t.id === teamId || t.teamId === teamId || t.teamName === teamName || t.name === teamName);
+        if (matchedTeam && matchedTeam.players) {
+            playersRaw = matchedTeam.players;
+        }
+    }
     
     if (playersRaw && playersRaw.length > 0) {
       return playersRaw.map((p, index) => {
@@ -72,7 +102,8 @@ const LineupControl = ({ matchState, triggerEvent }) => {
           id: p.player?.id || p.id || index,
           name: p.player?.name || p.name || "Cầu thủ",
           position: p.position || "Unknown",
-          avatar: avatarUrl
+          avatar: avatarUrl,
+          jerseyNumber: p.jerseyNumber || p.number || p.player?.jerseyNumber || ''
         };
       });
     }

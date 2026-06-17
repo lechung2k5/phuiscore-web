@@ -128,6 +128,49 @@ router.get('/detail/:matchId', cacheResponse(60), async (req, res) => {
             }
         }
 
+        // Tự động xây dựng nextMatches cho các giải đấu Custom
+        try {
+            const tId = match.tournamentId || match.info?.tournamentId || (match.gsi1_pk ? String(match.gsi1_pk).replace('TOURNAMENT#', '') : null);
+            if (tId && String(tId).length > 10) { // Custom tournament UUID
+                const allTourMatches = await MatchRepo.getMatchesByTournament(tId);
+                if (allTourMatches && allTourMatches.length > 0) {
+                    const homeId = match.homeTeam?.id || match.homeTeam?.teamId || match.homeTeam?.name;
+                    const awayId = match.awayTeam?.id || match.awayTeam?.teamId || match.awayTeam?.name;
+                    
+                    const isUpcoming = (m) => {
+                        if (m.id === match.id) return false;
+                        const status = String(m.status || '').toLowerCase();
+                        if (['finished', 'ended', 'fulltime', 'ft', 'live', 'inprogress', 'first_half', 'second_half', 'half_time'].includes(status)) return false;
+                        return true;
+                    };
+                    
+                    const sortByDate = (a, b) => (a.startTimestamp || 0) - (b.startTimestamp || 0);
+
+                    const mapMatch = (m) => ({
+                        ...m,
+                        tournament: m.tournament || { name: m.tournamentName || match.tournamentName || "Giải đấu", id: tId }
+                    });
+
+                    const homeUpcoming = allTourMatches
+                        .filter(m => isUpcoming(m) && (m.homeTeam?.id === homeId || m.homeTeam?.name === homeId || m.awayTeam?.id === homeId || m.awayTeam?.name === homeId))
+                        .sort(sortByDate)
+                        .map(mapMatch);
+                        
+                    const awayUpcoming = allTourMatches
+                        .filter(m => isUpcoming(m) && (m.homeTeam?.id === awayId || m.homeTeam?.name === awayId || m.awayTeam?.id === awayId || m.awayTeam?.name === awayId))
+                        .sort(sortByDate)
+                        .map(mapMatch);
+                        
+                    match.nextMatches = {
+                        home: homeUpcoming,
+                        away: awayUpcoming
+                    };
+                }
+            }
+        } catch (e) {
+            console.error('[API] Lỗi khi tạo nextMatches/lineups:', e.message);
+        }
+
         res.status(200).json({ success: true, data: match });
     } catch (error) {
         console.error("Detail API Error:", error);

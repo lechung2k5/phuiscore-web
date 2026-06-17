@@ -41,7 +41,8 @@ const MatchControl = ({ matchState, updateMatch }) => {
         tournamentName: matchState.matchInfo.tournamentName,
         round: matchState.matchInfo.round,
         venue: matchState.matchInfo.venue,
-        halfLength: matchState.matchInfo.halfLength || 45,
+        halfLength: matchState.matchInfo.halfLength || 30,
+        facebookLiveUrl: matchState.matchInfo.facebookLiveUrl || '',
         homeTeam: matchState.homeTeam.name,
         homeTeamShort: matchState.homeTeam.shortName || matchState.homeTeam.name,
         awayTeam: matchState.awayTeam.name,
@@ -65,6 +66,7 @@ const MatchControl = ({ matchState, updateMatch }) => {
         round: values.round,
         venue: values.venue,
         halfLength: values.halfLength,
+        facebookLiveUrl: values.facebookLiveUrl,
       },
       homeTeam: {
         ...matchState.homeTeam,
@@ -112,6 +114,13 @@ const MatchControl = ({ matchState, updateMatch }) => {
           <Col span={6}>
             <Form.Item name="halfLength" label={<span style={labelStyle}>Thời gian/Hiệp</span>} style={{ marginBottom: 8 }}>
               <InputNumber min={5} max={60} style={{ ...inputStyle, width: '100%' }} placeholder="VD: 30" />
+            </Form.Item>
+          </Col>
+        </Row>
+        <Row gutter={10}>
+          <Col span={24}>
+            <Form.Item name="facebookLiveUrl" label={<span style={labelStyle}>Link Facebook Live (Để phát tự động lên màn khán giả)</span>} style={{ marginBottom: 8 }}>
+              <Input placeholder="Nhập link Facebook đầy đủ (VD: https://www.facebook.com/...)" style={inputStyle} />
             </Form.Item>
           </Col>
         </Row>

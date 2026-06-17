@@ -67,9 +67,9 @@ const TournamentService = require('../services/tournament.service');
  */
 router.post('/update-score', verifyToken, isCoordinator, async (req, res) => {
     try {
-        const { date, matchId, homeScore, awayScore, currentMinute, liveStatus, statistics, incidents, isDraft } = req.body;
+        const { date, matchId, homeScore, awayScore, currentMinute, liveStatus, statistics, incidents, isDraft, facebookLiveUrl } = req.body;
         
-        console.log("[UpdateScore] 📥 Payload received:", { date, matchId, homeScore, awayScore, currentMinute, liveStatus, statistics, incidents, isDraft });
+        console.log("[UpdateScore] 📥 Payload received:", { date, matchId, homeScore, awayScore, currentMinute, liveStatus, statistics, incidents, isDraft, facebookLiveUrl });
 
         if (!date || !matchId) {
             console.error("[UpdateScore] ❌ Missing required fields:", { date, matchId });
@@ -77,7 +77,7 @@ router.post('/update-score', verifyToken, isCoordinator, async (req, res) => {
         }
 
         const resUpdate = await MatchRepo.updateMatchScoreboard(date, matchId, { 
-            homeScore, awayScore, currentMinute, liveStatus, statistics, incidents, isDraft
+            homeScore, awayScore, currentMinute, liveStatus, statistics, incidents, isDraft, facebookLiveUrl
         });
 
         // 🚀 Tự động tính lại Bảng xếp hạng nếu trận đấu thuộc giải đấu và không phải bản nháp
@@ -92,7 +92,7 @@ router.post('/update-score', verifyToken, isCoordinator, async (req, res) => {
         // 🚀 SOCKET: Phát tín hiệu real-time cho toàn bộ người xem
         if (global.io) {
             global.io.emit('scoreUpdate', { 
-                matchId, homeScore, awayScore, currentMinute, liveStatus, statistics, incidents, isDraft
+                matchId, homeScore, awayScore, currentMinute, liveStatus, statistics, incidents, isDraft, facebookLiveUrl
             });
             global.io.emit('statsUpdate'); // Thông báo cho Dashboard cập nhật số liệu tổng quát
         }

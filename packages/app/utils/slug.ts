@@ -23,6 +23,12 @@ export const generateMatchSlug = (homeTeamName: string, awayTeamName: string, da
 };
 
 export const parseMatchSlug = (slug: string) => {
+  const match = slug.match(/-(\d{4}-\d{2}-\d{2})-(.+)$/);
+  if (match) {
+    return { date: match[1], id: match[2] };
+  }
+  
+  // Fallback for older formats if they don't contain the date
   const parts = slug.split('-');
   const id = parts[parts.length - 1];
   

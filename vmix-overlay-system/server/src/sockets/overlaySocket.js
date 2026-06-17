@@ -59,8 +59,10 @@ const setupSockets = (io) => {
           const teamKey = eventData.team === 'home' ? 'homeTeam' : 'awayTeam';
           const teamData = currentState[teamKey] || {};
           const currentGoals = teamData.goals || [];
+          const currentIncidents = currentState.incidents || [];
           handleUpdate(matchId, {
-            [teamKey]: { goals: [...currentGoals, { id: eventData.id, playerName: eventData.playerName, minute: eventData.minute }] }
+            [teamKey]: { goals: [...currentGoals, { id: eventData.id, playerName: eventData.playerName, minute: eventData.minute }] },
+            incidents: [...currentIncidents, { id: eventData.id, type: 'goal', team: eventData.team, time: eventData.minute, playerName: eventData.playerName }]
           });
         }
       }
@@ -146,8 +148,10 @@ const setupSockets = (io) => {
           const teamKey = eventData.team === 'home' ? 'homeTeam' : 'awayTeam';
           const teamData = currentState[teamKey] || {};
           const currentCards = teamData.cards || [];
+          const currentIncidents = currentState.incidents || [];
           handleUpdate(matchId, {
-            [teamKey]: { cards: [...currentCards, { id: eventData.id, type: eventData.type, playerName: eventData.playerName, minute: eventData.minute }] }
+            [teamKey]: { cards: [...currentCards, { id: eventData.id, type: eventData.type, playerName: eventData.playerName, minute: eventData.minute }] },
+            incidents: [...currentIncidents, { id: eventData.id, type: eventData.type, team: eventData.team, time: eventData.minute, playerName: eventData.playerName }]
           });
         }
       }
@@ -158,8 +162,10 @@ const setupSockets = (io) => {
           const teamKey = eventData.team === 'home' ? 'homeTeam' : 'awayTeam';
           const teamData = currentState[teamKey] || {};
           const currentSubs = teamData.subs || [];
+          const currentIncidents = currentState.incidents || [];
           handleUpdate(matchId, {
-            [teamKey]: { subs: [...currentSubs, { id: eventData.id, playerOutName: eventData.playerOutName, playerInName: eventData.playerInName, minute: eventData.minute }] }
+            [teamKey]: { subs: [...currentSubs, { id: eventData.id, playerOutName: eventData.playerOutName, playerInName: eventData.playerInName, minute: eventData.minute }] },
+            incidents: [...currentIncidents, { id: eventData.id, type: 'substitution', team: eventData.team, time: eventData.minute, playerInName: eventData.playerInName, playerOutName: eventData.playerOutName }]
           });
         }
       }
@@ -169,15 +175,7 @@ const setupSockets = (io) => {
 
       if (layerName) {
         handleUpdate(matchId, { layers: { [layerName]: { visible: true, data: eventData } } });
-        
-        // Lưu vào mảng incidents
-        if (['goal', 'yellow_card', 'red_card', 'sub'].includes(eventData.type)) {
-          const currentState = getOverlayState(matchId);
-          if (currentState) {
-            const currentIncidents = currentState.incidents || [];
-            handleUpdate(matchId, { incidents: [...currentIncidents, eventData] });
-          }
-        }
+
         
         // Lưu HLV vào lineups
         if (eventData.type === 'coach') {
@@ -192,6 +190,33 @@ const setupSockets = (io) => {
               ...(currentLineups[teamKey].coach || {}),
               name: eventData.coachName
             };
+            
+            handleUpdate(matchId, { lineups: currentLineups });
+          }
+        }
+        
+        // Lưu Lineup tổng thể vào lineups
+        if (eventData.type === 'lineup') {
+          const currentState = getOverlayState(matchId);
+          if (currentState) {
+            const currentLineups = JSON.parse(JSON.stringify(currentState.lineups || currentState.dbData?.lineups || {}));
+            const teamKey = eventData.teamType === 'home' ? 'home' : 'away';
+            
+            if (!currentLineups[teamKey]) currentLineups[teamKey] = {};
+            
+            const mapPlayer = (p, isSub) => ({
+                player: { name: p.name, id: p.id, photo: p.avatar, avatar: p.avatar, shortName: p.name },
+                jerseyNumber: p.jerseyNumber || '',
+                substitute: isSub
+            });
+            
+            const starting = (eventData.startingXI || []).map(p => mapPlayer(p, false));
+            const subs = (eventData.substitutes || []).map(p => mapPlayer(p, true));
+            
+            currentLineups[teamKey].players = [...starting, ...subs];
+            if (eventData.coach) {
+                currentLineups[teamKey].coach = { name: eventData.coach };
+            }
             
             handleUpdate(matchId, { lineups: currentLineups });
           }

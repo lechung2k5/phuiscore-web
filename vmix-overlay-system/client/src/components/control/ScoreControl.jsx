@@ -1,5 +1,5 @@
 import React from 'react';
-import { Row, Col, Button, Card, Typography, InputNumber, Divider, Select } from 'antd';
+import { Row, Col, Button, Card, Typography, InputNumber, Divider, Select, Modal } from 'antd';
 import { PlusOutlined, MinusOutlined, PlayCircleOutlined, PauseCircleOutlined } from '@ant-design/icons';
 
 const { Title, Text } = Typography;
@@ -48,7 +48,22 @@ const ScoreControl = ({ matchState, updateMatch, triggerEvent }) => {
           <Card type="inner" style={{ background: '#f5f5f5' }}>
             <Select 
               value={matchInfo.status || 'PRE_MATCH'} 
-              onChange={(val) => updateMatch({ matchInfo: { ...matchInfo, status: val } })}
+              onChange={(val) => {
+                if (val === 'FINISHED') {
+                  Modal.confirm({
+                    title: 'Xác nhận kết thúc trận đấu',
+                    content: 'Bạn có chắc chắn muốn kết thúc trận đấu này không? Trận đấu sẽ không còn tiếp tục.',
+                    okText: 'Kết thúc',
+                    cancelText: 'Hủy',
+                    okType: 'danger',
+                    onOk: () => {
+                      updateMatch({ matchInfo: { ...matchInfo, status: val, isRunning: false } });
+                    }
+                  });
+                } else {
+                  updateMatch({ matchInfo: { ...matchInfo, status: val } });
+                }
+              }}
               style={{ width: '100%', marginBottom: 16, fontWeight: 'bold' }}
             >
               <Option value="PRE_MATCH">Chưa bắt đầu</Option>

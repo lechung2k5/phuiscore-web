@@ -27,9 +27,10 @@ const mapDbToOverlay = (dbMatch) => {
             period: dbMatch.status || "PRE_MATCH",
             venue: dbMatch.stadium || "",
             status: dbMatch.status || "PRE_MATCH",
-            time: dbMatch.currentMinute ? parseInt(dbMatch.currentMinute) * 60 : 0,
+            time: (dbMatch.currentMinute && !isNaN(parseInt(dbMatch.currentMinute))) ? parseInt(dbMatch.currentMinute) * 60 : 0,
             isRunning: dbMatch.liveStatus === 'streaming',
-            date: dbMatch.dateString 
+            date: dbMatch.dateString,
+            facebookLiveUrl: dbMatch.facebookLiveUrl || ''
         },
         homeTeam: {
             name: dbMatch.homeTeam?.name || "Đội Nhà",
@@ -80,22 +81,34 @@ const getOverlayState = (matchId) => {
     return stateMap.get(matchId);
 };
 
+const lastSyncedDataMap = new Map();
+
 // Bất đồng bộ lưu vào DB
 const syncToDynamoDBAsync = async (matchId, state) => {
     try {
         const date = state.matchInfo.date;
         if (!date) return;
 
+        let currentMinuteStr = Math.floor((state.matchInfo.time || 0) / 60).toString();
+        const statusStr = state.matchInfo.status || 'FIRST_HALF';
+        if (statusStr === 'HALF_TIME') currentMinuteStr = 'HT';
+        if (statusStr === 'FINISHED') currentMinuteStr = 'FT';
+
         const updateData = {
             homeScore: state.homeTeam.score,
             awayScore: state.awayTeam.score,
-            currentMinute: Math.floor((state.matchInfo.time || 0) / 60).toString(),
+            currentMinute: currentMinuteStr,
             liveStatus: state.matchInfo.isRunning ? 'streaming' : 'idle',
             incidents: state.incidents || [],
-            status: state.matchInfo.status || 'FIRST_HALF',
+            status: statusStr,
             lineups: state.lineups || null,
+            facebookLiveUrl: state.matchInfo.facebookLiveUrl,
             isDraft: false
         };
+
+        const currentHash = JSON.stringify(updateData);
+        if (lastSyncedDataMap.get(matchId) === currentHash) return;
+        lastSyncedDataMap.set(matchId, currentHash);
 
         // Lưu DynamoDB
         await MatchRepo.updateMatchScoreboard(date, matchId, updateData);
@@ -115,6 +128,7 @@ const syncToDynamoDBAsync = async (matchId, state) => {
             status: updateData.status,
             incidents: updateData.incidents,
             lineups: updateData.lineups,
+            facebookLiveUrl: updateData.facebookLiveUrl,
             tournamentId: state.dbData?.tournamentId || state.dbData?.info?.tournamentId || (state.dbData?.gsi1_pk ? state.dbData.gsi1_pk.replace('TOURNAMENT#', '') : null)
         }).catch(e => {
             // Ẩn log lỗi Webhook nếu server chính (Main Server) đang tắt 

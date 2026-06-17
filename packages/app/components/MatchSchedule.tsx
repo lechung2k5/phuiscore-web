@@ -82,8 +82,8 @@ const blinkStyles = `
 const PRIORITY_LEAGUE_IDS = [17, 8, 23, 35, 34, 7, 676, 'seed-8-team-ongoing-2026'];
 
 const normalizeStatus = (status: any) => String(status || '').toLowerCase();
-const isLiveStatus = (status: any) => ['inprogress', 'live', 'in_progress', 'ongoing'].includes(normalizeStatus(status));
-const isScheduledStatus = (status: any) => ['notstarted', 'not_started', 'scheduled'].includes(normalizeStatus(status));
+const isLiveStatus = (status: any) => ['inprogress', 'live', 'in_progress', 'ongoing', 'first_half', 'second_half', 'half_time', 'extra_time', 'penalty'].includes(normalizeStatus(status));
+const isScheduledStatus = (status: any) => ['notstarted', 'not_started', 'scheduled', 'pre_match'].includes(normalizeStatus(status));
 const isFinishedStatus = (status: any) => ['finished', 'canceled', 'postponed', 'ended', 'closed'].includes(normalizeStatus(status));
 const toUnixSeconds = (value: any) => {
   const n = Number(value || 0);
@@ -204,8 +204,8 @@ export default function MatchSchedulePage() {
                         ...updatedData,
                         // Đảm bảo các trường điểm số đồng bộ
                         score: updatedData.score || {
-                            home: updatedData.homeScore,
-                            away: updatedData.awayScore
+                            home: updatedData.homeScore ?? newMatches[matchIndex].score?.home ?? newMatches[matchIndex].homeScore,
+                            away: updatedData.awayScore ?? newMatches[matchIndex].score?.away ?? newMatches[matchIndex].awayScore
                         }
                     };
                     return { ...league, matches: newMatches };

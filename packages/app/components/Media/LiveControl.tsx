@@ -261,6 +261,9 @@ export function LiveControl({ API, showToast, matchId }: LiveControlProps) {
   const videoRef = useRef<HTMLVideoElement>(null)
   const playerRef = useRef<any>(null)
 
+  // FB Live State
+  const [fbLiveUrlInput, setFbLiveUrlInput] = useState("")
+
   // Chat states
   const [messages, setMessages] = useState<any[]>([]);
   const [messageInput, setMessageInput] = useState("");
@@ -335,6 +338,7 @@ export function LiveControl({ API, showToast, matchId }: LiveControlProps) {
       const match = matches.find(m => String(m.id) === String(matchId));
       if (match) {
         setSelectedMatch(match);
+        setFbLiveUrlInput(match.facebookLiveUrl || "");
       }
     } else if (!matchId) {
         setSelectedMatch(null);
@@ -344,6 +348,7 @@ export function LiveControl({ API, showToast, matchId }: LiveControlProps) {
   // Hàm chọn trận đấu và cập nhật URL
   const handleSelectMatch = (match: any) => {
     setSelectedMatch(match);
+    setFbLiveUrlInput(match.facebookLiveUrl || "");
     router.push(`/media/live/${match.id}`);
   }
 
@@ -497,7 +502,7 @@ export function LiveControl({ API, showToast, matchId }: LiveControlProps) {
     }
   }
 
-  const updateScore = async (h: number, a: number, min: string, stats?: any) => {
+  const updateScore = async (h: number, a: number, min: string, stats?: any, fbUrl?: string) => {
     if (!selectedMatch) return
     try {
       const token = localStorage.getItem('token')
@@ -511,15 +516,26 @@ export function LiveControl({ API, showToast, matchId }: LiveControlProps) {
           awayScore: a,
           currentMinute: min,
           liveStatus: 'inprogress',
-          statistics: stats || selectedMatch.statistics
+          statistics: stats || selectedMatch.statistics,
+          facebookLiveUrl: fbUrl !== undefined ? fbUrl : selectedMatch.facebookLiveUrl
         })
       })
       if (res.ok) {
         showToast("Đã cập nhật Real-time!");
-        setSelectedMatch({ ...selectedMatch, score: { home: h, away: a }, currentMinute: min, statistics: stats || selectedMatch.statistics })
+        setSelectedMatch({ ...selectedMatch, score: { home: h, away: a }, currentMinute: min, statistics: stats || selectedMatch.statistics, facebookLiveUrl: fbUrl !== undefined ? fbUrl : selectedMatch.facebookLiveUrl })
       }
     } catch (e) { showToast("Lỗi cập nhật!"); }
   }
+
+  const handleSaveFbUrl = () => {
+      updateScore(
+        getScore(selectedMatch.score?.home ?? selectedMatch.homeScore),
+        getScore(selectedMatch.score?.away ?? selectedMatch.awayScore),
+        selectedMatch.currentMinute || '0',
+        undefined,
+        fbLiveUrlInput
+      );
+  };
 
   const Room = LiveKitRoom as any;
 
@@ -765,9 +781,30 @@ export function LiveControl({ API, showToast, matchId }: LiveControlProps) {
                        <button className="pill-btn pill-btn-primary" onClick={handlePrepareStream}>
                           KHỞI TẠO LUỒNG PHÁT
                        </button>
-                       <p className="text-secondary" style={{ marginTop: 16 }}>Nhấn để lấy cấu hình kết nối ứng dụng phát sóng</p>
+                       <p className="text-secondary" style={{ marginTop: 16 }}>Nhấn để lấy cấu hình kết nối ứng dụng phát sóng (LiveKit)</p>
                     </div>
                   )}
+              </div>
+              
+              {/* Nguồn phát thay thế: Facebook */}
+              <div style={{ background: '#1f1f1f', padding: 20, borderRadius: 16 }}>
+                 <h4 style={{ margin: '0 0 10px 0', fontSize: 14 }}>HOẶC PHÁT BẰNG FACEBOOK LIVE</h4>
+                 <div style={{ display: 'flex', gap: 10 }}>
+                    <input 
+                      type="text"
+                      className="search-pill" 
+                      style={{ borderRadius: 8 }}
+                      placeholder="Nhập link luồng Facebook (VD: https://www.facebook.com/bongdasomedia/videos/123456)" 
+                      value={fbLiveUrlInput}
+                      onChange={e => setFbLiveUrlInput(e.target.value)}
+                    />
+                    <button className="pill-btn pill-btn-secondary" style={{ borderRadius: 8 }} onClick={handleSaveFbUrl}>
+                        LƯU LINK FB
+                    </button>
+                 </div>
+                 {selectedMatch.facebookLiveUrl && (
+                     <p style={{ color: '#1ed760', fontSize: 12, marginTop: 10, fontWeight: 600 }}>✓ Hiện đang dùng luồng Facebook: {selectedMatch.facebookLiveUrl}</p>
+                 )}
               </div>
               
               {/* Chat Box below Monitor */}

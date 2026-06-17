@@ -144,8 +144,13 @@ function getStartOfDayTimestamp(date: Date) {
   return Math.floor(new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime() / 1000)
 }
 
+const toUnixSeconds = (value: any) => {
+  const n = Number(value || 0);
+  return n > 100000000000 ? Math.floor(n / 1000) : n;
+};
+
 const UpcomingMatchCard = React.memo(({ m }: { m: any }) => {
-  const d = new Date(m.startTimestamp * 1000)
+  const d = new Date(toUnixSeconds(m.startTimestamp) * 1000)
   const isToday = d.toDateString() === new Date().toDateString()
   const isTomorrow = d.toDateString() === new Date(Date.now() + 86400000).toDateString()
   
@@ -217,11 +222,11 @@ export default function LiveScreen() {
             location: m.location || m.venue,
             teamA: {
               name: m.homeTeam?.name || m.homeTeamName || 'Đội Nhà',
-              logo: getImageUrl(m.homeTeam?.logo || m.homeTeamLogo, 'logo', m.homeTeam?.id)
+              logo: getImageUrl(m.homeTeam?.logo || m.homeTeamLogo, 'logo', m.homeTeam?.id, m.homeTeam?.name || m.homeTeamName)
             },
             teamB: {
               name: m.awayTeam?.name || m.awayTeamName || 'Đội Khách',
-              logo: getImageUrl(m.awayTeam?.logo || m.awayTeamLogo, 'logo', m.awayTeam?.id)
+              logo: getImageUrl(m.awayTeam?.logo || m.awayTeamLogo, 'logo', m.awayTeam?.id, m.awayTeam?.name || m.awayTeamName)
             },
             scoreA: (typeof m.homeScore === 'object' ? m.homeScore?.current : m.homeScore) ?? (typeof m.score?.home === 'object' ? m.score.home.current : m.score?.home) ?? 0,
             scoreB: (typeof m.awayScore === 'object' ? m.awayScore?.current : m.awayScore) ?? (typeof m.score?.away === 'object' ? m.score.away.current : m.score?.away) ?? 0,
@@ -301,22 +306,24 @@ export default function LiveScreen() {
       // 1. Đã kết thúc hoặc bị huỷ → bỏ qua ngay
       if (['finished', 'closed', 'ended', 'canceled', 'postponed'].includes(status)) return false;
       
-      // 2. Kiểm tra thời gian trôi qua (Safety Check)
+      // 2. Chỉ lấy các trận THỰC SỰ đang diễn ra (LIVE)
+      const isActuallyLive = ['inprogress', 'live', 'in_progress', 'streaming', 'first_half', 'second_half', 'half_time', 'extra_time', 'penalty'].includes(status) || 
+                             ['inprogress', 'live'].includes(liveStatus);
+
+      // 3. Kiểm tra thời gian trôi qua (Safety Check)
       if (m.startTimestamp) {
-        const elapsed = nowSec - m.startTimestamp;
+        const startSec = toUnixSeconds(m.startTimestamp);
+        const elapsed = nowSec - startSec;
         
         // Nếu trận đấu đã bắt đầu quá 180 phút (3 tiếng) -> Coi như đã xong, ẩn khỏi Live
         if (elapsed > 180 * 60) return false;
 
-        // Nếu trận đấu chưa bắt đầu (còn hơn 15 phút nữa mới đá) -> Không hiện ở Live
-        if (elapsed < -15 * 60) return false;
+        // Nếu trận chưa bắt đầu và còn cách giờ quá 15 phút -> ẩn
+        if (!isActuallyLive && elapsed < -15 * 60) return false;
       }
-
-      // 3. Chỉ lấy các trận THỰC SỰ đang diễn ra (LIVE)
-      const isActuallyLive = ['inprogress', 'live', 'in_progress', 'streaming', 'first_half', 'second_half', 'half_time', 'extra_time', 'penalty'].includes(status) || 
-                             ['inprogress', 'live'].includes(liveStatus);
       
-      const isRecentlyStarted = m.startTimestamp && (nowSec - m.startTimestamp > 0) && (nowSec - m.startTimestamp < 5 * 60);
+      const startSec = m.startTimestamp ? toUnixSeconds(m.startTimestamp) : 0;
+      const isRecentlyStarted = startSec && (nowSec - startSec > 0) && (nowSec - startSec < 5 * 60);
 
       const passesLive = isActuallyLive || isRecentlyStarted;
       if (!passesLive) return false;
@@ -334,8 +341,8 @@ export default function LiveScreen() {
 
   const sortedLiveMatches = React.useMemo(() => {
     return [...liveMatches].sort((a, b) => {
-      const diffA = Math.abs(nowSec - (a.startTimestamp || 0));
-      const diffB = Math.abs(nowSec - (b.startTimestamp || 0));
+      const diffA = Math.abs(nowSec - toUnixSeconds(a.startTimestamp || 0));
+      const diffB = Math.abs(nowSec - toUnixSeconds(b.startTimestamp || 0));
       return diffA - diffB;
     });
   }, [liveMatches, nowSec]);
@@ -344,15 +351,15 @@ export default function LiveScreen() {
     return matches.filter(m => {
       const status = String(m.status || "").toLowerCase();
       if (['finished', 'canceled', 'postponed', 'closed', 'ended', 'live', 'inprogress', 'in_progress', 'first_half', 'second_half', 'half_time', 'extra_time', 'penalty'].includes(status)) return false;
-      return m.startTimestamp && m.startTimestamp > nowSec;
-    }).sort((a, b) => (a.startTimestamp || 0) - (b.startTimestamp || 0));
+      return m.startTimestamp && toUnixSeconds(m.startTimestamp) > nowSec;
+    }).sort((a, b) => toUnixSeconds(a.startTimestamp || 0) - toUnixSeconds(b.startTimestamp || 0));
   }, [matches, nowSec]);
   
   const finishedMatches = React.useMemo(() => {
     return matches.filter(m => {
       const status = String(m.status || "").toLowerCase();
-      return ['finished', 'closed', 'ended'].includes(status) || (m.startTimestamp && (nowSec - m.startTimestamp > 180 * 60));
-    }).sort((a, b) => (b.startTimestamp || 0) - (a.startTimestamp || 0));
+      return ['finished', 'closed', 'ended'].includes(status) || (m.startTimestamp && (nowSec - toUnixSeconds(m.startTimestamp) > 180 * 60));
+    }).sort((a, b) => toUnixSeconds(b.startTimestamp || 0) - toUnixSeconds(a.startTimestamp || 0));
   }, [matches, nowSec]);
 
   const displayedLiveMatches = sortedLiveMatches.slice(0, visibleLiveCount);

@@ -16,14 +16,19 @@ interface Props {
 
 type IncidentForm = {
   minute: string
-  type: 'goal' | 'yellowCard' | 'redCard'
+  type: 'goal' | 'yellowCard' | 'redCard' | 'sub'
   team: 'home' | 'away'
   player: string
+  playerIn?: string
 }
 
 const STATUS_OPTIONS = [
   { value: 'Scheduled', label: 'Sắp đá' },
   { value: 'Ongoing', label: 'Đang đá' },
+  { value: '1st_half', label: 'Hiệp 1' },
+  { value: 'halftime', label: 'Nghỉ giữa hiệp' },
+  { value: '2nd_half', label: 'Hiệp 2' },
+  { value: 'penalties', label: 'Luân lưu (PEN)' },
   { value: 'Finished', label: 'Đã kết thúc' },
 ]
 
@@ -31,6 +36,7 @@ const INCIDENT_OPTIONS = [
   { value: 'goal', label: 'Bàn thắng' },
   { value: 'yellowCard', label: 'Thẻ vàng' },
   { value: 'redCard', label: 'Thẻ đỏ' },
+  { value: 'sub', label: 'Thay người' },
 ]
 
 const selectStyle = {
@@ -56,6 +62,7 @@ const normalizeIncidentType = (type: any): IncidentForm['type'] => {
   const value = String(type || '').toLowerCase()
   if (value.includes('yellow')) return 'yellowCard'
   if (value.includes('red')) return 'redCard'
+  if (value.includes('sub')) return 'sub'
   return 'goal'
 }
 
@@ -74,6 +81,7 @@ export function AddMatchModal({ tournamentId, teams, editMatch, onClose, onSucce
     round: editMatch?.round || 'Vòng Bảng',
     status: editMatch?.status || 'Scheduled',
     currentMinute: String(editMatch?.currentMinute || ''),
+    facebookLiveUrl: editMatch?.facebookLiveUrl || '',
     homeScore: String(getScore(editMatch, 'home')),
     awayScore: String(getScore(editMatch, 'away')),
     homeTeamName: editMatch?.homeTeam?.name === 'TBA' ? '' : (editMatch?.homeTeam?.name || ''),
@@ -84,7 +92,8 @@ export function AddMatchModal({ tournamentId, teams, editMatch, onClose, onSucce
       minute: String(incident.minute || ''),
       type: normalizeIncidentType(incident.type || incident.incidentType),
       team: String(incident.team || incident.incidentClass || '').toLowerCase().includes('away') ? 'away' : 'home',
-      player: incident.playerName || incident.player?.name || incident.player || '',
+      player: incident.playerName || incident.playerOutName || incident.player?.name || incident.player || '',
+      playerIn: incident.playerInName || incident.playerIn || '',
     }))
   )
 
@@ -142,6 +151,7 @@ export function AddMatchModal({ tournamentId, teams, editMatch, onClose, onSucce
         round: form.round,
         status: form.status,
         currentMinute: form.status === 'Ongoing' ? Number(form.currentMinute || 0) : 0,
+        facebookLiveUrl: form.facebookLiveUrl,
         homeTeam: resolveTeam(form.homeTeamName, editMatch?.homeTeam),
         awayTeam: resolveTeam(form.awayTeamName, editMatch?.awayTeam),
         homeScore,
@@ -149,12 +159,17 @@ export function AddMatchModal({ tournamentId, teams, editMatch, onClose, onSucce
         score: { home: homeScore, away: awayScore },
         incidents: incidents
           .filter(item => item.type && item.team)
-          .map(item => ({
-            minute: Number(item.minute || 0),
-            type: item.type,
-            team: item.team,
-            player: item.player || 'Chưa rõ cầu thủ',
-          }))
+          .map(item => {
+            const base = {
+              minute: Number(item.minute || 0),
+              type: item.type,
+              team: item.team,
+            };
+            if (item.type === 'sub') {
+              return { ...base, playerOutName: item.player || 'Chưa rõ', playerInName: item.playerIn || 'Chưa rõ' };
+            }
+            return { ...base, playerName: item.player || 'Chưa rõ' };
+          })
           .sort((a, b) => a.minute - b.minute),
       }
 
@@ -188,7 +203,7 @@ export function AddMatchModal({ tournamentId, teams, editMatch, onClose, onSucce
           <View padding={6} onPress={onClose} style={{ cursor: 'pointer' }}><X size={20} color="#888" /></View>
         </XStack>
 
-        <YStack padding="$4" gap="$4" style={{ overflowY: 'auto' }}>
+        <YStack padding="$4" gap="$4" style={{ overflowY: 'auto' }} flex={1}>
           <XStack gap="$3" flexWrap={"wrap" as any}>
             <YStack flex={1} minWidth={170} gap="$2">
               <Text color="#888" fontSize={12} fontWeight="700">Ngày đá</Text>
@@ -210,13 +225,32 @@ export function AddMatchModal({ tournamentId, teams, editMatch, onClose, onSucce
                 {STATUS_OPTIONS.map(status => <option key={status.value} value={status.value} style={optionStyle}>{status.label}</option>)}
               </select>
             </YStack>
-            {form.status === 'Ongoing' && (
+            {(form.status === 'Ongoing' || form.status.includes('half') || form.status === 'penalties') && (
               <YStack width={120} gap="$2">
                 <Text color="#888" fontSize={12} fontWeight="700">Phút</Text>
                 <Input backgroundColor={"rgba(255,255,255,0.05)" as any} height={42} color="white" type="number" borderRadius={10} borderWidth={1} borderColor={C.border as any}
                   value={form.currentMinute} onChangeText={t => setForm({ ...form, currentMinute: t })} />
               </YStack>
             )}
+          </XStack>
+
+          {/* Quick Action Buttons for Match Status */}
+          <XStack gap="$2" flexWrap="wrap" marginTop="$-2">
+            <Button size="$2" backgroundColor={"rgba(40,167,69,0.15)" as any} borderWidth={1} borderColor={"rgba(40,167,69,0.35)" as any} onPress={() => setForm({ ...form, status: '1st_half', currentMinute: '0' })}>
+              <Text color={C.primary as any} fontSize={12} fontWeight="700">Bắt đầu H1</Text>
+            </Button>
+            <Button size="$2" backgroundColor={"rgba(59,130,246,0.15)" as any} borderWidth={1} borderColor={"rgba(59,130,246,0.35)" as any} onPress={() => setForm({ ...form, status: 'halftime' })}>
+              <Text color="#3b82f6" fontSize={12} fontWeight="700">Nghỉ giữa hiệp</Text>
+            </Button>
+            <Button size="$2" backgroundColor={"rgba(255,165,0,0.15)" as any} borderWidth={1} borderColor={"rgba(255,165,0,0.35)" as any} onPress={() => setForm({ ...form, status: '2nd_half', currentMinute: '30' })}>
+              <Text color="#ffa500" fontSize={12} fontWeight="700">Bắt đầu H2</Text>
+            </Button>
+            <Button size="$2" backgroundColor={"rgba(168,85,247,0.15)" as any} borderWidth={1} borderColor={"rgba(168,85,247,0.35)" as any} onPress={() => setForm({ ...form, status: 'penalties' })}>
+              <Text color="#a855f7" fontSize={12} fontWeight="700">Luân lưu (PEN)</Text>
+            </Button>
+            <Button size="$2" backgroundColor={"rgba(255,77,79,0.15)" as any} borderWidth={1} borderColor={"rgba(255,77,79,0.35)" as any} onPress={() => setForm({ ...form, status: 'Finished' })}>
+              <Text color="#ff4d4f" fontSize={12} fontWeight="700">Kết thúc (FT)</Text>
+            </Button>
           </XStack>
 
           <XStack gap="$3" flexWrap={"wrap" as any}>
@@ -240,6 +274,12 @@ export function AddMatchModal({ tournamentId, teams, editMatch, onClose, onSucce
                 value={form.round} onChangeText={t => setForm({ ...form, round: t })} />
             </YStack>
           </XStack>
+
+          <YStack gap="$2" padding="$3" backgroundColor={"rgba(255,255,255,0.02)" as any} borderRadius={12} borderWidth={1} borderColor={C.border as any}>
+            <Text color="#888" fontSize={12} fontWeight="700">Link Facebook Live (Phát sóng)</Text>
+            <Input backgroundColor={"rgba(255,255,255,0.05)" as any} height={44} color="white" paddingHorizontal="$3" borderRadius={10} borderWidth={1} borderColor={C.border as any}
+              placeholder="https://www.facebook.com/..." value={form.facebookLiveUrl} onChangeText={t => setForm({ ...form, facebookLiveUrl: t })} />
+          </YStack>
 
           <YStack gap="$3" padding="$3" backgroundColor={"rgba(255,255,255,0.02)" as any} borderRadius={12} borderWidth={1} borderColor={C.border as any}>
             <Text color="white" fontSize={14} fontWeight="900" textAlign="center">Đội bóng và tỉ số</Text>
@@ -284,6 +324,9 @@ export function AddMatchModal({ tournamentId, teams, editMatch, onClose, onSucce
                 <Button size="$2" backgroundColor={"rgba(255,77,79,0.12)" as any} borderWidth={1} borderColor={"rgba(255,77,79,0.28)" as any} onPress={() => addIncident('redCard')}>
                   <Plus size={13} color="#ff4d4f" /><Text color="#ff4d4f" fontSize={11} fontWeight="900">Thẻ đỏ</Text>
                 </Button>
+                <Button size="$2" backgroundColor={"rgba(59,130,246,0.12)" as any} borderWidth={1} borderColor={"rgba(59,130,246,0.28)" as any} onPress={() => addIncident('sub')}>
+                  <Plus size={13} color="#3b82f6" /><Text color="#3b82f6" fontSize={11} fontWeight="900">Thay người</Text>
+                </Button>
               </XStack>
             </XStack>
 
@@ -304,14 +347,27 @@ export function AddMatchModal({ tournamentId, teams, editMatch, onClose, onSucce
                     <option value="home" style={optionStyle}>Đội nhà</option>
                     <option value="away" style={optionStyle}>Đội khách</option>
                   </select>
-                  {playerOptions.length > 0 ? (
-                    <select style={{ ...selectStyle, flex: 1, minWidth: 180, height: 38 }} value={incident.player} onChange={(e) => updateIncident(index, { player: e.target.value })}>
-                      <option value="" style={optionStyle}>Chọn cầu thủ</option>
-                      {playerOptions.map((player: string) => <option key={player} value={player} style={optionStyle}>{player}</option>)}
-                    </select>
+                  {incident.type === 'sub' ? (
+                    <XStack flex={1} minWidth={180} gap="$2">
+                      <select style={{ ...selectStyle, flex: 1, height: 38 }} value={incident.player} onChange={(e) => updateIncident(index, { player: e.target.value })}>
+                        <option value="" style={optionStyle}>Ra sân (Out)</option>
+                        {playerOptions.map((player: string) => <option key={player} value={player} style={optionStyle}>{player}</option>)}
+                      </select>
+                      <select style={{ ...selectStyle, flex: 1, height: 38 }} value={incident.playerIn} onChange={(e) => updateIncident(index, { playerIn: e.target.value })}>
+                        <option value="" style={optionStyle}>Vào sân (In)</option>
+                        {playerOptions.map((player: string) => <option key={player} value={player} style={optionStyle}>{player}</option>)}
+                      </select>
+                    </XStack>
                   ) : (
-                    <Input flex={1} minWidth={180} height={38} backgroundColor={"rgba(255,255,255,0.05)" as any} color="white" placeholder="Tên cầu thủ" borderRadius={10} borderWidth={1} borderColor={C.border as any}
-                      value={incident.player} onChangeText={t => updateIncident(index, { player: t })} />
+                    playerOptions.length > 0 ? (
+                      <select style={{ ...selectStyle, flex: 1, minWidth: 180, height: 38 }} value={incident.player} onChange={(e) => updateIncident(index, { player: e.target.value })}>
+                        <option value="" style={optionStyle}>Chọn cầu thủ</option>
+                        {playerOptions.map((player: string) => <option key={player} value={player} style={optionStyle}>{player}</option>)}
+                      </select>
+                    ) : (
+                      <Input flex={1} minWidth={180} height={38} backgroundColor={"rgba(255,255,255,0.05)" as any} color="white" placeholder="Tên cầu thủ" borderRadius={10} borderWidth={1} borderColor={C.border as any}
+                        value={incident.player} onChangeText={t => updateIncident(index, { player: t })} />
+                    )
                   )}
                   <Button size="$2" backgroundColor={"rgba(255,77,79,0.12)" as any} borderWidth={1} borderColor={"rgba(255,77,79,0.28)" as any} onPress={() => removeIncident(index)}>
                     <Trash2 size={14} color="#ff4d4f" />

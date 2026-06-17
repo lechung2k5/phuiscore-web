@@ -5,9 +5,10 @@ const NotificationRepo = require('../repositories/notification.repo');
 const { generateStructure, allocateGreedy } = require('../utils/scheduler');
 const { v4: uuidv4 } = require('uuid');
 const { auditLog } = require('../utils/auditLogger');
+const { invalidateCache } = require('../middlewares/cacheMiddleware');
 
 const normalizeStatus = (status = '') => String(status).toLowerCase();
-const isPlayedStatus = (status) => ['finished', 'ongoing', 'inprogress', 'live'].includes(normalizeStatus(status));
+const isPlayedStatus = (status) => ['finished', 'ongoing', 'inprogress', 'live', 'first_half', 'second_half', 'half_time', 'extra_time', 'penalties'].includes(normalizeStatus(status));
 const isFinishedStatus = (status) => ['finished', 'ended', 'fulltime', 'ft'].includes(normalizeStatus(status));
 const isScheduledStatus = (status) => ['scheduled', 'notstarted', 'pending'].includes(normalizeStatus(status));
 
@@ -271,16 +272,30 @@ const buildTournamentStandings = (tournament, matches = []) => {
     return rows.get(id);
   };
 
-  for (const registration of tournament.teams || []) {
-    addTeam({
-      id: registration.id || registration.teamId,
-      name: registration.teamName || registration.name,
-      logo: registration.logo,
-    });
+  // Xác định nhóm của từng đội dựa trên tất cả các trận đấu (cả đã đá và chưa đá)
+  const teamGroupMap = {};
+  for (const match of matches) {
+    if (match.group || match.info?.group) {
+      const g = match.group || match.info?.group;
+      const groupName = g.toLowerCase().startsWith('bảng') ? g : `Bảng ${g}`;
+      if (match.homeTeam) teamGroupMap[getTeamId(match.homeTeam)] = groupName;
+      if (match.awayTeam) teamGroupMap[getTeamId(match.awayTeam)] = groupName;
+    }
   }
 
-  for (const match of matches.filter((m) => isFinishedStatus(m.status) || normalizeStatus(m.status) === 'ongoing')) {
-    const groupName = match.group ? `Bảng ${match.group}` : 'Bảng xếp hạng';
+  for (const registration of tournament.teams || []) {
+    const id = registration.id || registration.teamId || registration.team?.id;
+    const groupName = teamGroupMap[id] || 'Bảng xếp hạng';
+    addTeam({
+      id,
+      name: registration.teamName || registration.name || registration.team?.name,
+      logo: registration.logo || registration.team?.logo,
+    }, groupName);
+  }
+
+  for (const match of matches.filter((m) => isPlayedStatus(m.status))) {
+    const g = match.group || match.info?.group;
+    const groupName = g ? (g.toLowerCase().startsWith('bảng') ? g : `Bảng ${g}`) : 'Bảng xếp hạng';
     const home = addTeam(match.homeTeam, groupName);
     const away = addTeam(match.awayTeam, groupName);
     const homeScore = getScoreValue(match, 'home');
@@ -930,7 +945,7 @@ const tournamentController = {
       if (updates.currentMinute !== undefined) newMatch.currentMinute = Number(updates.currentMinute || 0);
       if (updates.incidents !== undefined) newMatch.incidents = Array.isArray(updates.incidents) ? updates.incidents : [];
       newMatch.isManualControl = true;
-      newMatch.liveStatus = newMatch.status === 'Ongoing' ? 'streaming' : 'idle';
+      newMatch.liveStatus = ['Ongoing', '1st_half', '2nd_half', 'halftime', 'penalties'].includes(newMatch.status) ? 'streaming' : 'idle';
       if (updates.dateString || updates.timeString) {
         const d = updates.dateString || match.dateString;
         const t = updates.timeString || match.timeString;
@@ -1007,4 +1022,7 @@ const tournamentController = {
   }
 };
 
-module.exports = tournamentController;
+module.exports = {
+  ...tournamentController,
+  refreshTournamentStandings
+};

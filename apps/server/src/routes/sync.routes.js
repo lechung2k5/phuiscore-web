@@ -172,13 +172,13 @@ router.post('/standings', validateSyncToken, async (req, res) => {
  */
 router.post('/vmix-webhook', validateSyncToken, async (req, res) => {
     try {
-        const { matchId, date, homeScore, awayScore, currentMinute, liveStatus, status, statistics, incidents, tournamentId } = req.body;
+        const { matchId, date, homeScore, awayScore, currentMinute, liveStatus, status, statistics, incidents, tournamentId, lineups, facebookLiveUrl } = req.body;
         
         if (!matchId) {
             return res.status(400).json({ success: false, message: 'Missing matchId' });
         }
 
-        console.log(`[Sync] 🎮 Nhận webhook từ vMix cho trận ${matchId}`);
+        console.log(`[Sync] 🎮 Nhận webhook từ vMix cho trận ${matchId} | Score: ${homeScore} - ${awayScore} | Time: ${currentMinute}' | Status: ${status} | LiveStatus: ${liveStatus}`);
         
         // 💾 LƯU DỮ LIỆU VÀO DYNAMODB
         if (date && matchId) {
@@ -190,6 +190,8 @@ router.post('/vmix-webhook', validateSyncToken, async (req, res) => {
                 status: status || 'inprogress',
                 statistics,
                 incidents,
+                lineups,
+                facebookLiveUrl,
                 isDraft: false
             });
         }

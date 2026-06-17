@@ -295,49 +295,73 @@ const MatchRepo = {
      * ⚡ CẬP NHẬT NHANH TỈ SỐ & PHÚT (Cho BLV)
      * Đã nâng cấp: Hỗ trợ incidents (diễn biến) và isDraft (chế độ nháp)
      */
-    updateMatchScoreboard: async (date, matchId, { homeScore, awayScore, currentMinute, liveStatus, status, statistics, incidents, isDraft }) => {
-        let updateExp = `
-            SET score.home = :h, 
-                score.away = :a, 
-                homeScore = :h,
-                awayScore = :a,
-                currentMinute = :m,
-                liveStatus = :ls,
-                #stat = :statVal,
-                isManualControl = :true,
-                isDraft = :draft,
-                updatedAt = :u
-        `;
-        const exprAttrNames = { "#stat": "status" };
+    updateMatchScoreboard: async (date, matchId, data) => {
+        let updateParts = [
+            `isManualControl = :true`,
+            `isDraft = :draft`,
+            `updatedAt = :u`
+        ];
+        
+        const exprAttrNames = {};
         const exprAttrValues = {
-            ":h": homeScore,
-            ":a": awayScore,
-            ":m": currentMinute,
-            ":ls": liveStatus || 'streaming',
-            ":statVal": status || 'inprogress',
             ":true": true,
-            ":draft": isDraft || false,
+            ":draft": data.isDraft || false,
             ":u": new Date().toISOString()
         };
 
-        if (statistics) {
-            updateExp += `, statistics = :stats`;
-            exprAttrValues[":stats"] = statistics;
+        if (data.homeScore !== undefined) {
+            updateParts.push(`score.home = :h`, `homeScore = :h`);
+            exprAttrValues[":h"] = data.homeScore;
         }
-        
-        if (incidents) {
-            updateExp += `, incidents = :inc`;
-            exprAttrValues[":inc"] = incidents;
+        if (data.awayScore !== undefined) {
+            updateParts.push(`score.away = :a`, `awayScore = :a`);
+            exprAttrValues[":a"] = data.awayScore;
+        }
+        if (data.currentMinute !== undefined) {
+            updateParts.push(`currentMinute = :m`);
+            exprAttrValues[":m"] = data.currentMinute;
+        }
+        if (data.liveStatus !== undefined) {
+            updateParts.push(`liveStatus = :ls`);
+            exprAttrValues[":ls"] = data.liveStatus;
+        }
+        if (data.status !== undefined) {
+            updateParts.push(`#stat = :statVal`);
+            exprAttrNames["#stat"] = "status";
+            exprAttrValues[":statVal"] = data.status;
+        }
+        if (data.statistics !== undefined) {
+            updateParts.push(`statistics = :stats`);
+            exprAttrValues[":stats"] = data.statistics;
+        }
+        if (data.incidents !== undefined) {
+            updateParts.push(`incidents = :inc`);
+            exprAttrValues[":inc"] = data.incidents;
+        }
+        if (data.lineups !== undefined) {
+            updateParts.push(`lineups = :lineups`);
+            exprAttrValues[":lineups"] = data.lineups;
+        }
+        if (data.facebookLiveUrl !== undefined) {
+            updateParts.push(`facebookLiveUrl = :fburl`);
+            exprAttrValues[":fburl"] = data.facebookLiveUrl === "" ? null : data.facebookLiveUrl;
         }
 
-        const command = new UpdateCommand({
+        const updateExp = `SET ` + updateParts.join(', ');
+
+        const commandParams = {
             TableName: TABLE_NAME,
             Key: { pk: `DATE#${date}`, sk: `MATCH#${matchId}` },
             UpdateExpression: updateExp,
-            ExpressionAttributeNames: exprAttrNames,
             ExpressionAttributeValues: exprAttrValues,
             ReturnValues: "ALL_NEW"
-        });
+        };
+        
+        if (Object.keys(exprAttrNames).length > 0) {
+            commandParams.ExpressionAttributeNames = exprAttrNames;
+        }
+
+        const command = new UpdateCommand(commandParams);
         const res = await docClient.send(command);
         
         // 📢 Phát tín hiệu Socket.io
@@ -345,13 +369,14 @@ const MatchRepo = {
         if (global.io) {
             global.io.emit('scoreUpdate', { 
                 matchId, 
-                homeScore, 
-                awayScore, 
-                currentMinute, 
-                liveStatus, 
-                statistics,
-                incidents,
-                isDraft: isDraft || false
+                homeScore: data.homeScore, 
+                awayScore: data.awayScore, 
+                currentMinute: data.currentMinute, 
+                liveStatus: data.liveStatus, 
+                statistics: data.statistics,
+                incidents: data.incidents,
+                facebookLiveUrl: data.facebookLiveUrl,
+                isDraft: data.isDraft || false
             });
         }
         return res;

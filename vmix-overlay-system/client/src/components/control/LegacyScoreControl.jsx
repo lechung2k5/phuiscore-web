@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { Modal } from 'antd';
 import '../../overlays/scoreboard.css';
 
 function initials(name) {
@@ -41,12 +42,32 @@ const LegacyScoreControl = ({ matchState, updateMatch, triggerEvent }) => {
       });
     }
 
-    if (action === "start") updateMatch({ matchInfo: { ...matchInfo, isRunning: true } });
+    if (action === "start") {
+      const newStatus = matchInfo.status === 'Scheduled' || matchInfo.status === 'PRE_MATCH' ? 'FIRST_HALF' : matchInfo.status;
+      updateMatch({ matchInfo: { ...matchInfo, isRunning: true, status: newStatus } });
+    }
     if (action === "pause") updateMatch({ matchInfo: { ...matchInfo, isRunning: false } });
     if (action === "clock") updateMatch({ matchInfo: { ...matchInfo, time: payload.time * 60 } });
-    if (action === "period") updateMatch({ matchInfo: { ...matchInfo, period: payload.period } });
+    if (action === "period") {
+      let status = "FIRST_HALF";
+      if (payload.period === "H2") status = "SECOND_HALF";
+      updateMatch({ matchInfo: { ...matchInfo, period: payload.period, status } });
+    }
     if (action === "finish_period") {
-      updateMatch({ matchInfo: { ...matchInfo, period: payload.period, isRunning: false } });
+      if (payload.period === "FT") {
+        Modal.confirm({
+          title: 'Xác nhận kết thúc trận đấu',
+          content: 'Bạn có chắc chắn muốn kết thúc trận đấu này không? Trận đấu sẽ chuyển sang trạng thái đã kết thúc.',
+          okText: 'Kết thúc',
+          cancelText: 'Hủy',
+          okType: 'danger',
+          onOk: () => {
+            updateMatch({ matchInfo: { ...matchInfo, period: payload.period, isRunning: false, status: 'FINISHED' } });
+          }
+        });
+      } else {
+        updateMatch({ matchInfo: { ...matchInfo, period: payload.period, isRunning: false, status: 'HALF_TIME' } });
+      }
     }
     if (action === "extraTime") {
         updateMatch({ matchInfo: { ...matchInfo, extraTime: payload.time } });

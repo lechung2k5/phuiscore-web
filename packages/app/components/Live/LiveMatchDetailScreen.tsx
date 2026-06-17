@@ -406,7 +406,11 @@ const InfoRow = ({ label, value }: { label: string; value: any }) => (
 )
 
 const PlayerSlot = ({ p, pos, teamColor }: any) => {
-  const photoUrl = getImageUrl(null, 'avatar', p.player?.id);
+  let photoUrl = getImageUrl(null, 'avatar', p.player?.id);
+  if (p.player?.photo || p.player?.avatar) {
+      const pUrl = p.player.photo || p.player.avatar;
+      photoUrl = pUrl.startsWith('/uploads') ? `${API_BASE}${pUrl}` : pUrl;
+  }
   const rating = p.statistics?.rating || p.avgRating || null;
   return (
     <div className="player-slot" style={{ left: pos.x, top: pos.y }}>
@@ -425,7 +429,7 @@ const PlayerSlot = ({ p, pos, teamColor }: any) => {
 }
 
 // Sử dụng memo để đảm bảo StreamSection không bị render lại khi dữ liệu trận đấu (tỉ số, stats) cập nhật
-const StreamSection: any = React.memo(({ matchId, API }: { matchId: string, API: string }): JSX.Element => {
+const StreamSection: any = React.memo(({ matchId, API, match }: { matchId: string, API: string, match: any }): JSX.Element => {
     const [selectedServer, setSelectedServer] = useState(1);
     const [lkToken, setLkToken] = useState("");
     const LK_SERVER_URL = "wss://phuiscore-lhf9kjp2.livekit.cloud";
@@ -519,7 +523,16 @@ const StreamSection: any = React.memo(({ matchId, API }: { matchId: string, API:
         <div className="lmd-stream-wrap">
             <div className="lmd-video-area">
                 <div className="lmd-video-player" style={{ minHeight: 500 }}>
-                    {lkToken ? (
+                    {match?.facebookLiveUrl ? (
+                        <iframe 
+                          src={`https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(match.facebookLiveUrl)}&show_text=false&width=auto`} 
+                          style={{ width: '100%', height: '100%', border: 'none', overflow: 'hidden', backgroundColor: '#000' }} 
+                          scrolling="no" 
+                          frameBorder="0" 
+                          allowFullScreen={true} 
+                          allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"
+                        />
+                    ) : lkToken ? (
                         <Room
                             video={false}
                             audio={false}
@@ -541,8 +554,8 @@ const StreamSection: any = React.memo(({ matchId, API }: { matchId: string, API:
                 </div>
                 <div className="lmd-video-controls">
                     <span style={{ fontSize: 11, fontWeight: 900, color: '#5a6a5e' }}>SERVER:</span>
-                    <button className="lmd-server-btn active">PHỦI SCORE LIVE (TRỰC TIẾP)</button>
-                    <button className="lmd-server-btn">SAO LƯU 1</button>
+                    <button className={`lmd-server-btn ${match?.facebookLiveUrl ? 'active' : ''}`}>FACEBOOK LIVE</button>
+                    <button className={`lmd-server-btn ${!match?.facebookLiveUrl ? 'active' : ''}`}>PHỦI SCORE LIVE</button>
                 </div>
             </div>
 
@@ -645,8 +658,8 @@ export default function LiveMatchDetailScreen({ matchId, overrideDate, initialDa
                 match?.info?.tournament?.id ||
                 (match?.gsi1_pk ? String(match.gsi1_pk).replace('TOURNAMENT#', '') : null);
     
-    // Đảm bảo tid là số hợp lệ trước khi gọi API (tránh lỗi NaN trên server)
-    const isValidTid = tid && !isNaN(Number(tid));
+    // Đảm bảo tid là hợp lệ trước khi gọi API
+    const isValidTid = !!tid;
     
     if (!isValidTid || loadingStandings) {
       console.log('[Standings] ⚠️ Bỏ qua fetch vì ID không hợp lệ hoặc đang tải:', { tid, loadingStandings });
@@ -755,8 +768,34 @@ export default function LiveMatchDetailScreen({ matchId, overrideDate, initialDa
         }
     }
 
+    const handleStandingsUpdate = async (data: any) => {
+        let tidToFetch = null;
+        setMatch((prev: any) => {
+            tidToFetch = prev?.tournamentId || prev?.tournament?.uniqueTournament?.id || prev?.tournament?.id || prev?.info?.tournamentId || prev?.info?.tournament?.id || (prev?.gsi1_pk ? String(prev.gsi1_pk).replace('TOURNAMENT#', '') : null);
+            return prev;
+        });
+        
+        if (tidToFetch && String(tidToFetch) === String(data.tournamentId)) {
+            console.log(`[Socket] 🏆 BXH đã cập nhật (ID: ${tidToFetch}). Đang tải lại...`);
+            try {
+                const res = await fetch(`${API}/standings/${tidToFetch}?refresh=true`);
+                const json = await res.json();
+                if (json.success) {
+                    setMatch((prev: any) => ({
+                        ...prev,
+                        standingsData: json.data,
+                        standings: json.data.standings || (Array.isArray(json.data) ? json.data : [])
+                    }));
+                }
+            } catch (e) {
+                console.error('Fetch standings from socket error:', e);
+            }
+        }
+    }
+
     socket.on('scoreUpdate', handleScoreUpdate)
     socket.on('matchUpdated', handleMatchUpdate)
+    socket.on('standingsUpdate', handleStandingsUpdate)
 
     // Chỉ fetch nếu chưa có dữ liệu chi tiết từ Server-side
     if (!initialData || !initialData.statistics) {
@@ -768,6 +807,7 @@ export default function LiveMatchDetailScreen({ matchId, overrideDate, initialDa
     return () => {
         socket.off('scoreUpdate', handleScoreUpdate)
         socket.off('matchUpdated', handleMatchUpdate)
+        socket.off('standingsUpdate', handleStandingsUpdate)
         socket.disconnect()
         clearInterval(interval)
     }
@@ -775,10 +815,24 @@ export default function LiveMatchDetailScreen({ matchId, overrideDate, initialDa
 
   // Mặc định cho phép render khung layout trước, thông số load sau
   const stats = match?.statistics?.[0]?.groups?.flatMap((g: any) => g.statisticsItems) || []
-  const incidents = [...(match?.incidents || [])].sort((a,b) => b.time - a.time)
+  const incidents = [...(match?.incidents || [])].sort((a,b) => {
+    const timeA = parseInt(String(a.time || '0').replace(/\D/g, ''), 10) || 0;
+    const timeB = parseInt(String(b.time || '0').replace(/\D/g, ''), 10) || 0;
+    return timeB - timeA;
+  })
   
   const homeScorers = incidents.filter(n => (n.team === 'home' || n.incidentClass === 'home') && (n.type === 'goal' || n.incidentType === 'goal'))
   const awayScorers = incidents.filter(n => (n.team === 'away' || n.incidentClass === 'away') && (n.type === 'goal' || n.incidentType === 'goal'))
+
+  if (!match) {
+    return (
+      <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', color: 'white', background: '#0b0e14', gap: 16 }}>
+        <div style={{ width: 40, height: 40, border: '4px solid #333', borderTopColor: '#22c55e', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+        <h3 style={{ margin: 0, fontWeight: 500, color: '#aaa' }}>Đang tải dữ liệu trận đấu...</h3>
+        <style dangerouslySetInnerHTML={{ __html: `@keyframes spin { 100% { transform: rotate(360deg); } }` }} />
+      </div>
+    );
+  }
 
   return (
     <div className="lmd-root">
@@ -793,7 +847,7 @@ export default function LiveMatchDetailScreen({ matchId, overrideDate, initialDa
           <span>{match?.homeTeam?.name || '...'} vs {match?.awayTeam?.name || '...'}</span>
         </div>
 
-        {isLiveMode && <StreamSection matchId={matchId} API={API} />}
+        {isLiveMode && <StreamSection matchId={matchId} API={API} match={match} />}
 
         {/* Match Header Section */}
         <div className="lmd-header-card">
@@ -821,7 +875,7 @@ export default function LiveMatchDetailScreen({ matchId, overrideDate, initialDa
               <div className="lmd-scorer-list">
                  {homeScorers.map((s, i) => (
                     <div key={i} className="lmd-scorer-item">
-                       <b>{s.player?.shortName || s.player?.name || s.player}</b>
+                       <b>{s.player?.shortName || s.player?.name || s.player || s.playerName}</b>
                        <span>{s.time}' {s.isOwnGoal ? '(OG)' : ''}</span>
                     </div>
                  ))}
@@ -830,7 +884,7 @@ export default function LiveMatchDetailScreen({ matchId, overrideDate, initialDa
                  {awayScorers.map((s, i) => (
                     <div key={i} className="lmd-scorer-item">
                        <span>{s.time}' {s.isOwnGoal ? '(OG)' : ''}</span>
-                       <b>{s.player?.shortName || s.player?.name || s.player}</b>
+                       <b>{s.player?.shortName || s.player?.name || s.player || s.playerName}</b>
                     </div>
                  ))}
               </div>
@@ -894,31 +948,36 @@ export default function LiveMatchDetailScreen({ matchId, overrideDate, initialDa
                                    <div className="pitch-v-circle" />
                                    
                                    {/* Home Players */}
-                                   {(match.lineups.home?.players || []).filter((p: any) => !p.substitute).map((p: any, i: number) => {
-                                      // Simple demo mapping for 4-3-3 if no coords
-                                      const rows = [1, 4, 3, 3];
-                                      let rowIdx = 0, colIdx = 0, count = 0;
-                                      for(let r=0; r<rows.length; r++) {
-                                         if(i < count + rows[r]) { rowIdx = r; colIdx = i - count; break; }
-                                         count += rows[r];
-                                      }
-                                      const x = `${(colIdx + 1) * (100 / (rows[rowIdx] + 1))}%`;
-                                      const y = `${90 - (rowIdx * 12)}%`;
-                                      return <PlayerSlot key={`h-${i}`} p={p} pos={{x,y}} teamColor="#22c55e" />
-                                   })}
+                                   {(() => {
+                                      const starters = (match.lineups.home?.players || []).filter((p: any) => !p.substitute);
+                                      return starters.map((p: any, i: number) => {
+                                         const rows = starters.length === 7 ? [1, 2, 3, 1] : [1, 4, 3, 3];
+                                         let rowIdx = 0, colIdx = 0, count = 0;
+                                         for(let r=0; r<rows.length; r++) {
+                                            if(i < count + rows[r]) { rowIdx = r; colIdx = i - count; break; }
+                                            count += rows[r];
+                                         }
+                                         const x = `${(colIdx + 1) * (100 / (rows[rowIdx] + 1))}%`;
+                                         const y = `${90 - (rowIdx * 12)}%`;
+                                         return <PlayerSlot key={`h-${i}`} p={p} pos={{x,y}} teamColor="#22c55e" />
+                                      });
+                                   })()}
 
                                    {/* Away Players */}
-                                   {(match.lineups?.away?.players || []).filter((p: any) => !p.substitute).map((p: any, i: number) => {
-                                      const rows = [1, 4, 3, 3];
-                                      let rowIdx = 0, colIdx = 0, count = 0;
-                                      for(let r=0; r<rows.length; r++) {
-                                         if(i < count + rows[r]) { rowIdx = r; colIdx = i - count; break; }
-                                         count += rows[r];
-                                      }
-                                      const x = `${(colIdx + 1) * (100 / (rows[rowIdx] + 1))}%`;
-                                      const y = `${10 + (rowIdx * 12)}%`;
-                                      return <PlayerSlot key={`a-${i}`} p={p} pos={{x,y}} teamColor="#ef4444" />
-                                   })}
+                                   {(() => {
+                                      const starters = (match.lineups?.away?.players || []).filter((p: any) => !p.substitute);
+                                      return starters.map((p: any, i: number) => {
+                                         const rows = starters.length === 7 ? [1, 2, 3, 1] : [1, 4, 3, 3];
+                                         let rowIdx = 0, colIdx = 0, count = 0;
+                                         for(let r=0; r<rows.length; r++) {
+                                            if(i < count + rows[r]) { rowIdx = r; colIdx = i - count; break; }
+                                            count += rows[r];
+                                         }
+                                         const x = `${(colIdx + 1) * (100 / (rows[rowIdx] + 1))}%`;
+                                         const y = `${10 + (rowIdx * 12)}%`;
+                                         return <PlayerSlot key={`a-${i}`} p={p} pos={{x,y}} teamColor="#ef4444" isAway />
+                                      });
+                                   })()}
                                 </div>
                                  {/* Substitutes List */}
                                  <div className="lmd-subs-grid" style={{ display: 'grid', gap: 32, marginTop: 48, width: '100%' }}>
@@ -930,7 +989,7 @@ export default function LiveMatchDetailScreen({ matchId, overrideDate, initialDa
                                          <div style={{ color: '#22c55e', fontSize: 13, fontWeight: 900, borderBottom: '2px solid #22c55e', paddingBottom: 8 }}>DỰ BỊ {match.homeTeam.name.toUpperCase()}</div>
                                          {match.lineups?.home?.players?.filter((p: any) => p.substitute).map((p: any, i: number) => (
                                             <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '8px 0', borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
-                                               <img src={`https://api.sofascore.app/api/v1/player/${p.player.id}/image`} style={{ width: 32, height: 32, borderRadius: '50%', background: '#252a29' }} />
+                                               <img src={getImageUrl(p.player?.photo || p.player?.avatar, 'avatar', p.player?.id)} style={{ width: 32, height: 32, borderRadius: '50%', background: '#252a29', objectFit: 'cover' }} />
                                                <span style={{ fontSize: 14 }}>{p.player.name}</span>
                                                <span style={{ marginLeft: 'auto', color: '#7a8c7e', fontSize: 12 }}>{p.jerseyNumber}</span>
                                             </div>
@@ -940,7 +999,7 @@ export default function LiveMatchDetailScreen({ matchId, overrideDate, initialDa
                                          <div style={{ color: '#ef4444', fontSize: 13, fontWeight: 900, borderBottom: '2px solid #ef4444', paddingBottom: 8, textAlign: 'right' }}>DỰ BỊ {match.awayTeam.name.toUpperCase()}</div>
                                          {match.lineups?.away?.players?.filter((p: any) => p.substitute).map((p: any, i: number) => (
                                             <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '8px 0', borderBottom: '1px solid rgba(255,255,255,0.03)', flexDirection: 'row-reverse' }}>
-                                               <img src={`https://api.sofascore.app/api/v1/player/${p.player.id}/image`} style={{ width: 32, height: 32, borderRadius: '50%', background: '#252a29' }} />
+                                               <img src={getImageUrl(p.player?.photo || p.player?.avatar, 'avatar', p.player?.id)} style={{ width: 32, height: 32, borderRadius: '50%', background: '#252a29', objectFit: 'cover' }} />
                                                <span style={{ fontSize: 14 }}>{p.player.name}</span>
                                                <span style={{ marginRight: 'auto', color: '#7a8c7e', fontSize: 12 }}>{p.jerseyNumber}</span>
                                             </div>
@@ -1039,8 +1098,12 @@ export default function LiveMatchDetailScreen({ matchId, overrideDate, initialDa
                               const isHome = n.team === 'home' || n.incidentClass === 'home';
                               const type = n.type || n.incidentType;
                               let icon = '⚽';
-                              if (type === 'card') icon = n.color === 'red' ? '🟥' : '🟨';
-                              if (type === 'substitution') icon = '🔄';
+                              if (type === 'card' || type === 'yellow_card' || type === 'red_card') {
+                                icon = (n.color === 'red' || type === 'red_card') ? '🟥' : '🟨';
+                              }
+                              if (type === 'substitution' || type === 'sub') {
+                                icon = '🔄';
+                              }
                               
                               return (
                                  <div key={i} className="lmd-tl-row">
@@ -1049,23 +1112,23 @@ export default function LiveMatchDetailScreen({ matchId, overrideDate, initialDa
                                           <div className="lmd-tl-card">
                                              <span className="lmd-tl-icon">{icon}</span>
                                              <div>
-                                                <div className="lmd-tl-pname">{n.player?.name || n.player}</div>
+                                                <div className="lmd-tl-pname">{n.player?.name || n.player || n.playerName || n.playerOutName}</div>
                                                 <div className="lmd-tl-pinfo">
-                                                   {type === 'substitution' ? `Vào: ${n.playerIn?.name}` : n.assist ? `Hỗ trợ: ${n.assist?.name}` : ''}
+                                                   {(type === 'substitution' || type === 'sub') ? `Vào: ${n.playerIn?.name || n.playerInName}` : n.assist ? `Hỗ trợ: ${n.assist?.name}` : ''}
                                                 </div>
                                              </div>
                                           </div>
                                        )}
                                     </div>
-                                   <div className="lmd-tl-center">{n.time}'</div>
+                                   <div className="lmd-tl-center">{String(n.time || '').replace(/'/g, '')}'</div>
                                     <div className={`lmd-tl-content r ${isHome ? 'hidden' : ''}`}>
                                        {!isHome && (
                                           <div className="lmd-tl-card">
                                              <span className="lmd-tl-icon">{icon}</span>
                                              <div>
-                                                <div className="lmd-tl-pname">{n.player?.name || n.player}</div>
+                                                <div className="lmd-tl-pname">{n.player?.name || n.player || n.playerName || n.playerOutName}</div>
                                                 <div className="lmd-tl-pinfo">
-                                                   {type === 'substitution' ? `Vào: ${n.playerIn?.name}` : n.assist ? `Hỗ trợ: ${n.assist?.name}` : ''}
+                                                   {(type === 'substitution' || type === 'sub') ? `Vào: ${n.playerIn?.name || n.playerInName}` : n.assist ? `Hỗ trợ: ${n.assist?.name}` : ''}
                                                 </div>
                                              </div>
                                           </div>

@@ -926,7 +926,10 @@ export default function TournamentDetailScreen({ id }: { id: string }) {
                 currentMinute: updatedData.currentMinute ?? newMatches[matchIndex].currentMinute,
                 status: updatedData.status ?? newMatches[matchIndex].status,
                 liveStatus: updatedData.liveStatus ?? newMatches[matchIndex].liveStatus,
-                score: updatedData.score ?? newMatches[matchIndex].score,
+                score: updatedData.score || {
+                    home: updatedData.homeScore ?? (newMatches[matchIndex].score?.home ?? newMatches[matchIndex].homeScore),
+                    away: updatedData.awayScore ?? (newMatches[matchIndex].score?.away ?? newMatches[matchIndex].awayScore)
+                },
                 incidents: updatedData.incidents ?? newMatches[matchIndex].incidents,
                 statistics: updatedData.statistics ?? newMatches[matchIndex].statistics
             };

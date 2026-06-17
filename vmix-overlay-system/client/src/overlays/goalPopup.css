@@ -3,20 +3,19 @@
   bottom: 80px;
   left: 80px;
   display: flex;
-  height: 140px;
+  height: 120px;
   font-family: 'Chakra Petch', 'Inter', sans-serif;
-  /* Thay box-shadow bằng drop-shadow để đổ bóng ôm sát viền vát (skew), không tạo ra khung đen chữ nhật thừa thãi đằng sau */
-  filter: drop-shadow(8px 8px 15px rgba(0,0,0,0.8));
-  transform: scale(0.85);
+  filter: drop-shadow(0 0 15px rgba(0, 255, 255, 0.6)) drop-shadow(0 0 5px rgba(200, 0, 255, 0.8));
+  transform: scale(0.9);
   transform-origin: bottom left;
 }
 
-/* KHỐI ẢNH CẦU THỦ BÊN TRÁI */
+/* KHỐI ẢNH CẦU THỦ BÊN TRÁI - Gắn liền vào banner */
 .goal-avatar-box {
-  width: 140px;
-  height: 140px;
+  width: 120px;
+  height: 120px;
   background: #000;
-  border: 4px solid #00ff88;
+  border: 2px solid #00ffff;
   border-right: none;
   z-index: 2;
   position: relative;
@@ -24,7 +23,8 @@
   justify-content: center;
   align-items: center;
   overflow: hidden;
-  box-shadow: inset 0 0 20px rgba(0,0,0,0.9);
+  box-shadow: inset 0 0 20px rgba(0,255,255,0.5), 0 0 15px rgba(0,255,255,0.8);
+  border-radius: 10px 0 0 10px;
 }
 
 .goal-avatar-img {
@@ -33,124 +33,84 @@
   object-fit: cover;
   object-position: center top;
   display: block;
-  filter: drop-shadow(2px 4px 6px rgba(0,0,0,0.8)) contrast(1.1);
 }
 
-/* Hiệu ứng bóng bẩy vát ngang cho khối avatar */
-.goal-avatar-box::after {
-  content: '';
-  position: absolute;
-  top: -50%;
-  left: -50%;
-  width: 200%;
-  height: 200%;
-  background: linear-gradient(
-    to bottom right,
-    rgba(255,255,255,0) 0%,
-    rgba(255,255,255,0) 30%,
-    rgba(255,255,255,0.5) 50%,
-    rgba(255,255,255,0) 70%,
-    rgba(255,255,255,0) 100%
-  );
-  transform: rotate(30deg);
-  pointer-events: none;
-}
-
-/* KHỐI THÔNG TIN BÊN PHẢI */
+/* KHỐI THÔNG TIN BÊN PHẢI - Nền Kill Message */
 .goal-info-box {
   display: flex;
   flex-direction: column;
-  height: 140px;
-  width: 550px;
+  height: 120px;
+  width: 600px;
   z-index: 1;
-  transform: skewX(-15deg);
-  margin-left: -15px; /* Thụt vào đè nhẹ lên avatar */
+  background-image: url('/assets/kill_message_bg.png');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  border-radius: 0 15px 15px 0;
+  box-shadow: inset 0 0 30px rgba(0, 0, 0, 0.8);
+  position: relative;
 }
 
-/* Các dòng */
+/* Bỏ các border thừa và định hình lại hàng */
 .goal-row {
   display: flex;
   align-items: center;
-  justify-content: center;
   position: relative;
   overflow: hidden;
-  border: 4px solid #00ff88;
-  border-left: none;
-  box-shadow: inset 0 0 10px rgba(0,0,0,0.5);
+  padding: 0 30px;
 }
 
-/* Lưới carbon mờ làm nền chung */
-.goal-row::before {
-  content: '';
-  position: absolute;
-  top: 0; left: 0; right: 0; bottom: 0;
-  background: repeating-linear-gradient(
-    45deg,
-    rgba(255, 255, 255, 0.08),
-    rgba(255, 255, 255, 0.08) 3px,
-    transparent 3px,
-    transparent 8px
-  );
-  pointer-events: none;
-  z-index: 0;
-}
-
+/* Dòng trên: Chữ GOALLL */
 .goal-row.top-row {
-  flex: 2; /* Chiếm 2 phần */
-  background: linear-gradient(90deg, #091e4a 0%, #1a4299 100%); /* Xanh lam đậm như hình mẫu */
-  margin-bottom: 2px;
+  flex: 1.2; 
+  justify-content: flex-start;
+  border-bottom: 1px solid rgba(0, 255, 255, 0.3);
 }
 
+/* Dòng dưới: Tên cầu thủ + Phút */
 .goal-row.bottom-row {
-  flex: 1; /* Chiếm 1 phần (bằng một nửa dòng trên) */
-  /* Màu nền sẽ được gán bằng CSS inline (team color) */
+  flex: 1; 
+  justify-content: space-between;
+  /* Làm trong suốt để thấy nền banner */
+  background: transparent !important;
 }
 
-/* Chữ GOALLL!!! */
+/* Chữ GOALLL!!! - Phong cách PUBG Glow */
 .goal-title {
-  color: white;
-  font-size: 58px;
+  color: #fff;
+  font-size: 45px;
   font-weight: 900;
   font-style: italic;
-  letter-spacing: 4px;
+  letter-spacing: 3px;
   text-transform: uppercase;
   z-index: 1;
-  text-shadow: 4px 4px 0px rgba(0,0,0,0.4), 0px 0px 15px rgba(255,255,255,0.4);
-  transform: skewX(15deg); /* Bù lại độ nghiêng của khung cha */
-}
-
-/* Tên cầu thủ - dòng dưới */
-.goal-row.bottom-row {
-  justify-content: space-between; /* Tên bên trái, phút bên phải */
-  padding: 0 20px;
+  text-shadow: 0 0 10px #00ffff, 0 0 20px #00ffff, 0 0 40px #00ffff;
 }
 
 /* Tên cầu thủ */
 .goal-player-name {
   color: white;
-  font-size: 32px;
+  font-size: 28px;
   font-weight: 800;
   text-transform: uppercase;
   z-index: 1;
-  text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+  text-shadow: 2px 2px 0px #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
   flex: 1;
   height: 100%;
-  padding-left: 20px; /* Lệch phải 20px */
-  transform: skewX(15deg); /* Bù lại độ nghiêng của khung cha */
+  display: flex;
+  align-items: center;
   overflow: hidden;
+  margin-right: 15px;
 }
 
 /* Phút ghi bàn */
 .goal-minute {
-  color: white;
-  font-size: 32px;
+  color: #ffea00;
+  font-size: 28px;
   font-weight: 900;
   font-style: italic;
   z-index: 1;
-  text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+  text-shadow: 2px 2px 0px #000, 0 0 10px #ffea00;
   white-space: nowrap;
-  transform: skewX(15deg);
-  margin-left: 12px;
   letter-spacing: 1px;
-  opacity: 0.95;
 }

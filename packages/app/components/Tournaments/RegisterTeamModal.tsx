@@ -256,12 +256,12 @@ interface Props {
   initialData?: any; // Dữ liệu cũ để sửa
 }
 type Form = {
-  teamName: string; logo: string; jerseyColor: string; jerseyColorAlt: string
+  teamName: string; logo: string; playerBannerUrl: string; jerseyColor: string; jerseyColorAlt: string
   managerName: string; managerPhone: string; managerEmail: string; managerIdCard: string
   coachName: string; coachPhone: string; note: string
 }
 const EMPTY_FORM = (): Form => ({
-  teamName: '', logo: '', jerseyColor: '', jerseyColorAlt: '',
+  teamName: '', logo: '', playerBannerUrl: '', jerseyColor: '', jerseyColorAlt: '',
   managerName: '', managerPhone: '', managerEmail: '', managerIdCard: '',
   coachName: '', coachPhone: '', note: '',
 })
@@ -276,6 +276,7 @@ export default function RegisterTeamModal({ tournament, onClose, onSuccess, init
   const [form, setForm] = useState<Form>(initialData ? {
     teamName: initialData.teamName || '',
     logo: initialData.logo || '',
+    playerBannerUrl: initialData.playerBannerUrl || '',
     jerseyColor: initialData.jerseyColor || '',
     jerseyColorAlt: initialData.jerseyColorAlt || '',
     managerName: initialData.managerName || '',
@@ -621,6 +622,10 @@ export default function RegisterTeamModal({ tournament, onClose, onSuccess, init
                   <YStack gap="$1" width={60} alignItems="center">
                     <Text color="#888" fontSize={10} fontWeight="700">LOGO ĐỘI</Text>
                     <PlayerPhoto photo={form.logo} onChange={set('logo')} folder="logos" />
+                  </YStack>
+                  <YStack gap="$1" width={60} alignItems="center" flexShrink={0}>
+                    <Text color="#888" fontSize={10} fontWeight="700" textAlign="center">BANNER CT</Text>
+                    <PlayerPhoto photo={form.playerBannerUrl} onChange={set('playerBannerUrl')} folder="banners" />
                   </YStack>
                   <YStack flex={1}>
                     <Field label="Tên đội" placeholder="VD: FC Sao Vàng 2026" required value={form.teamName} onChange={set('teamName')} />

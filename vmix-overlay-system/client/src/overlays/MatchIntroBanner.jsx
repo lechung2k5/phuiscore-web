@@ -111,6 +111,9 @@ const MatchIntroBanner = ({ zIndex, visible, match }) => {
   if (!match) return null;
   const { teamA, teamB } = match;
 
+  const leftBannerSrc = teamA?.playerBannerUrl || cauThuTrai;
+  const rightBannerSrc = teamB?.playerBannerUrl || cauThuPhai;
+
   const getLogo = (logoUrl) => {
     if (!logoUrl || typeof logoUrl !== 'string' || logoUrl.trim() === '' || logoUrl === 'undefined' || logoUrl === 'null') {
       return defaultLogo;
@@ -143,7 +146,7 @@ const MatchIntroBanner = ({ zIndex, visible, match }) => {
       {/* NHÓM BÊN TRÁI */}
       <div ref={leftGroupRef} style={{ width: '100%', height: '100%', position: 'absolute' }}>
         <RecoloredAsset src={bgTrai} className="intro-asset intro-bg-left" alt="bg left" color={teamA.color} />
-        <img ref={leftPlayerRef} src={cauThuTrai} className="intro-asset intro-player-left" alt="player left" />
+        <img ref={leftPlayerRef} src={leftBannerSrc} className="intro-asset intro-player-left" alt="player left" />
         <RecoloredAsset src={asset1Trai} className="intro-asset intro-shard1-left" alt="shard" color={teamA.color} />
         <img src={asset2Trai} className="intro-asset intro-shard2-left" alt="shard" />
         
@@ -155,7 +158,7 @@ const MatchIntroBanner = ({ zIndex, visible, match }) => {
       {/* NHÓM BÊN PHẢI */}
       <div ref={rightGroupRef} style={{ width: '100%', height: '100%', position: 'absolute' }}>
         <RecoloredAsset src={bgPhai} className="intro-asset intro-bg-right" alt="bg right" color={teamB.color} />
-        <img ref={rightPlayerRef} src={cauThuPhai} className="intro-asset intro-player-right" alt="player right" />
+        <img ref={rightPlayerRef} src={rightBannerSrc} className="intro-asset intro-player-right" alt="player right" />
         <RecoloredAsset src={asset1Phai} className="intro-asset intro-shard1-right" alt="shard" color={teamB.color} />
         <img src={asset2Phai} className="intro-asset intro-shard2-right" alt="shard" />
         

@@ -17,12 +17,14 @@ const mapDbToOverlay = (dbMatch) => {
         sponsorOverlay: { visible: false, zIndex: 60, data: null },
         mediaLogo: { visible: false, zIndex: 30, data: { logo: "", name: "" } },
         prematchBanner: { visible: false, zIndex: 90 },
-        eventTicker: { visible: false, zIndex: 65, data: [] }
+        eventTicker: { visible: false, zIndex: 65, data: [] },
+        pitchLogo: { visible: false, zIndex: 5 }
     };
 
     return {
         matchInfo: {
             tournamentName: dbMatch.tournamentName || "Giải đấu",
+            tournamentLogo: dbMatch.tournamentLogo || "",
             round: dbMatch.round || "",
             period: dbMatch.status || "PRE_MATCH",
             venue: dbMatch.stadium || "",
@@ -40,7 +42,8 @@ const mapDbToOverlay = (dbMatch) => {
             penalties: ['pending', 'pending', 'pending', 'pending', 'pending'],
             goals: (dbMatch.incidents || []).filter(i => i.team === 'home' && i.type === 'goal').map(i => ({ id: i.id, playerName: i.playerName, minute: i.minute })),
             cards: (dbMatch.incidents || []).filter(i => i.team === 'home' && (i.type === 'yellow_card' || i.type === 'red_card')).map(i => ({ id: i.id, type: i.type, playerName: i.playerName, minute: i.minute })),
-            subs: (dbMatch.incidents || []).filter(i => i.team === 'home' && i.type === 'sub').map(i => ({ id: i.id, playerOutName: i.playerOutName, playerInName: i.playerInName, minute: i.minute }))
+            subs: (dbMatch.incidents || []).filter(i => i.team === 'home' && i.type === 'sub').map(i => ({ id: i.id, playerOutName: i.playerOutName, playerInName: i.playerInName, minute: i.minute })),
+            playerBannerUrl: dbMatch.homeTeam?.playerBannerUrl
         },
         awayTeam: {
             name: dbMatch.awayTeam?.name || "Đội Khách",
@@ -50,7 +53,8 @@ const mapDbToOverlay = (dbMatch) => {
             penalties: ['pending', 'pending', 'pending', 'pending', 'pending'],
             goals: (dbMatch.incidents || []).filter(i => i.team === 'away' && i.type === 'goal').map(i => ({ id: i.id, playerName: i.playerName, minute: i.minute })),
             cards: (dbMatch.incidents || []).filter(i => i.team === 'away' && (i.type === 'yellow_card' || i.type === 'red_card')).map(i => ({ id: i.id, type: i.type, playerName: i.playerName, minute: i.minute })),
-            subs: (dbMatch.incidents || []).filter(i => i.team === 'away' && i.type === 'sub').map(i => ({ id: i.id, playerOutName: i.playerOutName, playerInName: i.playerInName, minute: i.minute }))
+            subs: (dbMatch.incidents || []).filter(i => i.team === 'away' && i.type === 'sub').map(i => ({ id: i.id, playerOutName: i.playerOutName, playerInName: i.playerInName, minute: i.minute })),
+            playerBannerUrl: dbMatch.awayTeam?.playerBannerUrl
         },
         incidents: dbMatch.incidents || [],
         lineups: dbMatch.lineups || null,

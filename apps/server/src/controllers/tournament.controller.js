@@ -527,7 +527,7 @@ const tournamentController = {
     try {
       const {
         // Thông tin đội
-        teamName, logo, jerseyColor, jerseyColorAlt,
+        teamName, logo, playerBannerUrl, jerseyColor, jerseyColorAlt,
         // Trưởng đoàn / Quản lý
         managerName, managerPhone, managerEmail, managerIdCard,
         // HLV (tùy chọn)
@@ -548,7 +548,7 @@ const tournamentController = {
       }
 
       const updated = await TournamentRepo.registerTeam(req.params.id, {
-        teamName, logo, jerseyColor, jerseyColorAlt,
+        teamName, logo, playerBannerUrl, jerseyColor, jerseyColorAlt,
         managerName, managerPhone: managerPhone || contactPhone,
         managerEmail, managerIdCard,
         coachName, coachPhone,

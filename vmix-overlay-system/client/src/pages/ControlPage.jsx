@@ -9,6 +9,7 @@ import MatchControl from '../components/control/MatchControl';
 import LegacyScoreControl from '../components/control/LegacyScoreControl';
 import ScoreControl from '../components/control/ScoreControl';
 import LayerControl from '../components/control/LayerControl';
+import PitchLogoControl from '../components/control/PitchLogoControl';
 import EventControl from '../components/control/EventControl';
 import LineupControl from '../components/control/LineupControl';
 import PenaltyControl from '../components/control/PenaltyControl';
@@ -196,7 +197,7 @@ const ControlPage = () => {
                   {/* ===== LAYER CONTROL - THANH NGANG TRÊN CÙNG ===== */}
                   <div style={{ ...sectionStyle, marginBottom: 12 }}>
                     {sectionTitle('🎛️  Điều Khiển Layer (Bật / Tắt)', '#e6edf3')}
-                    <LayerControl matchState={matchState} toggleLayer={toggleLayer} horizontal />
+                    <LayerControl matchState={matchState} toggleLayer={toggleLayer} horizontal updateMatch={updateMatch} />
                   </div>
 
 

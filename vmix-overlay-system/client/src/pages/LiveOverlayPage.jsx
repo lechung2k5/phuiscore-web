@@ -13,6 +13,7 @@ import PenaltyScoreboard from '../overlays/PenaltyScoreboard';
 import SponsorOverlay from '../overlays/SponsorOverlay';
 import MediaLogo from '../overlays/MediaLogo';
 import MatchIntroBanner from '../overlays/MatchIntroBanner';
+import PitchLogoOverlay from '../overlays/PitchLogoOverlay';
 import EventTicker from '../overlays/EventTicker';
 import VarOverlay from '../overlays/VarOverlay';
 import HighlightOverlay from '../overlays/HighlightOverlay';
@@ -97,6 +98,7 @@ const StableOverlays = memo(({ matchInfo, homeTeam, awayTeam, layers, rootScoreb
         textColor: homeTeam?.textColor || '#ffffff',
         penalties: homeTeam?.penalties,
         goals: homeTeam?.goals,
+        playerBannerUrl: homeTeam?.playerBannerUrl,
       },
       teamB: {
         name: awayTeam?.name,
@@ -107,13 +109,14 @@ const StableOverlays = memo(({ matchInfo, homeTeam, awayTeam, layers, rootScoreb
         textColor: awayTeam?.textColor || '#ffffff',
         penalties: awayTeam?.penalties,
         goals: awayTeam?.goals,
+        playerBannerUrl: awayTeam?.playerBannerUrl,
       }
     };
   }, [
     matchInfo?.tournamentName, matchInfo?.round, matchInfo?.venue,
     matchInfo?.status, matchInfo?.period, matchInfo?.extraTime,
-    homeTeam?.name, homeTeam?.shortName, homeTeam?.logo, homeTeam?.score, homeTeam?.color, homeTeam?.textColor, homeTeam?.penalties, homeTeam?.goals,
-    awayTeam?.name, awayTeam?.shortName, awayTeam?.logo, awayTeam?.score, awayTeam?.color, awayTeam?.textColor, awayTeam?.penalties, awayTeam?.goals,
+    homeTeam?.name, homeTeam?.shortName, homeTeam?.logo, homeTeam?.score, homeTeam?.color, homeTeam?.textColor, homeTeam?.penalties, homeTeam?.goals, homeTeam?.playerBannerUrl,
+    awayTeam?.name, awayTeam?.shortName, awayTeam?.logo, awayTeam?.score, awayTeam?.color, awayTeam?.textColor, awayTeam?.penalties, awayTeam?.goals, awayTeam?.playerBannerUrl,
   ]);
 
   // clock riêng - chỉ truyền xuống ScoreboardTop/Bottom (component biết xử lý)
@@ -144,6 +147,14 @@ const StableOverlays = memo(({ matchInfo, homeTeam, awayTeam, layers, rootScoreb
         zIndex={layers.prematchBanner?.zIndex || 90}
         visible={layers.prematchBanner?.visible}
         match={matchStatic}
+      />
+
+      {/* ================= PITCH LOGO OVERLAY ================= */}
+      <PitchLogoOverlay
+        zIndex={layers.pitchLogo?.zIndex || 5}
+        visible={layers.pitchLogo?.visible}
+        tournamentLogo={layers.mediaLogo?.tournamentLogo || matchStatic.tournamentLogo}
+        data={layers.pitchLogo?.data}
       />
 
       {/* Scoreboard: dùng matchFull - có clock */}

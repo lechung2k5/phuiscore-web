@@ -11,6 +11,7 @@ import { AutoSchedulerModal } from './AutoSchedulerModal'
 import { AddMatchModal } from './AddMatchModal'
 import { AppConfirmDialog, AppAlertDialog } from '../layout/AppDialog'
 import { StandingRow } from '../Standings/StandingRow'
+import { generateMatchSlug } from '../../utils/slug'
 
 const parseDateString = (dStr: string) => {
   if (!dStr) return new Date();
@@ -1364,7 +1365,7 @@ export default function TournamentDetailScreen({ id }: { id: string }) {
                         isMobile={isMobile}
                         isDragOver={isDragOver}
                         onEdit={() => { setEditMatch(m); setShowAddMatch(true); }}
-                        onViewDetail={() => router.push(`/truc-tiep/${m.id}`)}
+                        onViewDetail={() => router.push(`/truc-tiep/${generateMatchSlug(m.homeTeam?.name || 'Home', m.awayTeam?.name || 'Away', m.dateString || new Date().toISOString().split('T')[0], m.id)}`)}
                         onDragStart={(e: any) => handleDragStart(e, m)}
                         onDragOver={(e: any) => handleDragOver(e, m.id)}
                         onDragLeave={() => setDragOverId(null)}

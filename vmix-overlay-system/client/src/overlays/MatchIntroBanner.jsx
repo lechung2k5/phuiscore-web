@@ -5,7 +5,8 @@ import './matchIntroBanner.css';
 // Tải Assets
 const bgTrai = '/assets/banner_gioithieu/bg_trai.png';
 const bgPhai = '/assets/banner_gioithieu/bg_phai.png';
-const cauThuPhai = '/assets/banner_gioithieu/cau thu phai.png';
+const cauThuTrai = '/assets/cauthu/messi.png';
+const cauThuPhai = '/assets/cauthu/ronaldo.png';
 const logoGiai = '/assets/banner_gioithieu/logo_giai.png';
 const logoAmBan = '/assets/banner_gioithieu/logo_amban.png';
 const vsImg = '/assets/banner_gioithieu/vs.png';
@@ -142,7 +143,7 @@ const MatchIntroBanner = ({ zIndex, visible, match }) => {
       {/* NHÓM BÊN TRÁI */}
       <div ref={leftGroupRef} style={{ width: '100%', height: '100%', position: 'absolute' }}>
         <RecoloredAsset src={bgTrai} className="intro-asset intro-bg-left" alt="bg left" color={teamA.color} />
-        <img ref={leftPlayerRef} src={cauThuPhai} className="intro-asset intro-player-left" alt="player left" style={{ transform: 'scaleX(-1)' }} />
+        <img ref={leftPlayerRef} src={cauThuTrai} className="intro-asset intro-player-left" alt="player left" />
         <RecoloredAsset src={asset1Trai} className="intro-asset intro-shard1-left" alt="shard" color={teamA.color} />
         <img src={asset2Trai} className="intro-asset intro-shard2-left" alt="shard" />
         

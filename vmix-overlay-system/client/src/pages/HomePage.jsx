@@ -22,7 +22,7 @@ const HomePage = () => {
     }
   };
 
-  const [tournamentId, setTournamentId] = useState('9999');
+  const [tournamentId, setTournamentId] = useState('5ac6ac30-fd8c-44a4-af02-fd88dbafaac0');
   const [matches, setMatches] = useState([]);
   const [loading, setLoading] = useState(false);
 
@@ -93,7 +93,7 @@ const HomePage = () => {
             <Title level={5} style={{ color: '#888', marginTop: 16 }}>Chọn trận đấu từ Giải đấu (ID: {tournamentId}):</Title>
             <Space.Compact style={{ width: '100%', marginBottom: 16 }}>
               <Input 
-                placeholder="ID Giải đấu (VD: 9999)" 
+                placeholder="ID Giải đấu (VD: 5ac6ac30-fd8c-44a4-af02-fd88dbafaac0)" 
                 value={tournamentId}
                 onChange={(e) => setTournamentId(e.target.value)}
                 onPressEnter={() => fetchMatches(tournamentId)}

@@ -16,14 +16,23 @@ router.get('/:matchId/state', async (req, res) => {
   res.json(state);
 });
 
-// Lấy danh sách trận đấu của một giải đấu (GSI)
+// Lấy danh sách trận đấu của một giải đấu (Proxy từ Main Server)
 router.get('/tournament/:tournamentId', async (req, res) => {
   const { tournamentId } = req.params;
   try {
-    const matches = await MatchRepo.getMatchesByTournament(tournamentId);
-    res.json({ success: true, data: matches });
+    const axios = require('axios');
+    const MAIN_SERVER_URL = process.env.MAIN_SERVER_URL || 'https://phuiscore-web.onrender.com';
+    const response = await axios.get(`${MAIN_SERVER_URL}/api/tournaments/${tournamentId}/matches`);
+    
+    // Đảm bảo trả về đúng format { success: true, data: matches }
+    if (response.data && response.data.data) {
+      res.json({ success: true, data: response.data.data });
+    } else {
+      res.json({ success: true, data: response.data });
+    }
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    console.error('Fetch matches error:', error.message);
+    res.status(500).json({ success: false, error: 'Không thể tải danh sách trận đấu từ máy chủ chính.' });
   }
 });
 

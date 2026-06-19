@@ -93,7 +93,7 @@ const PlayerCard = ({ member, index, onEdit, onDelete, onUploadAvatar }: any) =>
             borderWidth={2} borderColor={isCaptain ? (C.accentBorder as any) : (C.cardBorder as any)}
             style={{ flexShrink: 0, cursor: 'pointer' } as any} hoverStyle={{ opacity: 0.8 } as any}
             onPress={() => onUploadAvatar(member.id || member._id)}>
-            {member.avatar ? <Image src={member.avatar} width={52} height={52} style={{ objectFit: 'cover' } as any} />
+            {member.avatar ? <Image src={member.avatar.startsWith('http') ? member.avatar : `${API.replace('/api', '')}${member.avatar.startsWith('/') ? '' : '/'}${member.avatar}`} width={52} height={52} style={{ objectFit: 'cover' } as any} />
               : <View flex={1} alignItems="center" justifyContent="center"><User size={22} color={C.textDim as any} /></View>}
           </View>
           <YStack flex={1} gap="$1">

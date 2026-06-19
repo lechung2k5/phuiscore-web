@@ -28,8 +28,12 @@ const EventControl = ({ matchState, triggerEvent }) => {
     if (playersRaw && playersRaw.length > 0) {
       return playersRaw.map((p, index) => {
         let avatarUrl = p.player?.avatar || p.avatar || p.player?.photo || p.photo || "";
-        if (avatarUrl && avatarUrl.startsWith('/uploads')) {
-            avatarUrl = `http://localhost:5000${avatarUrl}`;
+        if (typeof avatarUrl === 'string') {
+            avatarUrl = avatarUrl.replace(/\\/g, '/');
+            if (avatarUrl && !avatarUrl.startsWith('http') && !avatarUrl.startsWith('blob:')) {
+                const mainServerUrl = import.meta.env.VITE_MAIN_SERVER_URL || 'https://phuiscore-web.onrender.com';
+                avatarUrl = `${mainServerUrl}${avatarUrl.startsWith('/') ? '' : '/'}${avatarUrl}`;
+            }
         }
         return {
           id: p.player?.id || p.id || index,

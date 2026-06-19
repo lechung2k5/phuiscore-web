@@ -9,7 +9,7 @@ const cauThuTrai = '/assets/cauthu/messi.png';
 const cauThuPhai = '/assets/cauthu/ronaldo.png';
 const logoGiai = '/assets/banner_gioithieu/logo_giai.png';
 const logoAmBan = '/assets/banner_gioithieu/logo_amban.png';
-const vsImg = '/assets/banner_gioithieu/vs.png';
+import vsImg from '../assets/banner_gioithieu/vs.png';
 const asset1Trai = '/assets/banner_gioithieu/asset1_trai.png';
 const asset2Trai = '/assets/banner_gioithieu/asset2_trai.png';
 const asset1Phai = '/assets/banner_gioithieu/asset1_phai.png';
@@ -35,7 +35,7 @@ const MatchIntroBanner = ({ zIndex, visible, match }) => {
     let hideTimer, loopTimer;
 
     const SHOW_DURATION = 10000;  // Hiển thị 10s
-    const HIDE_DURATION = 10000;  // Tắt (nghỉ) 10s
+    const HIDE_DURATION = 5000;   // Tắt (nghỉ) 5s
 
     const startLoop = () => {
       // Bật lên

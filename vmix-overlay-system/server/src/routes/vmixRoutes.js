@@ -7,8 +7,8 @@ const router = express.Router();
 
 const VMIX_URL = 'http://127.0.0.1:8088';
 
-// Tạo thư mục temp nếu chưa có
-const TEMP_DIR = path.join(__dirname, '../../../uploads/temp');
+// Tạo thư mục temp nếu chưa có (dùng process.cwd() để tạo cạnh file .exe)
+const TEMP_DIR = path.join(process.cwd(), 'uploads/temp');
 if (!fs.existsSync(TEMP_DIR)) {
   fs.mkdirSync(TEMP_DIR, { recursive: true });
 }

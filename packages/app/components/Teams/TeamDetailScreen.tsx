@@ -305,10 +305,9 @@ export default function TeamDetailScreen() {
                           <T color={C.primary as any} fontSize={11} fontWeight="900">{p.shirtNumber || '-'}</T>
                         </V>
                         
-                        {/* Avatar */}
                         <V width={80} height={80} borderRadius={40} overflow="hidden" backgroundColor="rgba(0,0,0,0.5)" borderWidth={2} borderColor={"rgba(255,255,255,0.1)" as any} alignItems="center" justifyContent="center" marginTop="$4">
                           {p.avatar ? (
-                            <Image src={p.avatar} width="100%" height="100%" style={{ objectFit: 'cover' } as any} />
+                            <Image src={p.avatar.startsWith('http') ? p.avatar : `${API.replace('/api', '')}${p.avatar.startsWith('/') ? '' : '/'}${p.avatar}`} width="100%" height="100%" style={{ objectFit: 'cover' } as any} />
                           ) : (
                             <User size={36} color={"#555" as any} />
                           )}

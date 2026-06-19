@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head><title>PNG Test</title></head>
+<body style="background:#111; color:#fff; font-family:monospace">
+<h2>Asset Test - Checking if PNGs load correctly</h2>
+<div id="results"></div>
+<script>
+const files = [
+  '/assets/bangtiso/team_home-B1nEwJKM.png',
+  '/assets/bangtiso/team_away-CRjDKtHD.png',
+  '/assets/bangtiso/score_time-DR0GiOXL.png',
+  '/assets/logo_giai.png',
+  '/assets/banner_gioithieu/bg_trai.png',
+  '/assets/banner_gioithieu/bg_phai.png',
+  '/assets/banner_gioithieu/vs.png',
+  '/assets/bts_duoi/khung_trai.png',
+  '/assets/bts_duoi/khung_giua.png',
+  '/assets/bts_duoi/khung_phai.png',
+  '/assets/penalty/khung_trai.png',
+  '/assets/penalty/khung_phai.png',
+  '/assets/nha_tai_tro/AKPRO.png',
+  '/assets/nha_tai_tro/HOANGNONG.png',
+  '/assets/nha_tai_tro/ligpro.png',
+  '/assets/var/bg_overlay.png',
+];
+
+const div = document.getElementById('results');
+files.forEach(src => {
+  const row = document.createElement('div');
+  row.style.cssText = 'display:flex;align-items:center;gap:12px;margin:8px 0;';
+  const img = document.createElement('img');
+  img.src = src;
+  img.style.cssText = 'height:60px;border:1px solid #444;';
+  const label = document.createElement('span');
+  label.textContent = src;
+  img.onload = () => { label.style.color = '#0f0'; label.textContent = '✅ ' + src; };
+  img.onerror = () => { label.style.color = '#f00'; label.textContent = '❌ BROKEN: ' + src; };
+  row.appendChild(img);
+  row.appendChild(label);
+  div.appendChild(row);
+});
+</script>
+</body>
+</html>

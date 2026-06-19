@@ -6,8 +6,8 @@ const fs = require('fs');
 const router = express.Router();
 
 // Đảm bảo thư mục upload tồn tại
-const uploadDirSponsor = path.join(__dirname, '../../uploads/nha_tai_tro');
-const uploadDirMedia = path.join(__dirname, '../../uploads/logo_dai');
+const uploadDirSponsor = path.join(process.cwd(), 'uploads/nha_tai_tro');
+const uploadDirMedia = path.join(process.cwd(), 'uploads/logo_dai');
 if (!fs.existsSync(uploadDirSponsor)) fs.mkdirSync(uploadDirSponsor, { recursive: true });
 if (!fs.existsSync(uploadDirMedia)) fs.mkdirSync(uploadDirMedia, { recursive: true });
 

@@ -226,7 +226,7 @@ const TeamRosterModal = ({ team, onClose }: { team: any, onClose: () => void }) 
           style={{ flexShrink: 0, background: 'linear-gradient(135deg, rgba(40,167,69,0.1) 0%, transparent 100%)' }}>
           <XStack alignItems="center" gap="$3">
             {team.logo ? (
-              <img src={team.logo} alt={team.teamName} style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover', border: '2px solid rgba(255,255,255,0.15)' }} />
+              <img src={team.logo.startsWith('http') ? team.logo : `${API.replace('/api', '')}${team.logo.startsWith('/') ? '' : '/'}${team.logo}`} alt={team.teamName} style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover', border: '2px solid rgba(255,255,255,0.15)' }} />
             ) : (
               <View width={36} height={36} borderRadius={18} backgroundColor={(team.jerseyColor || 'rgba(40,167,69,0.2)') as any}
                 borderWidth={2} borderColor={"rgba(255,255,255,0.15)" as any} />
@@ -257,7 +257,7 @@ const TeamRosterModal = ({ team, onClose }: { team: any, onClose: () => void }) 
                     borderRadius={12} padding="$2" gap="$3" alignItems="center"
                     borderWidth={1} borderColor={"rgba(255,255,255,0.05)" as any}>
                     {p.photo ? (
-                      <Image src={p.photo} width={40} height={40} borderRadius={8} style={{ objectFit: 'cover' } as any} />
+                      <Image src={p.photo.startsWith('http') ? p.photo : `${API.replace('/api', '')}${p.photo.startsWith('/') ? '' : '/'}${p.photo}`} width={40} height={40} borderRadius={8} style={{ objectFit: 'cover' } as any} />
                     ) : (
                       <View width={40} height={40} borderRadius={8} backgroundColor={"rgba(40,167,69,0.1)" as any}
                         alignItems="center" justifyContent="center">
@@ -356,7 +356,7 @@ const TeamDetailPanel = ({ team, tournamentId, onClose, onUpdated, onConfirm, on
             {/* Jersey preview */}
             <XStack gap="$1.5" alignItems="center">
               {team.logo ? (
-                <img src={team.logo} alt={team.teamName} style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover', border: '2px solid rgba(255,255,255,0.15)' }} />
+                <img src={team.logo.startsWith('http') ? team.logo : `${API.replace('/api', '')}${team.logo.startsWith('/') ? '' : '/'}${team.logo}`} alt={team.teamName} style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover', border: '2px solid rgba(255,255,255,0.15)' }} />
               ) : (
                 <>
                   <View width={36} height={36} borderRadius={18}
@@ -476,7 +476,7 @@ const TeamDetailPanel = ({ team, tournamentId, onClose, onUpdated, onConfirm, on
                       hoverStyle={{ backgroundColor: 'rgba(255,255,255,0.04)' } as any}>
                       {/* Photo */}
                       {p.photo ? (
-                        <img src={p.photo} alt={p.name}
+                        <img src={p.photo.startsWith('http') ? p.photo : `${API.replace('/api', '')}${p.photo.startsWith('/') ? '' : '/'}${p.photo}`} alt={p.name}
                           style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover', flexShrink: 0, border: '1.5px solid rgba(255,255,255,0.12)' }} />
                       ) : (
                         <View width={36} height={36} borderRadius={18} flexShrink={0}
@@ -658,9 +658,9 @@ const TeamCard = ({ team, onViewDetail, onDelete }: any) => {
       onPress={onViewDetail} style={{ cursor: 'pointer', transition: 'border-color 0.2s' }}>
       {/* Avatar (jersey color) */}
       {team.logo ? (
-        <img src={team.logo} alt={team.teamName || 'team logo'} style={{ width: 44, height: 44, borderRadius: '50%', objectFit: 'cover', flexShrink: 0, border: '1.5px solid rgba(255,255,255,0.1)' }} />
+        <img src={team.logo.startsWith('http') ? team.logo : `${API.replace('/api', '')}${team.logo.startsWith('/') ? '' : '/'}${team.logo}`} alt={team.teamName || 'team logo'} style={{ width: 44, height: 44, borderRadius: '50%', objectFit: 'cover', flexShrink: 0, border: '1.5px solid rgba(255,255,255,0.1)' }} />
       ) : team.players?.[0]?.photo ? (
-        <img src={team.players[0].photo} alt={team.teamName || 'team photo'} style={{ width: 44, height: 44, borderRadius: '50%', objectFit: 'cover', flexShrink: 0, border: '1.5px solid rgba(255,255,255,0.1)' }} />
+        <img src={team.players[0].photo.startsWith('http') ? team.players[0].photo : `${API.replace('/api', '')}${team.players[0].photo.startsWith('/') ? '' : '/'}${team.players[0].photo}`} alt={team.teamName || 'team photo'} style={{ width: 44, height: 44, borderRadius: '50%', objectFit: 'cover', flexShrink: 0, border: '1.5px solid rgba(255,255,255,0.1)' }} />
       ) : (
         <View width={44} height={44} borderRadius={22} flexShrink={0}
           backgroundColor={(team.jerseyColor || 'rgba(40,167,69,0.15)') as any}

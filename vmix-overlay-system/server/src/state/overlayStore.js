@@ -64,7 +64,17 @@ const mapDbToOverlay = (dbMatch) => {
 };
 
 const initMatchState = async (date, matchId) => {
-    const dbMatch = await MatchRepo.getMatch(date, matchId);
+    let dbMatch = null;
+    try {
+        const MAIN_SERVER_URL = process.env.MAIN_SERVER_URL || 'https://phuiscore-web.onrender.com';
+        const res = await axios.get(`${MAIN_SERVER_URL}/api/matches/detail/${matchId}?date=${date}`);
+        if (res.data && res.data.data) {
+            dbMatch = res.data.data;
+        }
+    } catch(e) {
+        console.error('Failed to fetch match detail from main server:', e.message);
+    }
+
     if (dbMatch) {
         const state = mapDbToOverlay(dbMatch);
         stateMap.set(matchId, state);
@@ -114,11 +124,11 @@ const syncToDynamoDBAsync = async (matchId, state) => {
         if (lastSyncedDataMap.get(matchId) === currentHash) return;
         lastSyncedDataMap.set(matchId, currentHash);
 
-        // Lưu DynamoDB
-        await MatchRepo.updateMatchScoreboard(date, matchId, updateData);
+        // KHÔNG LƯU TRỰC TIẾP VÀO DYNAMODB TỪ BẢN .EXE CỦA KHÁCH HÀNG!
+        // Client app chỉ được phép gọi Webhook để Main Server tự xử lý DB.
         
         // Gọi Webhook
-        const MAIN_SERVER_URL = process.env.MAIN_SERVER_URL || 'http://localhost:5000';
+        const MAIN_SERVER_URL = process.env.MAIN_SERVER_URL || 'https://phuiscore-web.onrender.com';
         const SYNC_TOKEN = process.env.SYNC_TOKEN || 'phuiscore_secret_2026';
         
         axios.post(`${MAIN_SERVER_URL}/api/sync/vmix-webhook`, {

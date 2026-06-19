@@ -58,7 +58,7 @@ async function run() {
                 if (fs.existsSync(imgPath)) {
                     console.log(`Uploading ${imageName} to S3 for team ${team.teamName}...`);
                     const fileBuffer = fs.readFileSync(imgPath);
-                    const s3Key = `tournaments/banners/${imageName}`;
+                    const s3Key = `tournaments/banners/${Date.now()}_${imageName}`;
                     
                     await s3.send(new PutObjectCommand({
                         Bucket: BUCKET,
